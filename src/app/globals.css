@@ -51,6 +51,11 @@
   --tint-neutral: color-mix(in srgb, var(--neutral) 12%, var(--surface));
   --tint-signal: color-mix(in srgb, var(--signal) 22%, var(--surface));
 
+  /* Illustration fills derived from tokens. */
+  --hero-halo: color-mix(in srgb, var(--signal) 22%, var(--paper));
+  --hero-glow: color-mix(in srgb, var(--signal) 45%, var(--paper));
+  --hero-cheek: color-mix(in srgb, var(--blocked) 45%, var(--signal));
+
   color-scheme: light;
 }
 
@@ -69,11 +74,13 @@
     --neutral: #8D929A;
     --shadow-card: 0 1px 2px rgb(0 0 0 / 0.4);
     --shadow-overlay: 0 8px 32px rgb(0 0 0 / 0.5);
+    --hero-halo: color-mix(in srgb, var(--signal) 14%, var(--paper));
     color-scheme: dark;
   }
 }
 
 :root[data-theme="dark"] {
+  --hero-halo: color-mix(in srgb, var(--signal) 14%, var(--paper));
   --ink: #F4F1EA;
   --ink-2: #B9B4AA;
   --paper: #121417;
@@ -732,6 +739,46 @@ table.data th.num {
 .hero h1 {
   font-size: clamp(2rem, 6vw, 3rem);
   max-width: 18ch;
+}
+.hero-grid {
+  display: grid;
+  grid-template-columns: 1.1fr 1fr;
+  align-items: center;
+  gap: var(--s-6);
+}
+.hero-art {
+  width: 100%;
+  height: auto;
+  max-width: 520px;
+  justify-self: end;
+}
+@media (max-width: 760px) {
+  .hero-grid {
+    grid-template-columns: 1fr;
+  }
+  .hero-art {
+    max-width: 340px;
+    justify-self: center;
+  }
+}
+.icon-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-2);
+}
+.icon-list li {
+  display: grid;
+  grid-template-columns: 20px 1fr;
+  gap: var(--s-3);
+  align-items: start;
+}
+.icon-list svg {
+  width: 20px;
+  height: 20px;
+  margin-top: 3px;
 }
 .split {
   display: grid;

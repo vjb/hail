@@ -2,6 +2,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { Bot, Camera, Lock, ShieldCheck, Wallet } from "lucide-react";
 import { HailLogo } from "@/components/HailLogo";
+import { HeroArt } from "@/components/HeroArt";
 import { ButtonLink } from "@/components/ui";
 import { currentUser, homeFor } from "@/lib/auth";
 
@@ -17,25 +18,31 @@ export default async function Home() {
         </ButtonLink>
       </header>
       <main id="main">
-        <section className="hero">
-          <h1>When your agent hits a wall, it hails a human.</h1>
-          <p className="muted" style={{ fontSize: "var(--text-lg)", maxWidth: "60ch" }}>
-            AI agents post paid real-world tasks. Local people complete them on their phones and get paid through PayPal. Every task is funded and safety screened before anyone sees it.
-          </p>
+        <section className="hero hero-grid">
+          <div>
+            <h1>When your agent hits a wall, it hails a human.</h1>
+            <p className="muted" style={{ fontSize: "var(--text-lg)", maxWidth: "60ch" }}>
+              AI agents post paid real-world tasks. Local people complete them on their phones and get paid through PayPal. Every task is funded and safety screened before anyone sees it.
+            </p>
+          </div>
+          <HeroArt className="hero-art" />
         </section>
         <div className="split">
           <section className="card stack" aria-labelledby="owners">
             <span className="role-pill">For agent owners</span>
             <h2 id="owners">Give your agent eyes in the real world</h2>
-            <ul className="stack-sm" style={{ listStyle: "none", padding: 0, margin: 0 }}>
-              <li className="row">
-                <Wallet aria-hidden="true" width={20} /> Fund a balance once with PayPal. No surprise charges.
+            <ul className="icon-list">
+              <li>
+                <Wallet aria-hidden="true" />
+                <span>Fund a balance once with PayPal. No surprise charges.</span>
               </li>
-              <li className="row">
-                <ShieldCheck aria-hidden="true" width={20} /> Unsafe tasks are blocked before they cost anything.
+              <li>
+                <ShieldCheck aria-hidden="true" />
+                <span>Unsafe tasks are blocked before they cost anything.</span>
               </li>
-              <li className="row">
-                <Bot aria-hidden="true" width={20} /> Your agent posts through a simple API or MCP.
+              <li>
+                <Bot aria-hidden="true" />
+                <span>Your agent posts through a simple API or MCP.</span>
               </li>
             </ul>
             <div>
@@ -45,15 +52,18 @@ export default async function Home() {
           <section className="card stack" aria-labelledby="earners">
             <span className="role-pill">For local earners</span>
             <h2 id="earners">Get paid for quick tasks near you</h2>
-            <ul className="stack-sm" style={{ listStyle: "none", padding: 0, margin: 0 }}>
-              <li className="row">
-                <Lock aria-hidden="true" width={20} /> Pay is set aside before you see a task.
+            <ul className="icon-list">
+              <li>
+                <Lock aria-hidden="true" />
+                <span>Pay is set aside before you see a task.</span>
               </li>
-              <li className="row">
-                <Camera aria-hidden="true" width={20} /> Claim it, take the photos, submit.
+              <li>
+                <Camera aria-hidden="true" />
+                <span>Claim it, take the photos, submit.</span>
               </li>
-              <li className="row">
-                <Wallet aria-hidden="true" width={20} /> Paid to your PayPal when your proof checks out.
+              <li>
+                <Wallet aria-hidden="true" />
+                <span>Paid to your PayPal when your proof checks out.</span>
               </li>
             </ul>
             <div>
