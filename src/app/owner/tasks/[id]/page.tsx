@@ -8,7 +8,8 @@ import { HOLDS_FUNDS } from "@/domain/bounty/state";
 import { ProofView } from "@/components/ProofView";
 import { bountyDetail, categoryLabel, latestProof } from "@/domain/owner/queries";
 import { requireRole } from "@/lib/auth";
-import { ApproveButtons, CancelButton, ReviewButtons } from "../../forms";
+import { latestAppeal } from "@/domain/timers/timers";
+import { AppealButtons, ApproveButtons, CancelButton, ReviewButtons } from "../../forms";
 
 export const metadata: Metadata = { title: "Task" };
 
@@ -46,6 +47,7 @@ export default async function TaskDetail({ params }: PageProps<"/owner/tasks/[id
   if (!d) notFound();
   const { bounty: b, events, screens } = d;
   const proof = await latestProof(db(), owner.id, b.id);
+  const appeal = await latestAppeal(db(), b.id);
   const final = [...screens].reverse().find((s) => s.layer === "final");
   const timeline: TimelineItem[] = events.map((e) => {
     const detail = e.detail as { event?: string; rationale?: string; note?: string };
@@ -107,6 +109,16 @@ export default async function TaskDetail({ params }: PageProps<"/owner/tasks/[id
             </p>
           )}
           {b.status === "needs_owner_review" && <ReviewButtons bountyId={b.id} title={b.title} />}
+          {appeal && (
+            <div className="stack-sm" style={{ borderTop: "1px solid var(--line)", paddingTop: "var(--s-3)" }}>
+              <h3 style={{ margin: 0 }}>Appeal</h3>
+              <p style={{ margin: 0 }}>
+                <strong>Worker says:</strong> {appeal.reason}
+              </p>
+              {appeal.decision && <p className="muted" style={{ margin: 0 }}>Decision: {appeal.decision === "approved" ? "accepted" : "declined"}{appeal.decidedBy === "sweeper" ? " automatically (review window passed)" : ""}.</p>}
+              {b.status === "appealed" && <AppealButtons bountyId={b.id} title={b.title} />}
+            </div>
+          )}
         </section>
       )}
 

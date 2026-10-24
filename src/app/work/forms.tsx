@@ -3,7 +3,7 @@
 import { useActionState, useRef, useState } from "react";
 import { AlertTriangle, Camera, CheckCircle2, LoaderCircle, MapPin, RotateCcw } from "lucide-react";
 import { FormError, formatMoney } from "@/components/ui";
-import { claimAction, paypalEmailAction, releaseAction, submitAction, type WorkState } from "./actions";
+import { appealAction, claimAction, paypalEmailAction, releaseAction, submitAction, type WorkState } from "./actions";
 
 function Notice({ state }: { state: WorkState }) {
   if (state.error) return <FormError>{state.error}</FormError>;
@@ -233,6 +233,27 @@ export function ProofCapture({
       {anyRetake && <p className="muted">You can still submit, but photos marked for a retake may not pass verification.</p>}
       <button type="submit" className="btn btn-primary btn-block btn-lg" disabled={pending || !allPhotos || (needsLocation && !location)}>
         {pending ? "Submitting…" : allPhotos ? "Submit proof" : "Take every photo to submit"}
+      </button>
+    </form>
+  );
+}
+
+export function AppealForm({ bountyId, deadline }: { bountyId: string; deadline: string }) {
+  const [state, action, pending] = useActionState(appealAction, {});
+  if (state.ok) return <Notice state={state} />;
+  return (
+    <form action={action} className="stack-sm">
+      <input type="hidden" name="bountyId" value={bountyId} />
+      <div className="field">
+        <label htmlFor="appeal-reason">Think this is wrong? Tell the owner why (one appeal)</label>
+        <textarea id="appeal-reason" name="reason" required minLength={5} maxLength={1000} placeholder="e.g. The serial number is readable in photo 1 if you zoom in." aria-describedby="appeal-hint" />
+        <span id="appeal-hint" className="hint">
+          You can appeal until {new Date(deadline).toLocaleString("en-US", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })}.
+        </span>
+      </div>
+      <Notice state={state} />
+      <button type="submit" className="btn btn-secondary btn-block" disabled={pending}>
+        Send appeal
       </button>
     </form>
   );

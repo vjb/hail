@@ -8,6 +8,7 @@ import { db } from "@/db/client";
 import { DomainError } from "@/domain/bounty/service";
 import { settleSoon } from "@/domain/payouts/payouts";
 import { verifySubmission } from "@/domain/verify/verify";
+import { fileAppeal } from "@/domain/timers/timers";
 import { claimBounty, releaseClaim, setPayPalEmail, submitProof } from "@/domain/work/work";
 import { requireRole } from "@/lib/auth";
 
@@ -88,4 +89,15 @@ export async function paypalEmailAction(_: WorkState, form: FormData): Promise<W
   await setPayPalEmail(db(), w.id, parsed.data);
   revalidatePath("/work", "layout");
   return { ok: "Saved. Payouts will go to this PayPal account." };
+}
+
+export async function appealAction(_: WorkState, form: FormData): Promise<WorkState> {
+  const w = await requireRole("worker");
+  try {
+    await fileAppeal(db(), w.id, String(form.get("bountyId")), String(form.get("reason") ?? ""));
+  } catch (e) {
+    return { error: friendly(e) };
+  }
+  revalidatePath("/work", "layout");
+  return { ok: "Appeal sent. The owner will review it; if they don't answer in time, you're paid automatically." };
 }

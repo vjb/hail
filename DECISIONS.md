@@ -95,3 +95,13 @@ Decision:
 Alternatives considered: an AI-only classifier (slower and costlier, a single point of failure); a larger model (about 20× the cost for no measured gain on the set).
 Consequences: about $0.00012 per screened task. The labeled set gates every prompt change through `npm run eval:screening`.
 Devpost: built-with
+
+## D-016 — Callback delivery rules and appeal windows (2026-10-24)
+Context: `callback_url` is supplied by outside agents (untrusted). Appeals and timers needed concrete rules the spec left open.
+Decision:
+- **Callbacks:** only public `https` hosts. Rejected at post time with `invalid_request`, and re-checked at send time against DNS. Private, loopback, link-local and metadata IPs, `localhost`/`.internal`/`.local` names and URLs with credentials are refused. Redirects aren't followed. 10 s timeout. Retries back off at 1 m, 5 m, 15 m, 1 h, 3 h (6 attempts). Payload exactly as in `api.md`.
+- **Appeals:** one per rejected submission, by the worker who submitted, within the appeal window (24 h, scaled). No appeal → reopened. Owner accepts → paid. Owner declines → reopened, or expired if past expiry. Owner silence past the review window → paid.
+- The **review window** counts from the moment the bounty entered `needs_owner_review` or `appealed` (its last status change).
+- **Withdraw:** debit Available first, then partial-refund the newest captures (key `withdraw_<id>_<topup>`). Anything PayPal refuses is credited back as a reversal.
+Consequences: Callbacks carry no signature (not in the public contract). Agents should treat callbacks as hints and fetch the bounty, which `api.md` already says.
+Devpost: challenge

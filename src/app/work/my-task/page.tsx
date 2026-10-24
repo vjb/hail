@@ -5,7 +5,8 @@ import { ButtonLink, Checklist, EmptyState, Money, SetAsideBadge, StatusPill } f
 import { db } from "@/db/client";
 import { activeClaimFor, workerHistory } from "@/domain/work/work";
 import { requireRole } from "@/lib/auth";
-import { ProofCapture, ReleaseButton } from "../forms";
+import { appealDeadline } from "@/domain/timers/timers";
+import { AppealForm, ProofCapture, ReleaseButton } from "../forms";
 
 export const metadata: Metadata = { title: "My task" };
 
@@ -125,6 +126,7 @@ export default async function MyTask() {
             <XCircle aria-hidden="true" /> Your proof didn&apos;t meet the checklist
           </h2>
           {v && <p style={{ margin: 0 }}>{v.rationale}</p>}
+          {appealDeadline(b) && new Date() < appealDeadline(b)! && <AppealForm bountyId={b.id} deadline={appealDeadline(b)!.toISOString()} />}
         </section>
       )}
       {v && (

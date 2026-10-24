@@ -9,6 +9,8 @@ import { cancelBounty, decideApproval, decideReview, DomainError } from "@/domai
 import { createApiKey, revokeApiKey } from "@/domain/keys/keys";
 import { SCREEN_CATEGORIES } from "@/ai/provider";
 import { requireRole } from "@/lib/auth";
+import { decideAppeal } from "@/domain/timers/timers";
+import { withdraw } from "@/domain/withdrawals/withdrawals";
 
 export type FormState = { ok?: string; error?: string; rawKey?: string };
 
@@ -93,4 +95,31 @@ export async function savePolicyAction(_: FormState, form: FormData): Promise<Fo
   void eq;
   revalidatePath("/owner/policy");
   return { ok: "Policy saved." };
+}
+
+export async function appealDecisionAction(_: FormState, form: FormData): Promise<FormState> {
+  const owner = await requireRole("owner");
+  const accept = form.get("decision") === "approve";
+  const note = String(form.get("note") ?? "").trim().slice(0, 500) || undefined;
+  try {
+    await decideAppeal(db(), owner.id, String(form.get("bountyId")), accept, note);
+  } catch (e) {
+    return { error: friendly(e) };
+  }
+  return { ok: accept ? "Appeal accepted. The worker is being paid." : "Appeal declined. The task reopens for another worker." };
+}
+
+export async function withdrawAction(_: FormState, form: FormData): Promise<FormState> {
+  const owner = await requireRole("owner");
+  const dollars = Number(String(form.get("amount") ?? "").replace(/[^0-9.]/g, ""));
+  if (!Number.isFinite(dollars) || dollars <= 0) return { error: "Enter an amount to withdraw." };
+  try {
+    const r = await withdraw(db(), owner.id, Math.round(dollars * 100));
+    revalidatePath("/owner", "layout");
+    if (r.refundedCents === r.amountCents) return { ok: `$${(r.refundedCents / 100).toFixed(2)} is on its way back to your PayPal account.` };
+    if (r.refundedCents > 0) return { error: `Only $${(r.refundedCents / 100).toFixed(2)} could be refunded. The rest is back in your available balance.` };
+    return { error: "PayPal couldn't process the refund. Nothing was withdrawn; please try again later." };
+  } catch (e) {
+    return { error: friendly(e) };
+  }
 }

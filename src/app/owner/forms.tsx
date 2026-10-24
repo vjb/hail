@@ -4,7 +4,7 @@ import { useRouter } from "next/navigation";
 import { useActionState, useEffect, useState } from "react";
 import { Copy } from "lucide-react";
 import { FormError } from "@/components/ui";
-import { approveAction, cancelAction, createKeyAction, reviewAction, revokeKeyAction, savePolicyAction, type FormState } from "./actions";
+import { appealDecisionAction, approveAction, cancelAction, createKeyAction, reviewAction, revokeKeyAction, savePolicyAction, withdrawAction, type FormState } from "./actions";
 
 function Notice({ state }: { state: FormState }) {
   if (state.error) return <FormError>{state.error}</FormError>;
@@ -186,6 +186,56 @@ export function PolicyForm({ threshold, maxOpen, perHour, categories, selected }
           Save policy
         </button>
       </div>
+    </form>
+  );
+}
+
+export function AppealButtons({ bountyId, title }: { bountyId: string; title: string }) {
+  const [state, action, pending] = useActionState(appealDecisionAction, {});
+  const router = useRouter();
+  useEffect(() => {
+    if (!state.ok) return;
+    const t = setTimeout(() => router.refresh(), 2500);
+    return () => clearTimeout(t);
+  }, [state.ok, router]);
+  if (state.ok) return <Notice state={state} />;
+  return (
+    <form action={action} className="stack-sm">
+      <input type="hidden" name="bountyId" value={bountyId} />
+      <div className="field">
+        <label htmlFor={`appeal-note-${bountyId}`}>Note for the worker (optional)</label>
+        <input id={`appeal-note-${bountyId}`} name="note" maxLength={500} />
+      </div>
+      <Notice state={state} />
+      <div className="row">
+        <button type="submit" name="decision" value="approve" className="btn btn-primary" disabled={pending} aria-label={`Accept appeal and pay: ${title}`}>
+          Accept appeal and pay
+        </button>
+        <button type="submit" name="decision" value="reject" className="btn btn-danger" disabled={pending} aria-label={`Decline appeal: ${title}`}>
+          Decline appeal
+        </button>
+      </div>
+    </form>
+  );
+}
+
+export function WithdrawForm({ availableCents }: { availableCents: number }) {
+  const [state, action, pending] = useActionState(withdrawAction, {});
+  return (
+    <form action={action} className="stack-sm">
+      <div className="row" style={{ alignItems: "flex-end" }}>
+        <div className="field" style={{ maxWidth: 220 }}>
+          <label htmlFor="withdraw-amount">Withdraw amount (USD)</label>
+          <input id="withdraw-amount" name="amount" inputMode="decimal" placeholder={(availableCents / 100).toFixed(2)} aria-describedby="withdraw-hint" required />
+        </div>
+        <button type="submit" className="btn btn-secondary" disabled={pending || availableCents < 100}>
+          {pending ? "Withdrawing…" : "Withdraw to PayPal"}
+        </button>
+      </div>
+      <span id="withdraw-hint" className="hint muted" style={{ fontSize: "var(--text-sm)" }}>
+        Up to your available balance. Money set aside for tasks stays put. Refunds go back to the PayPal account you paid with.
+      </span>
+      <Notice state={state} />
     </form>
   );
 }
