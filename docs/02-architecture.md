@@ -92,7 +92,8 @@ Base: `https://api-m.sandbox.paypal.com`. OAuth2 client-credentials token, cache
 1. On approval: `POST /v1/payments/payouts` with `sender_batch_header.sender_batch_id = payout_<bounty_id>` (idempotent), one item: `recipient_type: EMAIL`, `receiver: worker.paypal_email`, amount, `note`, `sender_item_id = bounty_id`.
 2. Record batch ID; status `paying`.
 3. Webhook `PAYMENT.PAYOUTS-ITEM.SUCCEEDED` (or a poll of `GET /v1/payments/payouts/{batch_id}` from the sweeper) → `paid`. Failure/unclaimed events → surface on worker earnings and owner timeline; keep funds held and retry or let admin resolve.
-4. Payout funding comes from the sandbox business account balance. **Day 1 spike must confirm** Payouts works for our sandbox app without extra enablement, and how to see the business balance.
+4. Payout funding comes from the sandbox business account balance. **Confirmed Day 1:** Payouts works for the sandbox app with no extra enablement; a $1.00 item reaches `SUCCESS` within seconds.
+5. **Retry semantics (Day 1 finding, D-004):** reusing a `sender_batch_id` within 30 days is *rejected* with HTTP 400 `USER_BUSINESS_ERROR`; it does not replay the original batch. Persist the batch ID as soon as PayPal returns it; on retry, treat `USER_BUSINESS_ERROR` as "already sent" and recover the batch from our record (or the error's HATEOAS link). Orders, captures and refunds *do* replay the original response for a repeated `PayPal-Request-Id`.
 
 ### Withdraw (owner)
 Refund against one or more previous top-up captures: `POST /v2/payments/captures/{capture_id}/refund` with a partial amount and `PayPal-Request-Id = withdraw_<id>`. Allocate across captures newest-first. Ledger entries on success.

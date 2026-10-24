@@ -26,3 +26,17 @@ Thumbs.db
 .vscode/*
 !.vscode/extensions.json
 .idea/
+
+# Next / tooling
+.pnp
+.pnp.*
+*.pem
+.vercel
+
+# Test and QA artifacts
+e2e/artifacts/
+screenshots/
+
+# Spike output
+spike-results.json
+spike-approval-failure-*.png
