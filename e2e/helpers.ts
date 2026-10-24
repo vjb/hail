@@ -44,17 +44,22 @@ export async function approvePayPalPopup(popup: Page) {
   if (!email || !password) throw new Error("E2E_PAYPAL_BUYER_EMAIL / _PASSWORD must be set");
   await popup.waitForLoadState("domcontentloaded");
   const emailBox = popup.locator("#email");
-  await emailBox.waitFor({ timeout: 45_000 });
-  await emailBox.fill(email);
-  // PayPal sometimes shows email and password together, sometimes email → Next → password.
   const pw = popup.locator("#password");
-  const next = popup.locator("#btnNext").or(popup.getByRole("button", { name: "Next", exact: true }));
-  const login = popup.locator("#btnLogin");
-  await popup.waitForTimeout(1000);
-  if (await next.first().isVisible().catch(() => false)) {
-    await next.first().click({ timeout: 15_000 });
+  const next = popup.locator("#btnNext").or(popup.getByRole("button", { name: "Next", exact: true })).first();
+  const login = popup.locator("#btnLogin").or(popup.getByRole("button", { name: /^Log In$/i })).first();
+  await emailBox.waitFor({ timeout: 45_000 });
+  // PayPal's page sometimes resets the email field while it finishes loading, and shows either
+  // email+password together or email → Next → password. Retry the email step until the password step shows.
+  for (let attempt = 0; attempt < 4; attempt++) {
+    if (await login.isVisible().catch(() => false)) break;
+    await popup.waitForLoadState("networkidle", { timeout: 10_000 }).catch(() => {});
+    if (await emailBox.isVisible().catch(() => false)) {
+      await emailBox.fill(email);
+      if (await next.isVisible().catch(() => false)) await next.click({ timeout: 10_000 }).catch(() => {});
+    }
+    await login.waitFor({ state: "visible", timeout: 10_000 }).catch(() => {});
   }
-  await login.waitFor({ state: "visible", timeout: 30_000 });
+  await login.waitFor({ state: "visible", timeout: 20_000 });
   await pw.fill(password);
   await login.click();
   const challenge = popup.locator('iframe[title*="captcha" i], #captcha, [data-testid="challenge"]');

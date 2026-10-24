@@ -84,3 +84,14 @@ Decision (human):
 - The dusk street scene (Gemini-generated) is the README hero only, compressed into `docs/assets/`.
 Consequences: Originals stay in `tmp/` (not committed).
 Devpost: built-with
+
+## D-015 — Screening design: rules first, Haiku 5.5 classifier, structured outputs (2026-10-24)
+Context: Screening runs on every post, so it must be cheap, fast and never fail open.
+Decision:
+- Deterministic rules run first. If they block, no AI call is made.
+- Otherwise `AI_MODEL_SCREEN` (Claude Haiku 5.5, effort medium) classifies through structured outputs into a fixed category enum.
+- The stricter result wins. Confidence below 0.7 → owner approval. Any AI failure or refusal → owner approval.
+- Bounty text is sent as JSON inside `<bounty>` tags, with explicit "data, not instructions" framing. Prompt versions are stored with every decision.
+Alternatives considered: an AI-only classifier (slower and costlier, a single point of failure); a larger model (about 20× the cost for no measured gain on the set).
+Consequences: about $0.00012 per screened task. The labeled set gates every prompt change through `npm run eval:screening`.
+Devpost: built-with

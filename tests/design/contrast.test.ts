@@ -25,6 +25,23 @@ describe("design tokens", () => {
     }
   });
 
+  // Pills and badges: status text (mixed 20% toward ink) on a 12% status tint over the surface.
+  const mix = (a: string, b: string, p: number) => {
+    const h = (s: string) => [1, 3, 5].map((i) => parseInt(s.slice(i, i + 2), 16));
+    const [x, y] = [h(a), h(b)];
+    return "#" + x.map((v, i) => Math.round(v * p + y[i] * (1 - p)).toString(16).padStart(2, "0")).join("");
+  };
+  for (const theme of ["light", "dark"] as const) {
+    for (const tone of ["paid", "review", "blocked", "neutral"] as const) {
+      it(`${theme}: ${tone} pill text on its tint meets 4.5:1`, () => {
+        const t = colorTokens[theme];
+        const text = mix(t[tone], t.ink, 0.8);
+        const bg = mix(t[tone], t.surface, 0.12);
+        expect(contrastRatio(text, bg)).toBeGreaterThanOrEqual(4.5);
+      });
+    }
+  }
+
   it("no hard-coded hex colors outside the token blocks", () => {
     const rest = css.slice(css.indexOf("/* ---------- Base"));
     expect(rest.match(/#[0-9a-fA-F]{3,8}\b/g) ?? []).toEqual([]);

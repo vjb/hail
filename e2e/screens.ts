@@ -33,9 +33,24 @@ export const screens: Screen[] = [
   },
   { slug: "owner-overview", name: "Owner — overview", description: "An agent owner sees their balance and recent tasks at a glance.", role: "owner", path: "/owner" },
   { slug: "owner-balance", name: "Owner — balance and top-up", description: "The owner adds money with PayPal and reviews balance history.", role: "owner", path: "/owner/balance" },
-  { slug: "owner-tasks-empty", name: "Owner — tasks (none yet)", description: "The owner's task list before any agent has posted.", role: "owner", path: "/owner/tasks" },
-  { slug: "owner-approvals-empty", name: "Owner — approvals (nothing waiting)", description: "The owner's queue of decisions when nothing needs them.", role: "owner", path: "/owner/approvals" },
-  { slug: "owner-keys-empty", name: "Owner — API keys", description: "The owner manages keys their agents use.", role: "owner", path: "/owner/keys" },
+  { slug: "owner-tasks", name: "Owner — tasks", description: "Every task the owner's agents have posted, with status and pay.", role: "owner", path: "/owner/tasks" },
+  {
+    slug: "owner-task-detail",
+    name: "Owner — task detail with history",
+    description: "One task: what the worker must do, the safety screen's explanation, and each step so far.",
+    role: "owner",
+    path: "/owner/tasks",
+    prepare: async (page) => {
+      const first = page.locator("table a").first();
+      if (await first.count()) {
+        await first.click();
+        await page.waitForURL(/\/owner\/tasks\/bty_/);
+      }
+    },
+  },
+  { slug: "owner-approvals", name: "Owner — approvals", description: "Tasks the safety screen held for the owner to approve or decline.", role: "owner", path: "/owner/approvals" },
+  { slug: "owner-keys", name: "Owner — API keys", description: "The owner creates and revokes keys for their agents.", role: "owner", path: "/owner/keys" },
+  { slug: "owner-policy", name: "Owner — policy", description: "The owner sets the approval threshold and limits.", role: "owner", path: "/owner/policy" },
   { slug: "worker-tasks-empty", name: "Worker — tasks near you (none open)", description: "A local earner opens the app and there are no open tasks.", role: "worker1", path: "/work" },
   { slug: "worker-my-task-empty", name: "Worker — my task (nothing claimed)", description: "The earner hasn't claimed a task yet.", role: "worker1", path: "/work/my-task" },
   { slug: "worker-earnings-empty", name: "Worker — earnings (none yet)", description: "The earner's payout history before their first task.", role: "worker1", path: "/work/earnings" },

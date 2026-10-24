@@ -51,6 +51,12 @@
   --tint-neutral: color-mix(in srgb, var(--neutral) 12%, var(--surface));
   --tint-signal: color-mix(in srgb, var(--signal) 22%, var(--surface));
 
+  /* Status text on tinted backgrounds: nudged toward ink so it keeps AA contrast on the tint. */
+  --paid-text: color-mix(in srgb, var(--paid) 80%, var(--ink));
+  --review-text: color-mix(in srgb, var(--review) 80%, var(--ink));
+  --blocked-text: color-mix(in srgb, var(--blocked) 80%, var(--ink));
+  --neutral-text: color-mix(in srgb, var(--neutral) 80%, var(--ink));
+
   /* Illustration fills derived from tokens. */
   --hero-halo: color-mix(in srgb, var(--signal) 22%, var(--paper));
   --hero-glow: color-mix(in srgb, var(--signal) 45%, var(--paper));
@@ -348,19 +354,19 @@ img {
   flex: none;
 }
 .pill-paid {
-  color: var(--paid);
+  color: var(--paid-text);
   background: var(--tint-paid);
 }
 .pill-review {
-  color: var(--review);
+  color: var(--review-text);
   background: var(--tint-review);
 }
 .pill-blocked {
-  color: var(--blocked);
+  color: var(--blocked-text);
   background: var(--tint-blocked);
 }
 .pill-neutral {
-  color: var(--neutral);
+  color: var(--neutral-text);
   background: var(--tint-neutral);
 }
 .pill-active {
@@ -379,7 +385,7 @@ img {
   padding: 2px 10px;
   border-radius: var(--r-pill);
   background: var(--tint-paid);
-  color: var(--paid);
+  color: var(--paid-text);
 }
 .badge svg {
   width: 14px;

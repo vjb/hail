@@ -16,3 +16,11 @@ Object.assign(process.env, {
   AI_MODEL_OPS: "test-model",
   DEMO_TIME_SCALE: "1",
 });
+
+// Unit tests never call a real model: a fake provider allows everything with high confidence.
+// Tests that need other outcomes swap it with setAIProvider. The real model runs in `npm run eval:screening`.
+import { setAIProvider } from "@/ai";
+setAIProvider({
+  name: "fake",
+  screenBounty: async () => ({ ok: true, model: "fake", promptVersion: "fake", value: { decision: "allow", category: "other_allowed", rationale: "Fake provider: allowed.", confidence: 0.95 } }),
+});

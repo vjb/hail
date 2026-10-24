@@ -72,6 +72,21 @@ export async function createBounty(database: DB, ctx: { ownerId: string; apiKeyI
   }
 
   const policy = await getPolicy(database, ctx.ownerId);
+  const hourAgo = new Date(Date.now() - 3600_000);
+  const [{ lastHour }] = await database
+    .select({ lastHour: sql<string>`count(*)` })
+    .from(bounties)
+    .where(and(eq(bounties.apiKeyId, ctx.apiKeyId), gte(bounties.createdAt, hourAgo)));
+  if (Number(lastHour) >= policy.maxBountiesPerHour) {
+    throw new DomainError("rate_limited", `This key can post ${policy.maxBountiesPerHour} bounties per hour. Try again later.`);
+  }
+  const [{ open }] = await database
+    .select({ open: sql<string>`count(*)` })
+    .from(bounties)
+    .where(and(eq(bounties.ownerId, ctx.ownerId), inArray(bounties.status, ["pending_approval", "open", "claimed", "verifying", "needs_owner_review", "rejected", "appealed"])));
+  if (Number(open) >= policy.maxOpenBounties) {
+    throw new DomainError("rate_limited", `The owner allows at most ${policy.maxOpenBounties} open bounties at a time.`);
+  }
   const id = newId("bty");
   const now = new Date();
   await database.insert(bounties).values({
@@ -155,6 +170,17 @@ export async function cancelBounty(database: DB, ownerId: string, bountyId: stri
       throw new DomainError("invalid_state", b.status === "cancelled" ? "This bounty is already cancelled." : `A bounty that is ${b.status.replace(/_/g, " ")} can't be cancelled.`);
     }
     return transitionWithMoney(tx, bountyId, "cancel", actor);
+  });
+}
+
+/** Owner decision on a bounty the screen held for approval. Funds are already held; reject releases them. */
+export async function decideApproval(database: DB, ownerId: string, bountyId: string, approve: boolean, note?: string) {
+  return database.transaction(async (tx) => {
+    const [b] = await tx.select().from(bounties).where(eq(bounties.id, bountyId)).for("update");
+    if (!b) throw new DomainError("not_found", "No such task.");
+    if (b.ownerId !== ownerId) throw new DomainError("forbidden", "This task belongs to another owner.");
+    if (b.status !== "pending_approval") throw new DomainError("invalid_state", "This task no longer needs approval.");
+    return transitionWithMoney(tx, bountyId, approve ? "owner_approve" : "owner_reject", `owner:${ownerId}`, note ? { note } : {});
   });
 }
 
