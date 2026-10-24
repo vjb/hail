@@ -15,7 +15,8 @@
     "spike:paypal": "tsx --env-file=.env scripts/spike-paypal.ts",
     "webhook:register": "tsx --env-file=.env scripts/register-webhook.ts",
     "e2e": "node --env-file-if-exists=.env node_modules/@playwright/test/cli.js test",
-    "screenshots": "tsx --env-file-if-exists=.env scripts/screenshots.ts"
+    "screenshots": "tsx --env-file-if-exists=.env scripts/screenshots.ts",
+    "key:create": "tsx --env-file-if-exists=.env scripts/create-key.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^1.3.0",

@@ -65,3 +65,22 @@ Context: Real sandbox webhooks arrive late. The $200 top-up's `PAYMENT.CAPTURE.C
 Decision: The server's capture call is the primary credit path. The webhook calls the same `recordCapture`, keyed on the capture ID, so whichever arrives first credits and the other is a no-op. Verified events are stored once, keyed on PayPal's event ID.
 Consequences: The UI never waits on webhooks for top-ups. Payout status (Day 7) will also poll the batch from the sweeper rather than wait on webhooks.
 Devpost: learned
+
+## D-012 — One spot per bounty for now [HH-007] (2026-10-24)
+Context: `api.md` allowed `spots` 1–10, but "exactly one payout per bounty" (a hard rule, enforced by a unique constraint) and the per-bounty state machine make multi-spot a much bigger build.
+Decision (human, H6): the API accepts only `spots: 1`. Anything else returns `invalid_request` with "Post separate bounties for more people." The ">3 spots needs approval" rule is removed.
+Consequences: `docs/public/api.md` updated in the same commit. Revisit after the hackathon.
+Devpost: challenge
+
+## D-013 — Per-photo check with retake before final submit [HH-007] (2026-10-24)
+Context: The benchmark's strongest finding is that workers hate delayed, all-or-nothing rejections after they've left the location.
+Decision (human, H6): while a worker is still claiming, each uploaded photo gets a quick AI check against the checklist. On a problem the worker sees a specific retake prompt, and the claim timer extends. Final submit still runs the full verification; fail → appeal stays as the backstop.
+Consequences: Day 6–7 work: a per-photo `AIProvider` check, a claim-extension rule, and retake UI. Small extra AI cost per photo (tracked in `ai_calls`).
+Devpost: challenge
+
+## D-014 — Illustrations [HH-007] (2026-10-24)
+Decision (human):
+- The flat robot-and-human illustration becomes a hand-built inline SVG in the landing hero, using design tokens so it works in light and dark.
+- The dusk street scene (Gemini-generated) is the README hero only, compressed into `docs/assets/`.
+Consequences: Originals stay in `tmp/` (not committed).
+Devpost: built-with

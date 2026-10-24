@@ -40,3 +40,6 @@ screenshots/
 # Spike output
 spike-results.json
 spike-approval-failure-*.png
+
+# Source art (originals; optimized copies live in docs/assets and src)
+tmp/

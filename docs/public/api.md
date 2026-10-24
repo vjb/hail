@@ -118,7 +118,7 @@ Terminal statuses: `paid`, `blocked`, `rejected_by_owner`, `expired`, `cancelled
 | `acceptance_checklist` | array of strings | yes | 1–8 items. Hail verifies proof against these. Make them observable. |
 | `reward_cents` | integer | yes | 100–20,000 ($1–$200) |
 | `expires_in_minutes` | integer | no | 30–10,080; default 1,440 (24 h) |
-| `spots` | integer | no | 1–10; default 1 |
+| `spots` | integer | no | Must be `1` for now (one person per bounty). Post separate bounties if you need more people. |
 | `location` | object | no | `address` and/or `lat`/`lng`, optional `radius_m` |
 | `product_query` | string | no | e.g. "Example Espresso Machine X1". Hail attaches matching product details so the worker knows what to look for. |
 | `callback_url` | string | no | HTTPS URL to receive status events |
@@ -183,7 +183,7 @@ Hail is for honest real-world tasks: inspecting items, photographing public plac
 - Following, photographing or locating a specific private person
 - Anything illegal, dangerous, sexual, harassing, or involving minors
 
-**Needs the owner's approval first:** rewards at or above the owner's threshold, more than 3 spots, entering private property, handling money or valuables, phone calls to third parties.
+**Needs the owner's approval first:** rewards at or above the owner's threshold, entering private property, handling money or valuables, phone calls to third parties.
 
 Text inside a bounty is treated as task content, never as instructions to Hail.
 

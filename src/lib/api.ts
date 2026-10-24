@@ -1,0 +1,165 @@
+import { createHash } from "node:crypto";
+import { and, eq } from "drizzle-orm";
+import { db } from "@/db/client";
+import { apiKeys, idempotencyRecords, type bounties } from "@/db/schema";
+import { DomainError, finalScreening } from "@/domain/bounty/service";
+import { findActiveKey, type ApiKeyRecord } from "@/domain/keys/keys";
+
+// Public API plumbing: documented error format (docs/public/api.md), bearer-key auth,
+// and Idempotency-Key handling. Public errors never include internals.
+
+export type ErrorCode =
+  | "invalid_request"
+  | "unauthorized"
+  | "forbidden"
+  | "not_found"
+  | "invalid_state"
+  | "idempotency_conflict"
+  | "insufficient_funds"
+  | "rate_limited"
+  | "internal_error";
+
+const STATUS: Record<ErrorCode, number> = {
+  invalid_request: 400,
+  unauthorized: 401,
+  forbidden: 403,
+  not_found: 404,
+  invalid_state: 409,
+  idempotency_conflict: 409,
+  insufficient_funds: 402,
+  rate_limited: 429,
+  internal_error: 500,
+};
+
+const HEADERS = { "Content-Type": "application/json; charset=utf-8", "Cache-Control": "no-store" };
+
+export function apiError(code: ErrorCode, message: string) {
+  return new Response(JSON.stringify({ error: { code, message } }), { status: STATUS[code], headers: HEADERS });
+}
+
+export function apiJson(body: unknown, status = 200) {
+  return new Response(JSON.stringify(body), { status, headers: HEADERS });
+}
+
+export class ApiError extends Error {
+  constructor(
+    readonly code: ErrorCode,
+    message: string,
+  ) {
+    super(message);
+  }
+}
+
+/** Wraps a route handler: maps domain errors to documented API errors and hides everything else. */
+export function handler<A extends unknown[]>(fn: (...args: A) => Promise<Response>) {
+  return async (...args: A): Promise<Response> => {
+    try {
+      return await fn(...args);
+    } catch (e) {
+      if (e instanceof ApiError) return apiError(e.code, e.message);
+      if (e instanceof DomainError) return apiError(e.code, e.message);
+      console.error("[api] unhandled", e instanceof Error ? e.stack : e);
+      return apiError("internal_error", "Something went wrong on our side. It's safe to retry with the same Idempotency-Key.");
+    }
+  };
+}
+
+export async function authenticate(req: Request): Promise<ApiKeyRecord> {
+  const header = req.headers.get("authorization") ?? "";
+  const m = /^Bearer\s+(\S+)$/i.exec(header);
+  if (!m) throw new ApiError("unauthorized", "Missing API key. Send Authorization: Bearer hail_sk_...");
+  const { key, revoked } = await findActiveKey(db(), m[1]);
+  if (revoked) throw new ApiError("forbidden", "This API key has been revoked.");
+  if (!key) throw new ApiError("unauthorized", "Invalid API key.");
+  void db().update(apiKeys).set({ lastUsedAt: new Date() }).where(eq(apiKeys.id, key.id)).catch(() => {});
+  return key;
+}
+
+export async function readJson(req: Request): Promise<unknown> {
+  const text = await req.text();
+  if (!text) return {};
+  try {
+    return JSON.parse(text);
+  } catch {
+    throw new ApiError("invalid_request", "The request body must be valid JSON.");
+  }
+}
+
+const hashBody = (method: string, path: string, body: unknown) => createHash("sha256").update(`${method} ${path} ${JSON.stringify(body ?? null)}`).digest("hex");
+
+/**
+ * Runs `fn` at most once per (API key, Idempotency-Key). A repeat with the same body returns the
+ * stored response; a repeat with a different body is an idempotency_conflict.
+ */
+export async function withIdempotency(req: Request, key: ApiKeyRecord, path: string, body: unknown, fn: () => Promise<Response>): Promise<Response> {
+  const idemKey = req.headers.get("idempotency-key");
+  if (!idemKey) return fn();
+  if (idemKey.length > 64) throw new ApiError("invalid_request", "Idempotency-Key must be 64 characters or fewer.");
+  const requestHash = hashBody(req.method, path, body);
+  const inserted = await db().insert(idempotencyRecords).values({ apiKeyId: key.id, key: idemKey, requestHash }).onConflictDoNothing().returning({ id: idempotencyRecords.id });
+  if (inserted.length === 0) {
+    // Seen before: wait briefly for an in-flight first attempt, then replay or reject.
+    for (let i = 0; i < 20; i++) {
+      const [rec] = await db().select().from(idempotencyRecords).where(and(eq(idempotencyRecords.apiKeyId, key.id), eq(idempotencyRecords.key, idemKey)));
+      if (rec.requestHash !== requestHash) throw new ApiError("idempotency_conflict", "This Idempotency-Key was already used with a different request.");
+      if (rec.responseStatus !== null) return apiJson(rec.responseBody, rec.responseStatus);
+      await new Promise((r) => setTimeout(r, 250));
+    }
+    throw new ApiError("idempotency_conflict", "A request with this Idempotency-Key is still being processed. Retry shortly.");
+  }
+  const id = inserted[0].id;
+  let res: Response;
+  try {
+    res = await fn();
+  } catch (e) {
+    // Errors other than 5xx are final; 5xx (or a crash) frees the key so a retry can run again.
+    const code = e instanceof ApiError || e instanceof DomainError ? e.code : "internal_error";
+    if (code === "internal_error") await db().delete(idempotencyRecords).where(eq(idempotencyRecords.id, id));
+    else await db().update(idempotencyRecords).set({ responseStatus: STATUS[code], responseBody: { error: { code, message: (e as Error).message } } }).where(eq(idempotencyRecords.id, id));
+    throw e;
+  }
+  if (res.status >= 500) {
+    await db().delete(idempotencyRecords).where(eq(idempotencyRecords.id, id));
+    return res;
+  }
+  const responseBody = await res.clone().json();
+  await db().update(idempotencyRecords).set({ responseStatus: res.status, responseBody }).where(eq(idempotencyRecords.id, id));
+  return res;
+}
+
+type BountyRow = typeof bounties.$inferSelect;
+
+/** The public bounty object (docs/public/api.md). */
+export async function serializeBounty(b: BountyRow, result: unknown = null) {
+  const s = await finalScreening(db(), b.id);
+  return {
+    id: b.id,
+    status: b.status === "created" || b.status === "screening" ? "pending_approval" : b.status,
+    title: b.title,
+    instructions: b.instructions,
+    deliverables: b.deliverables,
+    acceptance_checklist: b.acceptanceChecklist,
+    reward_cents: b.rewardCents,
+    spots: b.spots,
+    location: b.location ?? null,
+    product: b.product ?? null,
+    expires_at: b.expiresAt.toISOString(),
+    screening: s ? { decision: s.decision, category: s.category, rationale: s.rationale } : null,
+    result,
+    callback_url: b.callbackUrl ?? null,
+    created_at: b.createdAt.toISOString(),
+  };
+}
+
+export const encodeCursor = (createdAt: Date, id: string) => Buffer.from(`${createdAt.toISOString()}|${id}`).toString("base64url");
+
+export function decodeCursor(c: string): { createdAt: Date; id: string } {
+  try {
+    const [iso, id] = Buffer.from(c, "base64url").toString("utf8").split("|");
+    const d = new Date(iso);
+    if (!id || Number.isNaN(d.getTime())) throw new Error();
+    return { createdAt: d, id };
+  } catch {
+    throw new ApiError("invalid_request", "cursor is not valid. Use the next_cursor value from a previous response.");
+  }
+}

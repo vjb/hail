@@ -10,7 +10,8 @@ Times are US Eastern. Day 0 times are approximate (reconstructed from the setup 
 | HH-004 | H1 | 2026-10-24 ~16:10 | 2026-10-24 ~16:13 | ~3m | Sign in to the Claude Console (credit was already purchased) | Signing in and payment need the human's identity and card |
 | HH-005 | H1 | 2026-10-24 ~16:17 | 2026-10-24 ~16:20 | ~3m | Sign up for Channel3 | Creating an account accepts terms in the human's name |
 | HH-006 | H1 | 2026-10-24 ~16:22 | 2026-10-24 ~16:27 | ~5m | Register on Devpost for the hackathon | Hackathon registration is tied to the human's identity |
+| HH-007 | H6 | 2026-10-24 17:36 | 2026-10-24 17:40 | ~4m | Four product decisions: where the new illustrations go, one spot per bounty, and per-photo retake before submit | Scope, public-contract and brand choices belong to the human |
 
 Not hails (done by the agent without help): sandbox account credentials, PayPal client ID/secret, Payouts check, Anthropic API key creation, Channel3 key and promo code, webhook registration (`PAYPAL_WEBHOOK_ID` via API, avoiding H2).
 
-**Run summary (Day 0 setup + Day 1):** 6 hails — 5 × H1, 1 × H6. Total wait ~16m, median ~2.5m.
+**Run summary (Day 0 setup + Days 1–4):** 7 hails: 5 × H1, 2 × H6. Total wait ~20m, median ~3m.

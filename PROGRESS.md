@@ -108,3 +108,35 @@ Deviations: D-009 (JS SDK v6), D-010 (custom_id = top-up ID), D-011 (capture rou
 Open issues / risks:
 - Each top-up e2e run adds $200 to the dev database's demo owner. Demo reset arrives on Day 10.
 - H3 was not needed: the sandbox approval is automated.
+
+## Day 4 — Bounties + public REST — done
+Plan: state machine with exhaustive tests · REST create/get/list/cancel/balance exactly per `api.md` · API-key auth, idempotency and the documented errors · a screening stub.
+
+Done:
+- `src/domain/bounty/state.ts`: one transition table plus `transition()`. It locks the row, validates the move, updates the status, writes `bounty_events`, and queues the callback outbox.
+- `src/domain/bounty/service.ts`:
+  - Posting pre-checks funds and the per-key daily cap, screens outside the transaction, then holds the reward and opens in one transaction. Blocked bounties get no hold. A screening crash goes to `pending_approval`, never fails open.
+  - If a concurrent post took the funds, the draft is discarded.
+  - Also: cancel with release, owner-scoped get and list with a cursor.
+- `src/lib/api.ts`: the documented error envelope, bearer auth (401 missing or invalid, 403 revoked), `Idempotency-Key` (replay, 409 conflict, in-flight wait, 5xx frees the key), and the public bounty serializer.
+- `src/domain/bounty/validation.ts`: zod limits from `api.md`, with messages for outside developers.
+- Routes: `POST/GET /api/v1/bounties`, `GET /api/v1/bounties/:id`, `POST /api/v1/bounties/:id/cancel`, `GET /api/v1/balance`.
+- `npm run key:create`.
+- [HH-007 · H6] Four decisions from the human:
+  - One spot per bounty (D-012). `api.md` and the spec were updated.
+  - Per-photo retake before submit (D-013). Planned for Days 6–7.
+  - Illustrations (D-014).
+
+Gate evidence (curl against localhost, new key `key_2q8YxSxuMcl6Drkc`):
+- POST a $25 bounty → 201 `open`. Balance went from 20000/0 to **17500/2500**, `spent_today_cents` 2500.
+- Same Idempotency-Key → the same `bty_D5u7MJD6hpToIC5w`. Same key with a different body → 409 `idempotency_conflict`.
+- Cancel → `cancelled`, balance back to **20000/0**. Cancelling again → 409 `invalid_state`.
+- Insufficient funds → **402** `insufficient_funds` ("Your available balance ($0.00) is less than the reward ($200.00).").
+- 401 for a missing or invalid key; 400 for a missing field, spots=3 and bad JSON; 404 for an unknown bounty.
+- `npm test` **93/93**:
+  - 33 state-machine tests: 28 legal transitions, all 355 other pairs rejected, terminal states, and the held-funds invariant.
+  - 8 service tests: hold+open with a timeline, cancel release, cross-owner forbidden, insufficient funds creates nothing, a concurrent over-spend leaves one bounty, the daily cap, blocked holds nothing, a screening crash → pending_approval.
+
+Deviations: D-012 (spots = 1, `api.md` updated in this commit).
+
+Open issues: the owner API-keys page UI is still a placeholder. Keys come from `npm run key:create` and the seed for now; the UI lands with Day 5's owner queue.

@@ -85,7 +85,6 @@ Hail is the trustworthy version, built on PayPal:
 
 **Needs owner approval**:
 - Reward at or above the owner's threshold (default $50).
-- More than 3 spots on one bounty.
 - Entering private property, handling money or valuables, phone calls to third parties.
 - Classifier confidence below 0.7.
 
