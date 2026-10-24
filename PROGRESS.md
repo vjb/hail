@@ -278,7 +278,7 @@ Gate evidence:
 - Live `scripts/day8-gate.ts` against PayPal sandbox at scale 60:
   - **Withdraw $5.00: refund `2LV17013HU322100J` COMPLETED.**
   - **Expiry: `bty_Ow4kBeq2QidplwLI` → expired, held 49000 → 48600.**
-  - **Ignored review `bty_mRdCFsXTzoGLTD7p`: entered review 6:50:48 PM ET and is expected to auto-pay around 7:15 PM.** Result in the background task output; record it on resume.
+  - **Ignored review `bty_mRdCFsXTzoGLTD7p`: entered review 6:50:48 PM ET, `paying` after 24.1 min, `paid` after 24.6 min (batch `X5LJQD9ZL8EMQ` succeeded).** Day 8 gate passed.
 
 ## Pulled forward (no human needed)
 - **Channel3 enrichment (Day 12):** live search at posting, in parallel with screening, 4 s timeout, never blocks. Product card on the worker and owner task pages; the product is passed to the verifier. Live check: the espresso bounty got the Breville Barista Express card.
@@ -288,7 +288,7 @@ Gate evidence:
 - `npm test` **140/140** at the last commit.
 
 ## Resume here (next session)
-1. Record the Day 8 gate result: background task output, or check `bty_mRdCFsXTzoGLTD7p` in the DB.
+1. Day 8 gate recorded (passed). Render is on free plans (D-017). Sample photos (HH-010) are in `C:\Users\vjbel\Downloads\hail-photos`, to be wired into e2e and seed.
 2. Waiting on the human: HH-008 (Render), HH-009 (phone test), HH-010 (sample photos), the Discord join, and AG Studio activation on Nov 1 (Day 9 control room).
 3. Next work that doesn't need the human:
    - Days 13–14 hardening: review rate limits and auth; error/loading states everywhere.
