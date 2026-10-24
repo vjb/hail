@@ -36,3 +36,44 @@ Open issues / risks:
 - The ngrok URL works only while the tunnel runs locally. Render replaces it on Day 7.
 
 Human needed: none for Day 1. Day 0 setup hails were HH-001 to HH-006.
+
+## Day 2 — DB, ledger, auth, seed, design system — done
+Plan: Drizzle schema for every table and migrations · double-entry ledger with idempotency and owner-row locking · iron-session auth with role gates · seed · design tokens, fonts, logo, core components and app shells · automated AA check.
+
+Done:
+- `src/db/schema.ts`: all 19 tables, including `ai_calls` and `idempotency_records`. Unique constraints enforce one payout per bounty, one active claim per bounty, ledger `(txn_key, account)`, and the capture ID per top-up.
+- Migration `drizzle/0000_init.sql`. `npm run db:migrate` and `npm run db:seed` (`--fresh` wipes first).
+- `src/domain/ledger/ledger.ts`: top-up, hold, release, pay and withdraw. Every write is a balanced, idempotent transaction under `SELECT … FOR UPDATE` on the owner. Held money can leave exactly once.
+- Auth: `src/lib/auth.ts` (iron-session HTTP-only cookie, bcrypt, `requireRole`). Sign-in and sign-out server actions.
+- API keys: `src/domain/keys/keys.ts`. Format `hail_sk_…`; only a SHA-256 hash is stored.
+- Design system:
+  - `src/design/tokens.ts` is the source of truth; `globals.css` holds the light/dark tokens and component styles.
+  - Fonts via next/font: Bricolage Grotesque, Geist, Geist Mono.
+  - `HailLogo` (full and mark) and an SVG favicon.
+  - Core components: Button, Money, StatusPill (word + icon + color), BalanceCard, Checklist, Timeline, Countdown, EmptyState, ErrorState, Toast, AppShells (owner sidebar, worker bottom nav).
+- Pages:
+  - Landing with split role entry, using the benchmark's patterns 8 and 2.
+  - Sign-in.
+  - Owner: overview, tasks, approvals, balance, keys, policy and control room, as empty states.
+  - Worker: tasks, my task, earnings and account.
+  - Admin.
+  - `/docs/api` serves the public contract.
+- Playwright and axe were set up a day early (`npm run e2e`, system Chrome).
+
+Gate evidence:
+- `npm test`: **47/47**.
+  - The ledger covers every architecture-table event, idempotent replays, insufficient funds, exit-once, and rejection of reused keys.
+  - Concurrency: two holds exceeding the balance → exactly one succeeds. Eight concurrent $30 holds on $100 → exactly three succeed, with no overdraft.
+  - All 28 token pairs pass AA in both themes (lowest 4.69:1). globals.css values match the tokens, and there are no stray hex colors.
+- `npm run e2e`: **7/7**.
+  - Owner, worker (390px) and admin each land on their own page.
+  - Cross-role access redirects home. Signed-out users go to sign-in. Sign-out ends the session.
+  - A wrong password shows a clear error.
+  - No serious or critical axe violations on the landing, sign-in, owner, worker or admin pages.
+- Screenshots reviewed: landing light, owner overview light, worker 390px dark.
+
+Benchmark (`qa/inbox/2026-10-24-firstlook-benchmark.md`) patterns adopted so far: split role entry with explicit role pills ("For agent owners" / "For local earners"), "Pay set aside" framing, and plain respectful copy. Logged in D-008.
+
+New dependencies: drizzle-orm, postgres, zod, @anthropic-ai/sdk, bcryptjs, iron-session, server-only, lucide-react; dev: drizzle-kit, vitest, tsx, @playwright/test, @axe-core/playwright.
+
+Open issues / risks: none blocking.
