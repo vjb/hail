@@ -24,4 +24,5 @@ setAIProvider({
   name: "fake",
   screenBounty: async () => ({ ok: true, model: "fake", promptVersion: "fake", value: { decision: "allow", category: "other_allowed", rationale: "Fake provider: allowed.", confidence: 0.95 } }),
   checkPhoto: async () => ({ ok: true, model: "fake", promptVersion: "fake", value: { usable: true, problems: [], retake_hint: "" } }),
+  verifyProof: async (input) => ({ ok: true, model: "fake", promptVersion: "fake", value: { summary: "Fake verifier: all good.", checklist: input.bounty.acceptanceChecklist.map((item) => ({ item, passed: true, reason: "Visible.", confidence: 0.95 })) } }),
 });

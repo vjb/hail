@@ -4,7 +4,8 @@ import type { z } from "zod";
 import { env } from "@/lib/env";
 import { PHOTO_CHECK_PROMPT_VERSION, PHOTO_CHECK_SYSTEM } from "./prompts/photo-check";
 import { SCREEN_PROMPT_VERSION, SCREEN_SYSTEM } from "./prompts/screening";
-import { PhotoCheckOutput, ScreenOutput, type AIContext, type AIProvider, type AIResult, type BountyForAI, type PhotoCheckInput } from "./provider";
+import { VERIFY_PROMPT_VERSION, VERIFY_SYSTEM } from "./prompts/verification";
+import { PhotoCheckOutput, ScreenOutput, VerifyOutput, type AIContext, type AIProvider, type AIResult, type BountyForAI, type PhotoCheckInput, type VerifyInput } from "./provider";
 import { recordAICall } from "./telemetry";
 
 // Claude implementation of AIProvider. Model IDs come from env; prompts are versioned files.
@@ -110,6 +111,35 @@ Is it usable?` },
       effort: "low",
       ctx,
       outcome: (v) => (v.usable ? "usable" : "retake"),
+    });
+  }
+
+  verifyProof(input: VerifyInput, ctx?: AIContext) {
+    const task = { title: input.bounty.title, instructions: input.bounty.instructions, acceptance_checklist: input.bounty.acceptanceChecklist, reference_product: input.bounty.product ?? null };
+    const content: Anthropic.ContentBlockParam[] = [];
+    input.photos.forEach((p, i) => {
+      content.push({ type: "text", text: `Photo ${i + 1}, meant to show: ${JSON.stringify(p.label)}` });
+      content.push({ type: "image", source: { type: "base64", media_type: "image/jpeg", data: p.base64 } });
+    });
+    const where = input.distanceMeters === null ? "The worker did not share a location." : `The worker's shared location was about ${Math.round(input.distanceMeters)} m from the task location.`;
+    content.push({ type: "text", text: `${asData("task", task)}
+
+${asData("worker_notes", input.notes ?? "")}
+
+${where}
+
+Check every acceptance checklist item, in order.` });
+    return structured({
+      purpose: "verify",
+      model: env().AI_MODEL_VERIFY,
+      promptVersion: VERIFY_PROMPT_VERSION,
+      system: VERIFY_SYSTEM,
+      content,
+      schema: VerifyOutput,
+      maxTokens: 6000,
+      effort: "medium",
+      ctx,
+      outcome: (v) => v.checklist.map((x) => (x.passed === true ? "P" : x.passed === false ? "F" : "?")).join(""),
     });
   }
 }

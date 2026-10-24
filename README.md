@@ -55,6 +55,19 @@ For PayPal webhooks on a laptop, run a tunnel (e.g. `ngrok http 3000`) and regis
 npm run webhook:register -- https://<your-tunnel-host>
 ```
 
+## Deploy (Render)
+
+`render.yaml` is a Render Blueprint: the web service (migrations run before each deploy), Postgres 17, and a cron job that runs the sweeper every minute.
+
+1. In Render: **New → Blueprint**, pick this repo, and apply. Render asks for every `sync: false` value. Use the same values as `.env`, except `APP_BASE_URL`, which is the Render URL. `SESSION_SECRET` is generated for you.
+2. Register the PayPal webhook for the hosted URL and put the printed ID in Render as `PAYPAL_WEBHOOK_ID`:
+   ```bash
+   npm run webhook:register -- https://<your-app>.onrender.com --print-only
+   ```
+3. Seed the demo accounts once from the Render shell: `npm run db:seed`.
+
+Pushes to `main` deploy automatically.
+
 ## Commands
 
 | Command | What it does |
@@ -67,6 +80,9 @@ npm run webhook:register -- https://<your-tunnel-host>
 | `npm run spike:paypal` | Day 1 sandbox proof: order, capture, partial refund, payout, idempotency |
 | `npm run webhook:register -- <url>` | Create or reuse the PayPal sandbox webhook and write its ID to `.env` |
 | `npm run key:create -- <name> <cap-cents> [file]` | Create an API key for the demo owner |
+| `npm run eval:screening` | Run the labeled screening set through the real screen; appends to `qa/eval-history.csv` |
+| `npm run mcp:smoke -- <base-url> <key-file>` | Exercise the MCP server with the official MCP client |
+| `npm run payout:check` | Drive one task to a real sandbox payout (AI verdict stubbed) |
 
 ## Configuration
 

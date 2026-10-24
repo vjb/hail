@@ -5,9 +5,10 @@ import { ArrowLeft, MapPin } from "lucide-react";
 import { Checklist, formatDateTime, Money, ScreenedBadge, SetAsideBadge, StatusPill, Timeline, type TimelineItem } from "@/components/ui";
 import { db } from "@/db/client";
 import { HOLDS_FUNDS } from "@/domain/bounty/state";
-import { bountyDetail, categoryLabel } from "@/domain/owner/queries";
+import { ProofView } from "@/components/ProofView";
+import { bountyDetail, categoryLabel, latestProof } from "@/domain/owner/queries";
 import { requireRole } from "@/lib/auth";
-import { ApproveButtons, CancelButton } from "../../forms";
+import { ApproveButtons, CancelButton, ReviewButtons } from "../../forms";
 
 export const metadata: Metadata = { title: "Task" };
 
@@ -44,6 +45,7 @@ export default async function TaskDetail({ params }: PageProps<"/owner/tasks/[id
   const d = await bountyDetail(db(), owner.id, id);
   if (!d) notFound();
   const { bounty: b, events, screens } = d;
+  const proof = await latestProof(db(), owner.id, b.id);
   const final = [...screens].reverse().find((s) => s.layer === "final");
   const timeline: TimelineItem[] = events.map((e) => {
     const detail = e.detail as { event?: string; rationale?: string; note?: string };
@@ -74,6 +76,37 @@ export default async function TaskDetail({ params }: PageProps<"/owner/tasks/[id
           <h2 id="decide">Your approval is needed</h2>
           {final && <p>{final.rationale}</p>}
           <ApproveButtons bountyId={b.id} title={b.title} />
+        </section>
+      )}
+
+      {proof && (
+        <section className="card stack" aria-labelledby="proof" style={b.status === "needs_owner_review" ? { borderColor: "var(--review)" } : undefined}>
+          <div className="spread">
+            <h2 id="proof" style={{ margin: 0 }}>
+              {b.status === "needs_owner_review" ? "Proof to review" : "Proof"}
+            </h2>
+            {proof.verification && (
+              <span className={`pill pill-${proof.verification.result === "pass" ? "paid" : proof.verification.result === "fail" ? "blocked" : "review"}`}>
+                {proof.verification.result === "pass" ? "Verified" : proof.verification.result === "fail" ? "Not met" : "Unclear"}
+              </span>
+            )}
+          </div>
+          <ProofView
+            photoIds={proof.submission.photoIds}
+            labels={b.deliverables.filter((x) => x.type === "photo").map((x) => x.description)}
+            notes={proof.submission.notes}
+            location={proof.submission.location ?? null}
+            submittedAt={proof.submission.createdAt}
+            checklist={b.acceptanceChecklist}
+            results={proof.verification?.checklistResults}
+            summary={proof.verification?.rationale}
+          />
+          {proof.payout && (
+            <p className="muted" style={{ margin: 0 }}>
+              Payout <Money cents={proof.payout.amountCents} /> to the worker&apos;s PayPal: {proof.payout.status === "succeeded" ? "delivered" : proof.payout.status === "sent" ? "sent, waiting for PayPal" : proof.payout.status}.
+            </p>
+          )}
+          {b.status === "needs_owner_review" && <ReviewButtons bountyId={b.id} title={b.title} />}
         </section>
       )}
 

@@ -4,7 +4,7 @@ import { useRouter } from "next/navigation";
 import { useActionState, useEffect, useState } from "react";
 import { Copy } from "lucide-react";
 import { FormError } from "@/components/ui";
-import { approveAction, cancelAction, createKeyAction, revokeKeyAction, savePolicyAction, type FormState } from "./actions";
+import { approveAction, cancelAction, createKeyAction, reviewAction, revokeKeyAction, savePolicyAction, type FormState } from "./actions";
 
 function Notice({ state }: { state: FormState }) {
   if (state.error) return <FormError>{state.error}</FormError>;
@@ -36,6 +36,35 @@ export function ApproveButtons({ bountyId, title }: { bountyId: string; title: s
         </button>
         <button type="submit" name="decision" value="reject" className="btn btn-danger" disabled={pending} aria-label={`Decline task: ${title}`}>
           Decline
+        </button>
+      </div>
+    </form>
+  );
+}
+
+export function ReviewButtons({ bountyId, title }: { bountyId: string; title: string }) {
+  const [state, action, pending] = useActionState(reviewAction, {});
+  const router = useRouter();
+  useEffect(() => {
+    if (!state.ok) return;
+    const t = setTimeout(() => router.refresh(), 2500);
+    return () => clearTimeout(t);
+  }, [state.ok, router]);
+  if (state.ok) return <Notice state={state} />;
+  return (
+    <form action={action} className="stack-sm">
+      <input type="hidden" name="bountyId" value={bountyId} />
+      <div className="field">
+        <label htmlFor={`note-${bountyId}`}>Note for the worker (optional)</label>
+        <input id={`note-${bountyId}`} name="note" maxLength={500} placeholder="e.g. The serial plate is cut off" />
+      </div>
+      <Notice state={state} />
+      <div className="row">
+        <button type="submit" name="decision" value="approve" className="btn btn-primary" disabled={pending} aria-label={`Accept proof and pay: ${title}`}>
+          Accept and pay
+        </button>
+        <button type="submit" name="decision" value="reject" className="btn btn-danger" disabled={pending} aria-label={`Reject proof: ${title}`}>
+          Reject proof
         </button>
       </div>
     </form>

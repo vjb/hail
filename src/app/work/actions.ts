@@ -1,10 +1,13 @@
 "use server";
 
 import { redirect } from "next/navigation";
+import { after } from "next/server";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { db } from "@/db/client";
 import { DomainError } from "@/domain/bounty/service";
+import { settleSoon } from "@/domain/payouts/payouts";
+import { verifySubmission } from "@/domain/verify/verify";
 import { claimBounty, releaseClaim, setPayPalEmail, submitProof } from "@/domain/work/work";
 import { requireRole } from "@/lib/auth";
 
@@ -52,11 +55,26 @@ export async function submitAction(_: WorkState, form: FormData): Promise<WorkSt
     const parsed = loc.safeParse(JSON.parse(String(rawLoc)));
     if (parsed.success) location = parsed.data;
   }
+  let submitted: { submissionId: string };
   try {
-    await submitProof(db(), w.id, String(form.get("claimId")), { notes: String(form.get("notes") ?? ""), texts, location });
+    submitted = await submitProof(db(), w.id, String(form.get("claimId")), { notes: String(form.get("notes") ?? ""), texts, location });
   } catch (e) {
     return { error: friendly(e) };
   }
+  // Verify (and pay, if it passes) after the response; the sweeper retries anything left behind.
+  after(async () => {
+    try {
+      const r = await verifySubmission(db(), submitted.submissionId);
+      if (r?.result === "pass") {
+        const { submissions } = await import("@/db/schema");
+        const { eq } = await import("drizzle-orm");
+        const [s] = await db().select({ bountyId: submissions.bountyId }).from(submissions).where(eq(submissions.id, submitted.submissionId));
+        if (s) await settleSoon(db(), s.bountyId);
+      }
+    } catch (e) {
+      console.error("[verify] background verification failed", e instanceof Error ? e.message : e);
+    }
+  });
   revalidatePath("/work", "layout");
   redirect("/work/my-task?submitted=1");
 }

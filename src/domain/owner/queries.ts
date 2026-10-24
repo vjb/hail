@@ -1,6 +1,6 @@
 import { and, asc, desc, eq, inArray, sql } from "drizzle-orm";
 import type { DB } from "@/db/client";
-import { apiKeys, bounties, bountyEvents, screenings } from "@/db/schema";
+import { apiKeys, bounties, bountyEvents, payouts, screenings, submissions, verifications } from "@/db/schema";
 
 // Read models for the owner dashboard (owner-scoped; never returns other owners' data).
 
@@ -68,4 +68,15 @@ export async function approvalCount(database: DB, ownerId: string) {
     .from(bounties)
     .where(and(eq(bounties.ownerId, ownerId), inArray(bounties.status, ["pending_approval", "needs_owner_review", "appealed"])));
   return Number(r.n);
+}
+
+/** The latest proof for a bounty (owner-scoped): submission, verification and payout. */
+export async function latestProof(database: DB, ownerId: string, bountyId: string) {
+  const [b] = await database.select({ id: bounties.id }).from(bounties).where(and(eq(bounties.id, bountyId), eq(bounties.ownerId, ownerId)));
+  if (!b) return null;
+  const [sub] = await database.select().from(submissions).where(eq(submissions.bountyId, bountyId)).orderBy(desc(submissions.createdAt)).limit(1);
+  if (!sub) return null;
+  const [v] = await database.select().from(verifications).where(eq(verifications.submissionId, sub.id)).orderBy(desc(verifications.id)).limit(1);
+  const [p] = await database.select().from(payouts).where(eq(payouts.bountyId, bountyId));
+  return { submission: sub, verification: v ?? null, payout: p ?? null };
 }

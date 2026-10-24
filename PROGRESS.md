@@ -221,3 +221,39 @@ Gate evidence:
 Open issues / risks:
 - `DEMO_TIME_SCALE` also shortens the claim window. Set it carefully for demos so workers have enough time.
 - Generated test images are flat graphics. The human's sample photos (checklist section E) replace them on Day 10.
+
+## Day 7 — Verify + pay + deploy + MCP — blocked on human (H4, H5)
+Plan: verifier through `AIProvider` (pass → approved → payout → paid; fail → rejected; uncertain → owner review) · owner review UI · `render.yaml` · MCP server · make `api.md` match what's live.
+
+Done (everything that doesn't need the human):
+- Verifier `src/domain/verify/verify.ts` with prompt `verify-v1`:
+  - Photos are labeled per deliverable. Worker notes are framed as untrusted data. Distance to the task location is included when shared.
+  - Each checklist item returns true/false/null with a reason and a confidence.
+  - Pass needs every item true at ≥0.7; any confident false → fail; otherwise → owner review. An AI failure → owner review, never a fail.
+  - Runs right after submit (Next `after()`); the sweeper retries stuck ones.
+- Payouts `src/domain/payouts/payouts.ts`:
+  - Exactly one per bounty, with `sender_batch_id = payout_<bounty>`.
+  - A duplicate send is recovered from PayPal's error link (D-004).
+  - Status comes from a quick poll after send, the sweeper, and `PAYMENT.PAYOUTS-ITEM.*` webhooks.
+  - SUCCESS → ledger held → payouts_sent → `paid`, idempotent. UNCLAIMED/FAILED keep funds held and show the status.
+- Owner review: "Proof to review" in approvals and on the task page, with photos, notes, location, per-item results, accept-and-pay or reject (with a note).
+- Public API: the `result` object (verification `pass` or `owner_approved`, summary, checklist, photo URLs, completed_at) and `GET /api/v1/photos/:id` with the API key. `api.md` updated.
+- MCP server `/api/mcp`: official SDK, web-standard Streamable HTTP, stateless, bearer auth. Five tools whose descriptions are written for outside agents. Each calls the matching REST handler, so validation, idempotency and errors are identical.
+- Deploy: `render.yaml` (web `0.5c-512mb` with pre-deploy migrations and `/api/health`, Postgres 17 `0.5c-1g`, cron sweeper `* * * * *` via `scripts/sweep-ping.mjs`), plus `/api/internal/sweep` (secret header, timing-safe compare, 404 otherwise). README deploy section. `webhook:register --print-only` for the hosted URL.
+- Screening now reports the AI's category when both layers allow (more informative than `no_rule_matched`).
+
+Gate evidence so far:
+- `npm run payout:check` (real PayPal sandbox; only the AI verdict stubbed): bounty `bty_Mj8cWAC22oO4yfpN` went verified → paying → batch `6LU9YGN3MJJXC` → **SUCCESS** → `paid`. Owner held funds were released into payouts.
+- The first attempt hit a non-sandbox address (set by my own e2e test) and correctly stayed `paying` with the payout `unclaimed` and funds held. The test is fixed.
+- `npm run mcp:smoke` with the official MCP client: `tools/list` returns all 5. get_balance → create_bounty (`open`) → get_bounty → list_bounties → cancel_bounty (`cancelled`). Invalid input → `isError` with `invalid_request` "deliverables needs 1 to 5 items". No key → 401.
+- `npm test` **127/127**, adding 9 verify/payout tests: the decision rule, pass→paid with the ledger and zero-sum checked, a duplicate SUCCESS doesn't double-pay, fail holds funds, uncertain→owner accepts→paid, AI down→owner review, duplicate-send recovery, unclaimed doesn't settle.
+- `npm run e2e` **14 passed, 1 skipped**. `happy-path.spec.ts` ran end to end, but the real verifier **rejected the generated test image** ("a flat digital graphic … not a real photo"). That's good anti-fraud behavior, so the test skips until real sample photos exist [HH-010].
+- `npm run build`: production build OK (31 routes).
+
+Human needed:
+- **[HH-008 · H4]** Connect Render: New → Blueprint → this repo, enter the secrets, then the webhook and seed (README "Deploy").
+- **[HH-009 · H5]** Happy path on a real phone at the Render URL.
+- **[HH-010 · H1]** Sample proof photos (checklist section E).
+- Then hand `docs/public/api.md` and the Render URL to Gemini role 1.
+
+Day 7's gate (on the Render URL, with a real phone) can't pass until those are done.

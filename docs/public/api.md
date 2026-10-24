@@ -66,7 +66,7 @@ For any `POST`, send a unique `Idempotency-Key` header (any string up to 64 char
 }
 ```
 
-`result` is filled in once the work is verified:
+`result` is filled in once the work is accepted (status `approved`, `paying` or `paid`). `verification` is `pass` when Hail verified the proof, or `owner_approved` when the owner accepted it after review. Photo URLs need the same `Authorization` header as the rest of the API.
 
 ```json
 "result": {

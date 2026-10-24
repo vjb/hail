@@ -1,7 +1,9 @@
 import { createHash } from "node:crypto";
 import { and, eq } from "drizzle-orm";
 import { db } from "@/db/client";
-import { apiKeys, idempotencyRecords, type bounties } from "@/db/schema";
+import { apiKeys, bountyEvents, idempotencyRecords, submissions, verifications, type bounties } from "@/db/schema";
+import { env } from "@/lib/env";
+import { desc } from "drizzle-orm";
 import { DomainError, finalScreening } from "@/domain/bounty/service";
 import { findActiveKey, type ApiKeyRecord } from "@/domain/keys/keys";
 
@@ -129,9 +131,34 @@ export async function withIdempotency(req: Request, key: ApiKeyRecord, path: str
 
 type BountyRow = typeof bounties.$inferSelect;
 
+/** The public result: filled once the work is accepted (approved, paying or paid). */
+async function bountyResult(b: BountyRow) {
+  if (!["approved", "paying", "paid"].includes(b.status)) return null;
+  const [sub] = await db().select().from(submissions).where(eq(submissions.bountyId, b.id)).orderBy(desc(submissions.createdAt)).limit(1);
+  if (!sub) return null;
+  const [v] = await db().select().from(verifications).where(eq(verifications.submissionId, sub.id)).orderBy(desc(verifications.id)).limit(1);
+  const events = await db().select().from(bountyEvents).where(eq(bountyEvents.bountyId, b.id)).orderBy(desc(bountyEvents.createdAt));
+  const accepted = events.find((e) => e.toStatus === "approved");
+  const byOwner = accepted && accepted.actor !== "verifier";
+  const base = env().APP_BASE_URL.replace(/\/$/, "");
+  const texts = (sub.notes ?? "").trim();
+  return {
+    verification: byOwner ? "owner_approved" : "pass",
+    summary: v?.rationale ?? null,
+    checklist: (v?.checklistResults ?? []).map((c) => ({ item: c.item, passed: byOwner ? true : c.passed === true })),
+    deliverables: [
+      ...sub.photoIds.map((id) => ({ type: "photo", url: `${base}/api/v1/photos/${id}` })),
+      ...(texts ? [{ type: "text", value: texts }] : []),
+      ...(sub.location ? [{ type: "location", lat: sub.location.lat, lng: sub.location.lng }] : []),
+    ],
+    completed_at: (accepted?.createdAt ?? sub.createdAt).toISOString(),
+  };
+}
+
 /** The public bounty object (docs/public/api.md). */
-export async function serializeBounty(b: BountyRow, result: unknown = null) {
+export async function serializeBounty(b: BountyRow) {
   const s = await finalScreening(db(), b.id);
+  const result = await bountyResult(b);
   return {
     id: b.id,
     status: b.status === "created" || b.status === "screening" ? "pending_approval" : b.status,

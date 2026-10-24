@@ -18,10 +18,13 @@
     "screenshots": "tsx --env-file-if-exists=.env scripts/screenshots.ts",
     "key:create": "tsx --env-file-if-exists=.env scripts/create-key.ts",
     "art:export": "tsx scripts/export-art.tsx",
-    "eval:screening": "tsx --env-file=.env scripts/eval-screening.ts"
+    "eval:screening": "tsx --env-file=.env scripts/eval-screening.ts",
+    "mcp:smoke": "tsx scripts/mcp-smoke.ts",
+    "payout:check": "tsx --env-file=.env scripts/payout-check.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^1.3.0",
+    "@modelcontextprotocol/sdk": "^1.32.2",
     "@paypal/react-paypal-js": "^10.6.1",
     "bcryptjs": "^3.0.3",
     "drizzle-orm": "^0.45.4",

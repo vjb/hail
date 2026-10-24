@@ -91,7 +91,10 @@ test("worker account page saves a PayPal email", async ({ page }) => {
   await signInAs(page, "worker2");
   await page.goto("/work/settings");
   await expectAccessible(page);
-  await page.getByLabel("PayPal email").fill(process.env.DEMO_WORKER2_PAYPAL_EMAIL || "worker2-paypal@example.com");
+  // Re-save the current address so the test never points payouts at a non-sandbox account.
+  const field = page.getByLabel("PayPal email");
+  const current = await field.inputValue();
+  await field.fill(current || process.env.DEMO_WORKER2_PAYPAL_EMAIL || process.env.DEMO_WORKER1_PAYPAL_EMAIL || "");
   await page.getByRole("button", { name: "Save" }).click();
   await expect(page.getByText("Saved. Payouts will go to this PayPal account.")).toBeVisible();
 });

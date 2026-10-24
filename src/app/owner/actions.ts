@@ -5,7 +5,7 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { db } from "@/db/client";
 import { ownerPolicies } from "@/db/schema";
-import { cancelBounty, decideApproval, DomainError } from "@/domain/bounty/service";
+import { cancelBounty, decideApproval, decideReview, DomainError } from "@/domain/bounty/service";
 import { createApiKey, revokeApiKey } from "@/domain/keys/keys";
 import { SCREEN_CATEGORIES } from "@/ai/provider";
 import { requireRole } from "@/lib/auth";
@@ -25,6 +25,18 @@ export async function approveAction(_: FormState, form: FormData): Promise<FormS
   }
   // No revalidate here: the client shows the confirmation, then refreshes the queue.
   return { ok: approve ? "Approved. The task is now open to workers." : "Declined. The money set aside is back in your available balance." };
+}
+
+export async function reviewAction(_: FormState, form: FormData): Promise<FormState> {
+  const owner = await requireRole("owner");
+  const approve = form.get("decision") === "approve";
+  const note = String(form.get("note") ?? "").trim().slice(0, 500) || undefined;
+  try {
+    await decideReview(db(), owner.id, String(form.get("bountyId")), approve, note);
+  } catch (e) {
+    return { error: friendly(e) };
+  }
+  return { ok: approve ? "Accepted. The worker is being paid." : "Rejected. The worker can appeal once." };
 }
 
 export async function cancelAction(_: FormState, form: FormData): Promise<FormState> {

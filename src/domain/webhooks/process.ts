@@ -1,6 +1,8 @@
 import { eq } from "drizzle-orm";
 import type { DB } from "@/db/client";
 import { webhookEvents } from "@/db/schema";
+import { payouts } from "@/db/schema";
+import { recordPayoutStatus } from "@/domain/payouts/payouts";
 import { recordCapture, TopupError } from "@/domain/topups/topups";
 
 export type PayPalEvent = { id: string; event_type: string; resource?: Record<string, unknown> };
@@ -49,8 +51,25 @@ async function apply(database: DB, event: PayPalEvent): Promise<boolean> {
       }
       return true;
     }
+    case "PAYMENT.PAYOUTS-ITEM.SUCCEEDED":
+    case "PAYMENT.PAYOUTS-ITEM.FAILED":
+    case "PAYMENT.PAYOUTS-ITEM.UNCLAIMED":
+    case "PAYMENT.PAYOUTS-ITEM.RETURNED":
+    case "PAYMENT.PAYOUTS-ITEM.BLOCKED": {
+      const itemId = r.payout_item_id as string | undefined;
+      const senderItemId = (r.payout_item as { sender_item_id?: string } | undefined)?.sender_item_id;
+      const status = (r.transaction_status as string | undefined) ?? event.event_type.split(".").pop()!.replace("SUCCEEDED", "SUCCESS");
+      const [p] = senderItemId
+        ? await database.select().from(payouts).where(eq(payouts.bountyId, senderItemId))
+        : itemId
+          ? await database.select().from(payouts).where(eq(payouts.itemId, itemId))
+          : [];
+      if (!p) return false;
+      await recordPayoutStatus(database, p.id, status, itemId);
+      return true;
+    }
     default:
-      // Payout and refund events are handled from Day 7/8.
+      // Refund events are handled with withdrawals (Day 8).
       return false;
   }
 }

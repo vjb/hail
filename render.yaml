@@ -1,0 +1,99 @@
+# Render Blueprint for Hail: web service + Postgres + a cron job that runs the sweeper every minute.
+# Secrets are declared with `sync: false`: Render asks for them when the Blueprint is first applied.
+# Plans: check current pricing before applying. The demo must stay up through Dec 15, 2026, and free
+# web services sleep when idle while free databases expire, so paid starter plans are recommended.
+
+services:
+  - type: web
+    name: hail
+    runtime: node
+    plan: 0.5c-512mb
+    region: oregon
+    buildCommand: npm ci && npm run build
+    preDeployCommand: npm run db:migrate
+    startCommand: npm start
+    healthCheckPath: /api/health
+    autoDeploy: true
+    envVars:
+      - key: NODE_VERSION
+        value: "24"
+      - key: DATABASE_URL
+        fromDatabase:
+          name: hail-db
+          property: connectionString
+      - key: PAYPAL_ENV
+        value: sandbox
+      - key: AI_PROVIDER
+        value: claude
+      - key: AI_MODEL_SCREEN
+        value: claude-haiku-5-5
+      - key: AI_MODEL_VERIFY
+        value: claude-sonnet-5-5
+      - key: AI_MODEL_OPS
+        value: claude-sonnet-5-5
+      - key: DEMO_TIME_SCALE
+        value: "1"
+      - key: SESSION_SECRET
+        generateValue: true
+      - key: SWEEP_SECRET
+        sync: false
+      - key: APP_BASE_URL
+        sync: false
+      - key: PAYPAL_CLIENT_ID
+        sync: false
+      - key: NEXT_PUBLIC_PAYPAL_CLIENT_ID
+        sync: false
+      - key: PAYPAL_CLIENT_SECRET
+        sync: false
+      - key: PAYPAL_WEBHOOK_ID
+        sync: false
+      - key: ANTHROPIC_API_KEY
+        sync: false
+      - key: CHANNEL3_API_KEY
+        sync: false
+      - key: AG_STUDIO_LICENSE_KEY
+        sync: false
+      - key: DEMO_OWNER_EMAIL
+        sync: false
+      - key: DEMO_OWNER_PASSWORD
+        sync: false
+      - key: DEMO_WORKER1_EMAIL
+        sync: false
+      - key: DEMO_WORKER1_PASSWORD
+        sync: false
+      - key: DEMO_WORKER1_PAYPAL_EMAIL
+        sync: false
+      - key: DEMO_WORKER2_EMAIL
+        sync: false
+      - key: DEMO_WORKER2_PASSWORD
+        sync: false
+      - key: DEMO_WORKER2_PAYPAL_EMAIL
+        sync: false
+      - key: DEMO_ADMIN_EMAIL
+        sync: false
+      - key: DEMO_ADMIN_PASSWORD
+        sync: false
+
+  - type: cron
+    name: hail-sweeper
+    runtime: node
+    plan: 0.5c-512mb
+    region: oregon
+    schedule: "* * * * *"
+    buildCommand: "true"
+    startCommand: node scripts/sweep-ping.mjs
+    envVars:
+      - key: NODE_VERSION
+        value: "24"
+      - key: APP_BASE_URL
+        sync: false
+      - key: SWEEP_SECRET
+        sync: false
+
+databases:
+  - name: hail-db
+    plan: 0.5c-1g
+    region: oregon
+    postgresMajorVersion: "17"
+    databaseName: hail
+    user: hail

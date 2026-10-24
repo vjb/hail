@@ -50,6 +50,19 @@ export type PhotoCheckInput = {
   image: { mime: "image/jpeg"; base64: string };
 };
 
+export const VerifyOutput = z.object({
+  checklist: z.array(z.object({ item: z.string(), passed: z.boolean().nullable(), reason: z.string(), confidence: z.number() })),
+  summary: z.string(),
+});
+export type VerifyOutput = z.infer<typeof VerifyOutput>;
+
+export type VerifyInput = {
+  bounty: Pick<BountyForAI, "title" | "instructions" | "acceptanceChecklist"> & { product?: { title?: string; attributes?: Record<string, string> } | null };
+  photos: Array<{ label: string; base64: string }>;
+  notes: string | null;
+  distanceMeters: number | null;
+};
+
 export type AIContext = { bountyId?: string; submissionId?: string };
 
 export type AIResult<T> = { ok: true; value: T; model: string; promptVersion: string } | { ok: false; error: string; model: string; promptVersion: string };
@@ -58,4 +71,5 @@ export interface AIProvider {
   readonly name: string;
   screenBounty(input: BountyForAI, ctx?: AIContext): Promise<AIResult<ScreenOutput>>;
   checkPhoto(input: PhotoCheckInput, ctx?: AIContext): Promise<AIResult<PhotoCheckOutput>>;
+  verifyProof(input: VerifyInput, ctx?: AIContext): Promise<AIResult<VerifyOutput>>;
 }

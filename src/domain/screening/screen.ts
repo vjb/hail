@@ -69,7 +69,9 @@ export async function screenBounty(input: ScreenInput): Promise<ScreenResult> {
     }
   }
 
-  const final = [...layers].sort((a, b) => RANK[b.decision] - RANK[a.decision] || (a.layer === "rules" ? -1 : 1))[0];
+  // Stricter decision wins. On a tie, a rule that actually matched explains it best; otherwise the AI's category does.
+  const matched = (l: ScreenLayerResult) => l.layer === "ai" || l.category !== "no_rule_matched";
+  const final = [...layers].sort((a, b) => RANK[b.decision] - RANK[a.decision] || Number(matched(b)) - Number(matched(a)) || (a.layer === "rules" ? -1 : 1))[0];
   const { layer: _l, ...rest } = final;
   void _l;
   return { final: rest, layers };

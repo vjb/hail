@@ -184,6 +184,22 @@ export async function decideApproval(database: DB, ownerId: string, bountyId: st
   });
 }
 
+/** Owner decision on proof the verifier couldn't confirm. Approve → payout; reject → rejected (worker may appeal). */
+export async function decideReview(database: DB, ownerId: string, bountyId: string, approve: boolean, note?: string) {
+  const b = await database.transaction(async (tx) => {
+    const [row] = await tx.select().from(bounties).where(eq(bounties.id, bountyId)).for("update");
+    if (!row) throw new DomainError("not_found", "No such task.");
+    if (row.ownerId !== ownerId) throw new DomainError("forbidden", "This task belongs to another owner.");
+    if (row.status !== "needs_owner_review") throw new DomainError("invalid_state", "This task no longer needs your review.");
+    return transition(tx, bountyId, approve ? "review_approve" : "review_reject", `owner:${ownerId}`, note ? { note, rationale: note } : {});
+  });
+  if (b.status === "approved") {
+    const { startPayout } = await import("@/domain/payouts/payouts");
+    await startPayout(database, bountyId);
+  }
+  return b;
+}
+
 export async function getBountyForOwner(database: DB, ownerId: string, bountyId: string) {
   const [b] = await database.select().from(bounties).where(eq(bounties.id, bountyId));
   if (!b) throw new DomainError("not_found", "No such bounty.");

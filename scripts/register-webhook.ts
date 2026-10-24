@@ -1,7 +1,8 @@
 /**
  * Registers (or reuses) the PayPal sandbox webhook for <base-url>/api/webhooks/paypal
  * and writes its ID to .env as PAYPAL_WEBHOOK_ID.
- * Usage: npm run webhook:register -- https://your-tunnel-or-render-host
+ * Usage: npm run webhook:register -- https://your-tunnel-or-render-host [--print-only]
+ * --print-only registers without touching .env (for the hosted app; set the ID in Render instead).
  */
 import { readFileSync, writeFileSync } from "node:fs";
 import { createWebhook, listWebhooks, WEBHOOK_EVENT_TYPES } from "../src/integrations/paypal/client";
@@ -17,6 +18,10 @@ async function main() {
   console.log(`Events: ${hook.event_types.map((e) => e.name).join(", ")}`);
   const others = webhooks.filter((w) => w.url !== url);
   if (others.length) console.log(`Other webhooks on this app: ${others.map((w) => w.url).join(", ")}`);
+  if (process.argv.includes("--print-only")) {
+    console.log(`Set PAYPAL_WEBHOOK_ID=${hook.id} on the server that serves ${base}`);
+    return;
+  }
   const envText = readFileSync(".env", "utf8");
   writeFileSync(".env", envText.replace(/^PAYPAL_WEBHOOK_ID=.*$/m, `PAYPAL_WEBHOOK_ID=${hook.id}`));
   console.log("PAYPAL_WEBHOOK_ID written to .env");
