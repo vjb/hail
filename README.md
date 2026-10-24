@@ -57,7 +57,7 @@ npm run webhook:register -- https://<your-tunnel-host>
 
 ## Deploy (Render)
 
-`render.yaml` is a Render Blueprint: the web service (migrations run before each deploy), Postgres 17, and a cron job that runs the sweeper every minute.
+`render.yaml` is a Render Blueprint: the web service and Postgres 17, currently on **free plans** (D-017). Migrations and the demo-account seed run when the service starts. Free plans have no cron jobs, so `.github/workflows/sweep.yml` runs the sweeper every 5 minutes; set repository secrets `APP_BASE_URL` and `SWEEP_SECRET` for it. The free database expires after 30 days, so switch to paid plans before judging (see the comment in `render.yaml`).
 
 1. In Render: **New → Blueprint**, pick this repo, and apply. Render asks for every `sync: false` value. Use the same values as `.env`, except `APP_BASE_URL`, which is the Render URL. `SESSION_SECRET` is generated for you.
 2. Register the PayPal webhook for the hosted URL and put the printed ID in Render as `PAYPAL_WEBHOOK_ID`:

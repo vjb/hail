@@ -1,17 +1,20 @@
-# Render Blueprint for Hail: web service + Postgres + a cron job that runs the sweeper every minute.
+# Render Blueprint for Hail: web service + Postgres. The sweeper cron job is parked while on free plans.
 # Secrets are declared with `sync: false`: Render asks for them when the Blueprint is first applied.
-# Plans: check current pricing before applying. The demo must stay up through Dec 15, 2026, and free
-# web services sleep when idle while free databases expire, so paid starter plans are recommended.
+# Plans: FREE for now (D-017). Free limits:
+#   - no pre-deploy command, so migrations and the idempotent seed run in startCommand;
+#   - no cron jobs, so the sweeper runs from .github/workflows/sweep.yml every 5 minutes;
+#   - the free database expires 30 days after creation, and the web service sleeps after 15 idle minutes.
+# Before judging (the demo must stay up through Dec 15, 2026): web plan 0.5c-512mb, database plan 0.5c-1g,
+# migrate+seed back in preDeployCommand, restore the cron job below and delete the GitHub workflow.
 
 services:
   - type: web
     name: hail
     runtime: node
-    plan: 0.5c-512mb
+    plan: free
     region: oregon
     buildCommand: npm ci && npm run build
-    preDeployCommand: npm run db:migrate && npm run db:seed
-    startCommand: npm start
+    startCommand: npm run db:migrate && npm run db:seed && npm start
     healthCheckPath: /api/health
     autoDeploy: true
     envVars:
@@ -74,25 +77,25 @@ services:
       - key: DEMO_ADMIN_PASSWORD
         sync: false
 
-  - type: cron
-    name: hail-sweeper
-    runtime: node
-    plan: 0.5c-512mb
-    region: oregon
-    schedule: "* * * * *"
-    buildCommand: "true"
-    startCommand: node scripts/sweep-ping.mjs
-    envVars:
-      - key: NODE_VERSION
-        value: "24"
-      - key: APP_BASE_URL
-        sync: false
-      - key: SWEEP_SECRET
-        sync: false
+  # - type: cron
+  #   name: hail-sweeper
+  #   runtime: node
+  #   plan: 0.5c-512mb
+  #   region: oregon
+  #   schedule: "* * * * *"
+  #   buildCommand: "true"
+  #   startCommand: node scripts/sweep-ping.mjs
+  #   envVars:
+  #     - key: NODE_VERSION
+  #       value: "24"
+  #     - key: APP_BASE_URL
+  #       sync: false
+  #     - key: SWEEP_SECRET
+  #       sync: false
 
 databases:
   - name: hail-db
-    plan: 0.5c-1g
+    plan: free
     region: oregon
     postgresMajorVersion: "17"
     databaseName: hail

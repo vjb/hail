@@ -105,3 +105,9 @@ Decision:
 - **Withdraw:** debit Available first, then partial-refund the newest captures (key `withdraw_<id>_<topup>`). Anything PayPal refuses is credited back as a reversal.
 Consequences: Callbacks carry no signature (not in the public contract). Agents should treat callbacks as hints and fetch the bounty, which `api.md` already says.
 Devpost: challenge
+
+## D-017 — Render on free plans until a card is added (2026-10-24)
+Context: Render requires a payment method for paid instances, and the human wants to deploy without a card for now.
+Decision: `render.yaml` uses free plans for the web service and Postgres. Free plans have no pre-deploy command, so migrations and the idempotent seed run in `startCommand`. They have no cron jobs, so a GitHub Actions schedule (`.github/workflows/sweep.yml`, every 5 minutes) calls `/api/internal/sweep` with the sweep secret, which also keeps the web service awake.
+Consequences: Timers fire up to ~5 minutes late (GitHub schedules can lag further). A cold start takes about a minute. **The free database expires 30 days after creation (~Nov 23)**, so before judging (through Dec 15) the human adds a card and we switch back to paid plans, `preDeployCommand` and the Render cron, as the comment in `render.yaml` describes.
+

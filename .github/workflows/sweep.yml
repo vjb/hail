@@ -1,0 +1,21 @@
+# Runs the sweeper on the hosted app while Render is on free plans, which have no cron jobs (D-017).
+# Needs repository secrets APP_BASE_URL and SWEEP_SECRET; does nothing until both are set.
+name: sweep
+on:
+  schedule:
+    - cron: "*/5 * * * *"
+  workflow_dispatch:
+jobs:
+  sweep:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Ask the app to sweep
+        env:
+          APP_BASE_URL: ${{ secrets.APP_BASE_URL }}
+          SWEEP_SECRET: ${{ secrets.SWEEP_SECRET }}
+        run: |
+          if [ -z "$APP_BASE_URL" ] || [ -z "$SWEEP_SECRET" ]; then echo "secrets not set; skipping"; exit 0; fi
+          # A sleeping free instance takes about a minute to wake, so allow a long timeout and retry once.
+          ping() { curl -fsS --max-time 120 -X POST -H "x-sweep-secret: $SWEEP_SECRET" "$APP_BASE_URL/api/internal/sweep"; }
+          ping || { sleep 20; ping; }
