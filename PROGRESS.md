@@ -257,3 +257,41 @@ Human needed:
 - Then hand `docs/public/api.md` and the Render URL to Gemini role 1.
 
 Day 7's gate (on the Render URL, with a real phone) can't pass until those are done.
+
+## Day 8 — Timers, appeals, callbacks, withdraw — done (live gate finishing)
+Done:
+- `src/domain/timers/timers.ts`:
+  - Bounty expiry releases the reward.
+  - Owner silence past the review window (review or appeal) pays the worker.
+  - An unappealed rejection reopens the task.
+  - One appeal per rejection, by the submitting worker. The owner accepts (→ paid) or declines (→ reopened or expired).
+- `src/domain/callbacks/callbacks.ts`: public-https only, checked at post time and again at send time. No redirects, 10 s timeout, 6 attempts with backoff (D-016).
+- `src/domain/withdrawals/withdrawals.ts`: debit first, then partial refunds of the newest captures, reversal on failure.
+- The sweeper runs all of the above. `npm run sweep:loop` stands in for the Render cron locally.
+- UI: worker appeal form, owner Appeals section (queue and task page), withdraw form and history.
+
+Gate evidence:
+- Unit tests at `DEMO_TIME_SCALE=60`: an ignored review isn't paid at 23 min and is paid after 24 min. Expiry releases funds. Appeal paths and SSRF refusals are covered. 137 tests at the time.
+- e2e `appeal.spec.ts`:
+  - The real verifier rejected a generated image. The worker appealed, the owner accepted, and a **real sandbox payout** reached `paid` (`owner_approved`).
+  - A real $2.00 withdraw from the UI.
+- Live `scripts/day8-gate.ts` against PayPal sandbox at scale 60:
+  - **Withdraw $5.00: refund `2LV17013HU322100J` COMPLETED.**
+  - **Expiry: `bty_Ow4kBeq2QidplwLI` → expired, held 49000 → 48600.**
+  - **Ignored review `bty_mRdCFsXTzoGLTD7p`: entered review 6:50:48 PM ET and is expected to auto-pay around 7:15 PM.** Result in the background task output; record it on resume.
+
+## Pulled forward (no human needed)
+- **Channel3 enrichment (Day 12):** live search at posting, in parallel with screening, 4 s timeout, never blocks. Product card on the worker and owner task pages; the product is passed to the verifier. Live check: the espresso bounty got the Breville Barista Express card.
+- **Demo reset (Day 10):** admin button, `POST /api/admin/reset-demo`, `npm run db:seed -- --demo`. A deterministic story in under 10 s: 3 paid, 1 blocked, 1 approval, 1 review, 2 open including espresso. Tested on an isolated database.
+- **Findings intake (Day 10):** `qa/README.md`, `inbox/`, `processed/`, `release-notes/`, and the GitHub labels `source:*` / `severity:*` created on vjb/hail.
+- **Opaque-to-outsiders check (Day 13–14):** production build has no `X-Powered-By`, no source maps (`.map` 404, no comments), clean titles, no console calls in client code.
+- `npm test` **140/140** at the last commit.
+
+## Resume here (next session)
+1. Record the Day 8 gate result: background task output, or check `bty_mRdCFsXTzoGLTD7p` in the DB.
+2. Waiting on the human: HH-008 (Render), HH-009 (phone test), HH-010 (sample photos), the Discord join, and AG Studio activation on Nov 1 (Day 9 control room).
+3. Next work that doesn't need the human:
+   - Days 13–14 hardening: review rate limits and auth; error/loading states everywhere.
+   - Refresh the screenshot manifest and take a run.
+   - Run `npm run db:seed -- --demo` on dev once nothing else is using the DB.
+4. The local dev server (port 3000) and the ngrok tunnel run in the background. Restart them if the machine rebooted: `npx next dev -p 3000` and `ngrok http 3000`.
