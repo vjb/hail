@@ -113,6 +113,48 @@ export function ScreenedBadge() {
   );
 }
 
+// ---------- Task card (worker list item) ----------
+export function effortSummary(deliverables: Array<{ type: string }>) {
+  const n = (t: string) => deliverables.filter((d) => d.type === t).length;
+  const parts = [];
+  if (n("photo")) parts.push(`${n("photo")} photo${n("photo") > 1 ? "s" : ""}`);
+  if (n("text")) parts.push(`${n("text")} note${n("text") > 1 ? "s" : ""}`);
+  if (n("location")) parts.push("your location");
+  return parts.join(" · ");
+}
+
+export function timeLeft(until: Date, now = new Date()) {
+  const ms = until.getTime() - now.getTime();
+  if (ms <= 0) return "Expired";
+  const h = Math.floor(ms / 3_600_000);
+  const m = Math.floor((ms % 3_600_000) / 60_000);
+  if (h >= 48) return `${Math.floor(h / 24)} days left`;
+  if (h >= 1) return `${h}h ${m}m left`;
+  return `${Math.max(1, m)} min left`;
+}
+
+export function TaskCard({ href, title, rewardCents, deliverables, expiresAt, place }: { href: string; title: string; rewardCents: number; deliverables: Array<{ type: string }>; expiresAt: Date; place?: string | null }) {
+  return (
+    <Link href={href} className="card card-tight task-card stack-sm">
+      <div className="spread" style={{ alignItems: "flex-start" }}>
+        <h2 style={{ fontSize: "var(--text-lg)", margin: 0 }}>{title}</h2>
+        <span className="task-pay">
+          <Money cents={rewardCents} />
+        </span>
+      </div>
+      <div className="row" style={{ gap: "var(--s-2)" }}>
+        <SetAsideBadge />
+        <ScreenedBadge />
+      </div>
+      <div className="task-meta">
+        <span>{effortSummary(deliverables)}</span>
+        <span>{timeLeft(expiresAt)}</span>
+        {place && <span>{place}</span>}
+      </div>
+    </Link>
+  );
+}
+
 // ---------- Balance ----------
 export function BalanceCard({ availableCents, heldCents, action }: { availableCents: number; heldCents: number; action?: ReactNode }) {
   return (

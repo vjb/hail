@@ -4,6 +4,7 @@ import { CASES } from "../../../tests/screening/cases";
 import { applyRules } from "./rules";
 import { screenBounty } from "./screen";
 
+const noPhoto = { checkPhoto: async () => ({ ok: false as const, error: "n/a", model: "f", promptVersion: "f" }) };
 const textOf = (c: (typeof CASES)[number]) => [c.title, c.instructions, ...(c.deliverables ?? []).map((d) => d.description), ...(c.checklist ?? [])].join("\n");
 
 describe("screening rules layer", () => {
@@ -34,25 +35,25 @@ describe("combined screen (rules + AI, stricter wins)", () => {
   });
 
   it("low AI confidence goes to the owner", async () => {
-    setAIProvider({ name: "low", screenBounty: async () => ({ ok: true, model: "f", promptVersion: "f", value: { decision: "allow", category: "place_photo", rationale: "Probably fine.", confidence: 0.5 } }) });
+    setAIProvider({ ...noPhoto, name: "low", screenBounty: async () => ({ ok: true, model: "f", promptVersion: "f", value: { decision: "allow", category: "place_photo", rationale: "Probably fine.", confidence: 0.5 } }) });
     const r = await screenBounty({ ...base, title: "Photograph a mural", instructions: "Photograph the mural on 3rd St." });
     expect(r.final.decision).toBe("needs_owner_approval");
   });
 
   it("an AI failure goes to the owner (never fails open)", async () => {
-    setAIProvider({ name: "down", screenBounty: async () => ({ ok: false, error: "timeout", model: "f", promptVersion: "f" }) });
+    setAIProvider({ ...noPhoto, name: "down", screenBounty: async () => ({ ok: false, error: "timeout", model: "f", promptVersion: "f" }) });
     const r = await screenBounty({ ...base, title: "Photograph a mural", instructions: "Photograph the mural on 3rd St." });
     expect(r.final.decision).toBe("needs_owner_approval");
   });
 
   it("an AI 'allow' with a blocked category is treated as a block", async () => {
-    setAIProvider({ name: "odd", screenBounty: async () => ({ ok: true, model: "f", promptVersion: "f", value: { decision: "allow", category: "otp_solicitation", rationale: "x", confidence: 0.9 } }) });
+    setAIProvider({ ...noPhoto, name: "odd", screenBounty: async () => ({ ok: true, model: "f", promptVersion: "f", value: { decision: "allow", category: "otp_solicitation", rationale: "x", confidence: 0.9 } }) });
     const r = await screenBounty({ ...base, title: "Odd", instructions: "Something" });
     expect(r.final.decision).toBe("block");
   });
 
   it("categories outside the owner's allowed list need approval", async () => {
-    setAIProvider({ name: "ok", screenBounty: async () => ({ ok: true, model: "f", promptVersion: "f", value: { decision: "allow", category: "simple_errand", rationale: "Errand.", confidence: 0.95 } }) });
+    setAIProvider({ ...noPhoto, name: "ok", screenBounty: async () => ({ ok: true, model: "f", promptVersion: "f", value: { decision: "allow", category: "simple_errand", rationale: "Errand.", confidence: 0.95 } }) });
     const r = await screenBounty({ ...base, title: "Pick up a brochure", instructions: "Pick up a free brochure.", policy: { approvalThresholdCents: 5000, allowedCategories: ["item_inspection"] } });
     expect(r.final.decision).toBe("needs_owner_approval");
   });

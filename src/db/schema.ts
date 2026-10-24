@@ -209,6 +209,7 @@ export const claims = pgTable(
     claimedAt: ts("claimed_at").notNull().defaultNow(),
     expiresAt: ts("expires_at").notNull(),
     status: claimStatusEnum("status").notNull().default("active"),
+    extensions: integer("extensions").notNull().default(0),
   },
   (t) => [
     // At most one active claim per bounty.
@@ -315,15 +316,25 @@ export const callbackDeliveries = pgTable(
   (t) => [index("callbacks_due_idx").on(t.deliveredAt, t.nextAttemptAt)],
 );
 
-export const photos = pgTable("photos", {
-  id: text("id").primaryKey(),
-  ownerUserId: text("owner_user_id").notNull().references(() => users.id),
-  mime: text("mime").notNull(),
-  width: integer("width"),
-  height: integer("height"),
-  bytes: bytea("bytes").notNull(),
-  createdAt: createdAt(),
-});
+export type PhotoCheck = { usable: boolean; problems: string[]; retakeHint: string; model?: string };
+
+export const photos = pgTable(
+  "photos",
+  {
+    id: text("id").primaryKey(),
+    ownerUserId: text("owner_user_id").notNull().references(() => users.id),
+    // Set while a worker captures proof for a claim: which claim and which deliverable slot.
+    claimId: text("claim_id").references(() => claims.id),
+    slot: integer("slot"),
+    check: jsonb("check").$type<PhotoCheck>(),
+    mime: text("mime").notNull(),
+    width: integer("width"),
+    height: integer("height"),
+    bytes: bytea("bytes").notNull(),
+    createdAt: createdAt(),
+  },
+  (t) => [index("photos_claim_idx").on(t.claimId, t.slot)],
+);
 
 // Public API idempotency: (api_key, Idempotency-Key) → stored response.
 export const idempotencyRecords = pgTable(

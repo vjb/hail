@@ -51,8 +51,23 @@ export const screens: Screen[] = [
   { slug: "owner-approvals", name: "Owner — approvals", description: "Tasks the safety screen held for the owner to approve or decline.", role: "owner", path: "/owner/approvals" },
   { slug: "owner-keys", name: "Owner — API keys", description: "The owner creates and revokes keys for their agents.", role: "owner", path: "/owner/keys" },
   { slug: "owner-policy", name: "Owner — policy", description: "The owner sets the approval threshold and limits.", role: "owner", path: "/owner/policy" },
-  { slug: "worker-tasks-empty", name: "Worker — tasks near you (none open)", description: "A local earner opens the app and there are no open tasks.", role: "worker1", path: "/work" },
-  { slug: "worker-my-task-empty", name: "Worker — my task (nothing claimed)", description: "The earner hasn't claimed a task yet.", role: "worker1", path: "/work/my-task" },
-  { slug: "worker-earnings-empty", name: "Worker — earnings (none yet)", description: "The earner's payout history before their first task.", role: "worker1", path: "/work/earnings" },
+  { slug: "worker-tasks", name: "Worker — tasks near you", description: "A local earner browses open, funded tasks with pay and effort shown up front.", role: "worker2", path: "/work" },
+  {
+    slug: "worker-task-detail",
+    name: "Worker — task detail before claiming",
+    description: "The earner sees exactly what to capture, the pay set aside, and the reservation time before claiming.",
+    role: "worker2",
+    path: "/work",
+    prepare: async (page) => {
+      const first = page.getByRole("list", { name: "Open tasks" }).getByRole("link").first();
+      if (await first.count()) {
+        await first.click();
+        await page.waitForURL(/\/work\/tasks\//);
+      }
+    },
+  },
+  { slug: "worker-my-task", name: "Worker — my task", description: "The earner's current or latest task: capture, checking, approved, paid or not accepted.", role: "worker1", path: "/work/my-task" },
+  { slug: "worker-earnings", name: "Worker — earnings", description: "The earner's payouts and submitted work.", role: "worker1", path: "/work/earnings" },
+  { slug: "worker-account", name: "Worker — account and PayPal email", description: "The earner sets the PayPal email they want to be paid to.", role: "worker1", path: "/work/settings" },
   { slug: "admin", name: "Admin", description: "The demo administrator's page.", role: "admin", path: "/admin" },
 ];

@@ -188,3 +188,36 @@ Deviations: none beyond D-015 (below).
 Open issues / risks:
 - The eval set was written by us. The red team (Gemini role 2, Day 8) will test it independently, and every bypass becomes a case before it's fixed.
 - `screen-v2`'s clarifying rule was written after seeing the misses, so 100% may overstate it. The red-team round is the real test.
+
+## Day 6 — Worker app — done
+Plan: mobile-first pages (open tasks, detail with "what to capture", claim with timer, proof capture, status, earnings, PayPal email) · photo resize and storage · **per-photo check with retake (D-013)**.
+
+Done:
+- `src/domain/work/work.ts`:
+  - Claim: needs a PayPal email; one active claim per worker; row lock and a partial unique index keep it to one claim per bounty. The window is 60 min scaled by `DEMO_TIME_SCALE` and capped at the bounty's expiry.
+  - Expired claims are expired lazily and reopen the bounty (the sweeper will call the same function). Release gives the task back.
+  - `addProofPhoto`: sharp rotate, resize to ≤1600px, JPEG q80, metadata stripped (location is only collected with explicit consent). Then a quick check through `AIProvider.checkPhoto` (Sonnet 5.5, structured output, data framing). An unusable photo gets a specific problem list and a retake hint, and extends the reservation by 10 min (at most 3 times). If the check is unavailable it never blocks the worker.
+  - `submitProof` requires every photo, text and location deliverable, takes the latest photo per slot, and moves the bounty claimed → verifying.
+- Routes: `POST /api/work/claims/:id/photos` (upload with XHR progress). `GET /api/photos/:id` serves only to the worker who took it, the task's owner, or an admin; anyone else gets 404.
+- Worker UI:
+  - `TaskCard` (pay, "Pay set aside", "Safety screened", effort summary, time left, place).
+  - Task detail with a "Before you claim" box (effort, reservation length, place), a product card, what to capture, and the acceptance checklist.
+  - Sticky claim button.
+  - "My task": a countdown, a camera-first photo slot per deliverable with preview, progress, "Looks good" or "Almost there: retake this photo" with reasons, text fields, opt-in location, notes, and submit. After submit it shows live status (verifying, approved, paid, owner reviewing, not accepted with checklist results).
+  - Earnings: totals and payouts with PayPal status, plus submitted work.
+  - Account: the PayPal email.
+
+Gate evidence:
+- e2e `worker.spec.ts` **2/2 at 390×844**:
+  - The agent posts via the API.
+  - worker1 sees the card with "Pay set aside" and "2 photos", opens it, and **claims by keyboard** (focus + Enter). The countdown shows.
+  - Two photos upload through the labeled inputs. Each gets a real AI check.
+  - Submit → "Checking your proof", and the API shows **verifying**.
+  - No serious axe violations on the list, detail and my-task pages.
+  - The PayPal email saves.
+- Real photo-check results: the serial-plate image was accepted, and it read "X1-004512". The generated "front panel" image got a retake ("looks like a flat graphic … not a photo of a real machine"). Cost about $0.008 per photo, about 3.5 s.
+- `npm test` **118/118**, adding 9 worker-flow tests: PayPal email required, a race between two claimants → one wins, one task per worker, expiry reopens and blocks late photos, release, resize ≤1600 JPEG, a retake extends the reservation, submit requires every deliverable, slot and ownership checks.
+
+Open issues / risks:
+- `DEMO_TIME_SCALE` also shortens the claim window. Set it carefully for demos so workers have enough time.
+- Generated test images are flat graphics. The human's sample photos (checklist section E) replace them on Day 10.

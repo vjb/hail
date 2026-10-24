@@ -2,8 +2,9 @@ import Anthropic from "@anthropic-ai/sdk";
 import { zodOutputFormat } from "@anthropic-ai/sdk/helpers/zod";
 import type { z } from "zod";
 import { env } from "@/lib/env";
+import { PHOTO_CHECK_PROMPT_VERSION, PHOTO_CHECK_SYSTEM } from "./prompts/photo-check";
 import { SCREEN_PROMPT_VERSION, SCREEN_SYSTEM } from "./prompts/screening";
-import { ScreenOutput, type AIContext, type AIProvider, type AIResult, type BountyForAI } from "./provider";
+import { PhotoCheckOutput, ScreenOutput, type AIContext, type AIProvider, type AIResult, type BountyForAI, type PhotoCheckInput } from "./provider";
 import { recordAICall } from "./telemetry";
 
 // Claude implementation of AIProvider. Model IDs come from env; prompts are versioned files.
@@ -87,6 +88,28 @@ export class ClaudeProvider implements AIProvider {
       effort: "medium",
       ctx,
       outcome: (v) => `${v.decision}:${v.category}`,
+    });
+  }
+
+  checkPhoto(input: PhotoCheckInput, ctx?: AIContext) {
+    const task = { title: input.bounty.title, instructions: input.bounty.instructions, acceptance_checklist: input.bounty.acceptanceChecklist, product: input.bounty.product ?? null };
+    return structured({
+      purpose: "photo_check",
+      model: env().AI_MODEL_VERIFY,
+      promptVersion: PHOTO_CHECK_PROMPT_VERSION,
+      system: PHOTO_CHECK_SYSTEM,
+      content: [
+        { type: "image", source: { type: "base64", media_type: input.image.mime, data: input.image.base64 } },
+        { type: "text", text: `${asData("task", task)}
+
+This photo is meant to show: ${JSON.stringify(input.item)}
+Is it usable?` },
+      ],
+      schema: PhotoCheckOutput,
+      maxTokens: 3000,
+      effort: "low",
+      ctx,
+      outcome: (v) => (v.usable ? "usable" : "retake"),
     });
   }
 }

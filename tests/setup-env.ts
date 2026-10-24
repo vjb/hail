@@ -23,4 +23,5 @@ import { setAIProvider } from "@/ai";
 setAIProvider({
   name: "fake",
   screenBounty: async () => ({ ok: true, model: "fake", promptVersion: "fake", value: { decision: "allow", category: "other_allowed", rationale: "Fake provider: allowed.", confidence: 0.95 } }),
+  checkPhoto: async () => ({ ok: true, model: "fake", promptVersion: "fake", value: { usable: true, problems: [], retake_hint: "" } }),
 });
