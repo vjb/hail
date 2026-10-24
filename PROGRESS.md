@@ -77,3 +77,34 @@ Benchmark (`qa/inbox/2026-10-24-firstlook-benchmark.md`) patterns adopted so far
 New dependencies: drizzle-orm, postgres, zod, @anthropic-ai/sdk, bcryptjs, iron-session, server-only, lucide-react; dev: drizzle-kit, vitest, tsx, @playwright/test, @axe-core/playwright.
 
 Open issues / risks: none blocking.
+
+## Day 3 — Top-up + balance — done
+Plan: PayPal JS SDK v6 button on Balance · create/capture server actions with a ledger credit · balance page with Available, Set aside and history, plus empty and error states · webhook storage and idempotent processing · top-up e2e with automated sandbox approval · screenshot pipeline.
+
+Done:
+- `src/domain/topups/topups.ts`: `startTopup` (PayPal-Request-Id `topup_<id>`) and `captureTopup` (`capture_<id>`, handles an already-captured 422). `recordCapture` is shared by the capture route and the webhook: amount and currency must match, and it's idempotent on the capture ID.
+- `src/domain/webhooks/process.ts` and `/api/webhooks/paypal`: verify → store once in `webhook_events` (unique PayPal event ID) → apply → mark processed. Failures are recorded and return 500 so PayPal retries.
+- Balance page:
+  - Amount presets plus a custom amount with validation.
+  - The v6 PayPal button.
+  - A "You closed PayPal without paying. Nothing was added." message on cancel.
+  - Error messages that never show internals.
+  - A history table (Available / Set aside, signed mono amounts).
+- e2e: `e2e/topup.spec.ts` and the `approvePayPalPopup` helper. A captcha skips the test and raises H3.
+- Screenshot pipeline: `npm run screenshots` with the `e2e/screens.ts` manifest. 12 screens × 2 widths × 2 themes, plus `index.md`.
+
+Gate evidence:
+- e2e `topup.spec.ts` **3/3**:
+  - The balance page is accessible.
+  - Closing the popup adds nothing and shows the message.
+  - **A $200 top-up approved by the sandbox buyer with no human clicks** shows $200.00 more available and a history row.
+- A real webhook `WH-0RB76430WU6463104-77V38986ND750414C` (PAYMENT.CAPTURE.COMPLETED, capture `77F51287XN1893625`, $200.00) was delivered, verified, stored and processed. The ledger has **exactly 1** credit for that capture; available stays $200.00.
+- Replaying that payload without PayPal's signature → **401**.
+- Unit tests: replayed events are duplicates; a resend with a new event ID for the same capture doesn't double-credit; a webhook racing two capture calls credits once; a mismatched amount isn't credited and the error is recorded. `npm test` 52/52.
+- Screenshots: `screenshots/2026-10-24-run1` (48 files plus index.md). Balance page reviewed at 390px.
+
+Deviations: D-009 (JS SDK v6), D-010 (custom_id = top-up ID), D-011 (capture route credits, webhook reconciles; sandbox webhooks lag about 10 minutes).
+
+Open issues / risks:
+- Each top-up e2e run adds $200 to the dev database's demo owner. Demo reset arrives on Day 10.
+- H3 was not needed: the sandbox approval is automated.

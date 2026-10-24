@@ -200,6 +200,16 @@ async function assertHeldFor(tx: Tx, bountyId: string, amountCents: number, exit
   }
 }
 
+/** The owner-facing ledger: movements in and out of Available and Set aside, newest first. */
+export async function listOwnerEntries(ex: Executor, ownerId: string, limit = 100) {
+  return ex
+    .select()
+    .from(ledgerEntries)
+    .where(and(eq(ledgerEntries.ownerId, ownerId), inArray(ledgerEntries.account, ["available", "held"])))
+    .orderBy(sql`${ledgerEntries.createdAt} desc, ${ledgerEntries.id} desc`)
+    .limit(limit);
+}
+
 /** Sum of every entry for an owner must be zero (double-entry invariant). */
 export async function ownerLedgerSum(ex: Executor, ownerId: string): Promise<number> {
   const [r] = await ex

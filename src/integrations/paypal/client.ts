@@ -119,17 +119,22 @@ export function createOrder(input: {
           amount: { currency_code: "USD", value: centsToValue(input.amountCents) },
         },
       ],
-      payment_source: {
-        paypal: {
-          experience_context: {
-            brand_name: "Hail",
-            shipping_preference: "NO_SHIPPING",
-            user_action: "PAY_NOW",
-            ...(input.returnUrl ? { return_url: input.returnUrl } : {}),
-            ...(input.cancelUrl ? { cancel_url: input.cancelUrl } : {}),
-          },
-        },
-      },
+      // Redirect flows (the spike) pass return/cancel URLs; the JS SDK popup flow manages approval itself.
+      ...(input.returnUrl
+        ? {
+            payment_source: {
+              paypal: {
+                experience_context: {
+                  brand_name: "Hail",
+                  shipping_preference: "NO_SHIPPING",
+                  user_action: "PAY_NOW",
+                  return_url: input.returnUrl,
+                  ...(input.cancelUrl ? { cancel_url: input.cancelUrl } : {}),
+                },
+              },
+            },
+          }
+        : {}),
     },
   });
 }

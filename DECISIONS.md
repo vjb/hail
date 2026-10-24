@@ -48,3 +48,20 @@ Context: The first-impressions benchmark (`qa/inbox/2026-10-24-firstlook-benchma
 Decision: Adopt the presentation patterns that fit the spec now: pay and the "Pay set aside" badge on every card, a safety-screened badge, a before-you-claim effort summary, a claim countdown, the 5-step timeline, and plain respectful copy. Hold **retake-before-final-submit** as an H6 question, since it changes the verification flow. No map view (out of scope).
 Consequences: Raised to the human in PROGRESS.md.
 Devpost: challenge
+
+## D-009 — PayPal JS SDK v6 through `@paypal/react-paypal-js/sdk-v6` (2026-10-24)
+Context: The architecture said "PayPal JS SDK, current version from docs". The current SDK is v6 (`PayPalProvider` with `environment="sandbox"`, `PayPalOneTimePaymentButton` with `createOrder`/`onApprove`/`onCancel`). It renders a `<paypal-button>` web component and opens the checkout in a popup.
+Decision: Use v6 with `clientId` and `presentationMode="popup"`. Server actions create and capture the order. Orders created for the SDK flow send no `payment_source.experience_context`; the redirect URLs are only used by the spike.
+Consequences: The e2e test drives the real popup. The sandbox checkout's final button is labeled "Pay".
+Devpost: built-with
+
+## D-010 — `custom_id` is the top-up ID, not the owner ID (2026-10-24)
+Context: The architecture suggested `custom_id = owner_id`. Reconciliation needs to find the exact top-up.
+Decision: `custom_id` = `reference_id` = our top-up ID. The owner comes from the `topups` row. Webhooks match on `supplementary_data.related_ids.order_id`.
+Devpost: —
+
+## D-011 — The capture route credits; webhooks reconcile (2026-10-24)
+Context: Real sandbox webhooks arrive late. The $200 top-up's `PAYMENT.CAPTURE.COMPLETED` was delivered about 10 minutes after capture, and the Day 1 spike's events never appeared in the event list.
+Decision: The server's capture call is the primary credit path. The webhook calls the same `recordCapture`, keyed on the capture ID, so whichever arrives first credits and the other is a no-op. Verified events are stored once, keyed on PayPal's event ID.
+Consequences: The UI never waits on webhooks for top-ups. Payout status (Day 7) will also poll the batch from the sweeper rather than wait on webhooks.
+Devpost: learned

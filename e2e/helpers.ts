@@ -33,3 +33,40 @@ export async function expectAccessible(page: Page) {
   const serious = results.violations.filter((v) => v.impact === "serious" || v.impact === "critical");
   expect(serious.map((v) => `${v.id}: ${v.help} (${v.nodes.length})`)).toEqual([]);
 }
+
+/**
+ * Approves a PayPal sandbox checkout popup as the sandbox buyer (E2E_PAYPAL_BUYER_*).
+ * If PayPal shows a captcha or extra verification, the calling test is skipped (raise H3).
+ */
+export async function approvePayPalPopup(popup: Page) {
+  const email = process.env.E2E_PAYPAL_BUYER_EMAIL;
+  const password = process.env.E2E_PAYPAL_BUYER_PASSWORD;
+  if (!email || !password) throw new Error("E2E_PAYPAL_BUYER_EMAIL / _PASSWORD must be set");
+  await popup.waitForLoadState("domcontentloaded");
+  const emailBox = popup.locator("#email");
+  await emailBox.waitFor({ timeout: 45_000 });
+  await emailBox.fill(email);
+  // PayPal sometimes shows email and password together, sometimes email → Next → password.
+  const pw = popup.locator("#password");
+  const next = popup.locator("#btnNext").or(popup.getByRole("button", { name: "Next", exact: true }));
+  const login = popup.locator("#btnLogin");
+  await popup.waitForTimeout(1000);
+  if (await next.first().isVisible().catch(() => false)) {
+    await next.first().click({ timeout: 15_000 });
+  }
+  await login.waitFor({ state: "visible", timeout: 30_000 });
+  await pw.fill(password);
+  await login.click();
+  const challenge = popup.locator('iframe[title*="captcha" i], #captcha, [data-testid="challenge"]');
+  const pay = popup
+    .locator('#payment-submit-btn, button[data-id="payment-submit-btn"]')
+    .or(popup.getByRole("button", { name: /^(Pay|Pay Now|Complete Purchase|Continue to Review Order)$/ }));
+  const first = await Promise.race([
+    pay.first().waitFor({ timeout: 60_000 }).then(() => "pay" as const),
+    challenge.first().waitFor({ timeout: 60_000 }).then(() => "challenge" as const),
+  ]);
+  if (first === "challenge") return "challenge" as const;
+  await pay.first().click();
+  await popup.waitForEvent("close", { timeout: 60_000 });
+  return "approved" as const;
+}
