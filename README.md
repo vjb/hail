@@ -43,7 +43,7 @@ cp .env.example .env          # fill in the values (see below)
 # 3. Install, migrate, seed
 npm install
 npm run db:migrate
-npm run db:seed               # demo accounts from .env; prints a demo API key once
+npm run db:seed               # demo accounts from .env (add -- --with-key for a demo API key)
 
 # 4. Run
 npm run dev                   # http://localhost:3000
@@ -64,7 +64,7 @@ npm run webhook:register -- https://<your-tunnel-host>
    ```bash
    npm run webhook:register -- https://<your-app>.onrender.com --print-only
    ```
-3. Seed the demo accounts once from the Render shell: `npm run db:seed`.
+Each deploy runs migrations and an idempotent seed of the demo accounts. Owners create API keys in the dashboard.
 
 Pushes to `main` deploy automatically.
 

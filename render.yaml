@@ -10,7 +10,7 @@ services:
     plan: 0.5c-512mb
     region: oregon
     buildCommand: npm ci && npm run build
-    preDeployCommand: npm run db:migrate
+    preDeployCommand: npm run db:migrate && npm run db:seed
     startCommand: npm start
     healthCheckPath: /api/health
     autoDeploy: true

@@ -42,10 +42,10 @@ export async function wipeAll(database: DB) {
 }
 
 /**
- * Idempotent base seed: demo accounts from env, a default owner policy, and one API key
- * (created only if the owner has none; the raw key is returned so it can be printed once).
+ * Idempotent base seed: demo accounts from env and a default owner policy. With `withKey`, also one
+ * API key if the owner has none (the raw key is returned so it can be printed once).
  */
-export async function seedBase(database: DB, envVars: NodeJS.ProcessEnv = process.env) {
+export async function seedBase(database: DB, envVars: NodeJS.ProcessEnv = process.env, opts: { withKey?: boolean } = {}) {
   const ids: Record<string, string> = {};
   for (const a of ACCOUNTS) {
     const email = envVars[a.emailVar]?.trim().toLowerCase();
@@ -65,6 +65,6 @@ export async function seedBase(database: DB, envVars: NodeJS.ProcessEnv = proces
   const ownerId = ids.DEMO_OWNER_EMAIL;
   await database.insert(ownerPolicies).values({ ownerId }).onConflictDoNothing();
   const existingKeys = await database.select({ id: apiKeys.id }).from(apiKeys).where(eq(apiKeys.ownerId, ownerId));
-  const key = existingKeys.length ? null : await createApiKey(database, { ownerId, name: "demo-agent", dailyCapCents: 10_000 });
+  const key = !opts.withKey || existingKeys.length ? null : await createApiKey(database, { ownerId, name: "demo-agent", dailyCapCents: 10_000 });
   return { ownerId, worker1Id: ids.DEMO_WORKER1_EMAIL, worker2Id: ids.DEMO_WORKER2_EMAIL, adminId: ids.DEMO_ADMIN_EMAIL, apiKey: key?.raw ?? null };
 }
