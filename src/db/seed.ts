@@ -4,6 +4,7 @@ import type { DB } from "@/db/client";
 import { apiKeys, ownerPolicies, users } from "@/db/schema";
 import { createApiKey } from "@/domain/keys/keys";
 import { newId } from "@/lib/ids";
+import { seedHistory } from "./demo-history";
 
 type Account = { role: "owner" | "worker" | "admin"; name: string; emailVar: string; passwordVar: string; paypalVar?: string };
 
@@ -67,4 +68,14 @@ export async function seedBase(database: DB, envVars: NodeJS.ProcessEnv = proces
   const existingKeys = await database.select({ id: apiKeys.id }).from(apiKeys).where(eq(apiKeys.ownerId, ownerId));
   const key = !opts.withKey || existingKeys.length ? null : await createApiKey(database, { ownerId, name: "demo-agent", dailyCapCents: 10_000 });
   return { ownerId, worker1Id: ids.DEMO_WORKER1_EMAIL, worker2Id: ids.DEMO_WORKER2_EMAIL, adminId: ids.DEMO_ADMIN_EMAIL, apiKey: key?.raw ?? null };
+}
+
+/** Wipes everything and reseeds demo accounts plus the demo story. Used by the admin reset button. */
+export async function resetDemo(database: DB, envVars: NodeJS.ProcessEnv = process.env) {
+  const started = Date.now();
+  await wipeAll(database);
+  const base = await seedBase(database, envVars, { withKey: false });
+  const key = await createApiKey(database, { ownerId: base.ownerId, name: "demo-agent", dailyCapCents: 20_000 });
+  await seedHistory(database, { ownerId: base.ownerId, worker1Id: base.worker1Id, worker2Id: base.worker2Id, apiKeyId: key.id });
+  return { ms: Date.now() - started };
 }

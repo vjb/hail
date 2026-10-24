@@ -3,6 +3,7 @@ import type { DB, Tx } from "@/db/client";
 import { bounties, ledgerEntries, ownerPolicies, screenings, type BountyLocation, type Deliverable } from "@/db/schema";
 import { getBalances, holdForBounty, InsufficientFundsError, releaseBounty } from "@/domain/ledger/ledger";
 import { screenBounty, type ScreenResult } from "@/domain/screening/screen";
+import { findProduct } from "@/integrations/channel3/client";
 import { newId } from "@/lib/ids";
 import { transition, type Actor, type BountyStatus } from "./state";
 
@@ -108,6 +109,9 @@ export async function createBounty(database: DB, ctx: { ownerId: string; apiKeyI
   });
   await database.transaction((tx) => transition(tx, id, "screen_start", ctx.actor));
 
+  // Channel3 enrichment runs alongside screening; a miss or an error never blocks posting.
+  const productP = input.productQuery ? findProduct(input.productQuery) : Promise.resolve(null);
+
   let screen: ScreenResult;
   try {
     screen = await screenBounty({ ...input, location: input.location ?? null, policy, bountyId: id });
@@ -115,6 +119,9 @@ export async function createBounty(database: DB, ctx: { ownerId: string; apiKeyI
     // Never fail open: if screening itself breaks, the owner decides.
     screen = { final: { decision: "needs_owner_approval", category: "unscreened", rationale: "Automatic screening was unavailable, so the owner must approve this task." }, layers: [] };
   }
+
+  const product = await productP;
+  if (product) await database.update(bounties).set({ product }).where(eq(bounties.id, id));
 
   try {
     return await database.transaction(async (tx) => {

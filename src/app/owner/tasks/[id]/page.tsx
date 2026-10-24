@@ -131,6 +131,21 @@ export default async function TaskDetail({ params }: PageProps<"/owner/tasks/[id
               <MapPin aria-hidden="true" width={18} /> {b.location.address}
             </p>
           )}
+          {b.product && (
+            <div className="row" style={{ alignItems: "flex-start", background: "var(--paper)", borderRadius: 8, padding: "var(--s-3)" }}>
+              {b.product.image_url && (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={b.product.image_url} alt="" width={72} height={72} style={{ borderRadius: 8, objectFit: "cover", background: "var(--surface)" }} />
+              )}
+              <div className="stack-sm" style={{ flex: 1 }}>
+                <span className="balance-label">Product reference (from Channel3)</span>
+                <strong>{b.product.title}</strong>
+                <span className="muted">
+                  {[b.product.retailer, b.product.price_cents !== undefined ? `$${(b.product.price_cents / 100).toFixed(2)}` : null].filter(Boolean).join(" · ")}
+                </span>
+              </div>
+            </div>
+          )}
           <h3>What to capture</h3>
           <ul>
             {b.deliverables.map((x, i) => (

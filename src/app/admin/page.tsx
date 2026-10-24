@@ -1,9 +1,9 @@
 import type { Metadata } from "next";
 import { LogOut } from "lucide-react";
 import { HailLogo } from "@/components/HailLogo";
-import { EmptyState } from "@/components/ui";
 import { requireRole } from "@/lib/auth";
 import { signOutAction } from "../sign-in/actions";
+import { ResetDemo } from "./ResetDemo";
 
 export const metadata: Metadata = { title: "Admin" };
 
@@ -25,7 +25,13 @@ export default async function AdminPage() {
           <h1>Demo admin</h1>
           <p className="muted">Signed in as {user.name}.</p>
         </div>
-        <EmptyState title="Demo reset">Resetting the demo data will be available here.</EmptyState>
+        <section className="card stack" aria-labelledby="reset-heading">
+          <h2 id="reset-heading">Reset the demo</h2>
+          <p className="muted" style={{ margin: 0 }}>
+            Restores the demo story: a funded owner, three paid tasks, one blocked attempt, one waiting for approval, one proof to review, and two open tasks, including the espresso machine inspection.
+          </p>
+          <ResetDemo />
+        </section>
       </main>
     </div>
   );

@@ -1,7 +1,12 @@
 import { closeDb, db } from "../src/db/client";
-import { seedBase, wipeAll } from "../src/db/seed";
+import { resetDemo, seedBase, wipeAll } from "../src/db/seed";
 
 async function main() {
+  if (process.argv.includes("--demo")) {
+    const r = await resetDemo(db());
+    console.log(`Demo data reset in ${r.ms} ms`);
+    return;
+  }
   const fresh = process.argv.includes("--fresh");
   if (fresh) await wipeAll(db());
   const r = await seedBase(db(), process.env, { withKey: process.argv.includes("--with-key") });
