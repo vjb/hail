@@ -1,8 +1,17 @@
 # 04 — Pitch and Demo
 
 ## Positioning
-**Hail: when your agent hits a wall, it hails a human.**
-Agents hiring humans is already happening, and early platforms leave workers ghosted and exploited. Hail is the trustworthy version: fund-first escrow, AI safety screening, AI-verified work, and PayPal payouts to people who already have PayPal.
+**Hail: your agent's eyes before it spends money.**
+AI agents can now pay for things. They can't see what they're paying for. Before an agent pays a stranger for something in the physical world, it hails a human to go and look, and PayPal only moves the agent's money after the proof checks out.
+
+One line for the slide: **the pay is guaranteed, the task is screened, and the proof is real.**
+- *Pay guaranteed:* the worker's reward is set aside before anyone sees the task, and paid to their verified PayPal account.
+- *Task screened:* tasks that would misuse a person (codes, fake accounts, stalking) are blocked before they're posted.
+- *Proof real:* photos are taken live in the app with a fresh code; anything doubtful goes to a person instead of being paid automatically.
+
+Agents hiring people is already happening, and the first big platform left workers unpaid and exposed to abuse. Hail is the version you can trust with money on both sides.
+
+**The line to land:** "Hail pays for the truth, not for a yes." The worker who reports that the item doesn't match still gets paid, and that report is what saves the agent's money.
 
 ## Prize targets
 - **Best Use of Agentic Commerce** ($5,000) — agents that transact, with real guardrails.
@@ -17,10 +26,12 @@ Agents hiring humans is already happening, and early platforms leave workers gho
 | Technological implementation | Orders/capture/refund, Payouts, verified webhooks, double-entry ledger, MCP server, Claude screening + vision verification |
 | Design | Coherent three-sided product: owner dashboard, worker mobile app, agent API |
 | Potential impact | Real, documented problem (ghosting, abuse) with a specific audience: workers and agent owners |
-| Innovation | Inverts "agent does it for you": the agent knows its limits and hires a person, safely |
+| Innovation | Verify-then-pay: the agent's PayPal payment is authorized, held, and captured only after a person's proof passes, or voided if it doesn't |
 | Presentation | The 3-minute video below |
 
 Stage one is pass/fail on "meaningfully uses PayPal and AI" — make both obvious in the first 30 seconds.
+
+PayPal shows up four times in one story; say so: the owner funds Hail (Orders + capture), the worker is paid (Payouts), the agent's purchase is held (Orders with `AUTHORIZE`) and then captured or voided, and every step is confirmed by verified webhooks.
 
 ## Facts for the pitch (cite them)
 - RentAHuman.ai launched Feb 2026; 40,000+ workers signed up within days; pays in crypto. (Analytics Vidhya, Feb 4, 2026)
@@ -35,19 +46,23 @@ Stage one is pass/fail on "meaningfully uses PayPal and AI" — make both obviou
 
 ## Demo script (target 2:50)
 
-**0:00–0:20 — The hook and the problem.** "I built this with an AI coding agent. It hit walls it couldn't get past and had to hail me [N] times. [Show HAIL-LOG scrolling.] Agents everywhere hit those walls. They're starting to hire people, and on the first big platform, researchers found 35 of 37 'completed' jobs never paid anyone. Hail fixes that with PayPal."
+The spine is one purchase. The agent is buying a used espresso machine ($120) from a stranger's listing. It can't see the machine.
 
-**0:20–0:45 — The agent hits a wall.** Show the requester agent (built by Gemini from our public docs) sourcing a used espresso machine. It finds the model's details via Channel3 and a local listing it can't physically inspect. Line: "This agent was built by a different AI, from our public docs alone." It calls Hail's MCP `create_bounty`: $25, photograph the serial plate and power it on.
+**0:00–0:15 — The hook.** "AI agents can pay for things now. They can't see what they're buying." Show the requester agent (built by a different AI from our public docs alone) finding the listing and the model's real specs via Channel3.
 
-**0:45–1:05 — Fund-first escrow.** Owner dashboard: balance topped up once via PayPal; $25 moves from available to held the instant the bounty posts. "The money is set aside before any worker sees the job. Ghosting is impossible."
+**0:15–0:35 — Money held, not sent.** The agent authorizes $120 with PayPal: the buyer approves, the money is held for the seller, nothing is sent. Then it calls Hail's MCP `create_bounty`: $25, "photograph the serial plate and the machine powered on." Owner dashboard: $25 moves from Available to Set aside the instant the task posts. "The worker's pay is set aside before anyone sees the job."
 
-**1:05–1:25 — The safety screen.** A second agent posts "Receive a verification code for me, $15." Blocked instantly, with the category (OTP solicitation) and the rationale on screen. Flash the red-team stat: "Blocked N of M attacks written by an independent AI."
+**0:35–0:50 — The screen.** A second agent posts "Receive a verification code for me, $15." Blocked instantly, with the category and the reason on screen. Flash: "Blocked [x of y] attacks written by an independent AI red team."
 
-**1:25–2:05 — The human.** Phone screen: worker sees the bounty with the product card and checklist, claims it, takes two photos, submits. Verifier result appears: each checklist item passed, with its reasoning. PayPal payout status flips to paid; show the sandbox personal account receiving $25. The agent gets its callback and continues: "Serial matches. Proceeding to purchase."
+**0:50–1:30 — The human.** Phone, full size. The worker sees the task with the product card and the "Pay set aside" badge, claims it, opens the camera. A fresh code appears; they write it on paper, photograph it beside the serial plate. Verifier result: each checklist item with its reasoning, and the proof checks (code present, taken live, not a screen). Payout to the worker's verified PayPal account; show it land.
 
-**2:05–2:40 — The control room.** AG Studio dashboard: escrow held, paid out, blocked attempts by category, time to completion. Type "Which task types get rejected most?" and the ops agent builds the widget live.
+**1:30–2:00 — The catch.** The serial in the photo doesn't match the listing. The agent reads the verified result, says "Serial doesn't match the listing. Voiding the payment," and voids the $120 authorization. "The money never moved. And the worker still got paid, because Hail pays for the truth, not for a yes." Cut to the honest listing: same flow, match, the agent captures and the seller is paid. Show the proof certificate.
 
-**2:40–2:50 — Close.** "Hail. When your agent hits a wall, it hails a human, and that human always gets paid."
+**2:00–2:15 — Faking it doesn't pay.** A submission that's a photo of a screen, without the code: it goes to the owner for review instead of paying out. One sentence: "No photo is unfakeable. Hail makes cheating cost more than the task pays, and puts a verified PayPal name on it."
+
+**2:15–2:40 — The control room.** AG Studio dashboard: money set aside, paid out, blocked attempts by category, time to completion. Type "Which task types get rejected most?" and the ops agent builds the widget live.
+
+**2:40–2:50 — Close.** "Hail. Your agent's eyes before it spends money. The pay is guaranteed, the task is screened, and the proof is real." Optional last beat: "Built with an AI coding agent that had to hail me [N] times."
 
 ## Recording tips
 - Record each segment separately; cut tight. No dead air waiting on APIs (speed up or cut).
@@ -58,10 +73,10 @@ Stage one is pass/fail on "meaningfully uses PayPal and AI" — make both obviou
 - Keep under 3:00. Judges aren't required to watch beyond that.
 
 ## Devpost description outline
-1. Inspiration — the ghosting and abuse findings
+1. Inspiration — agents can pay but can't see; and the ghosting and abuse findings on the first agents-hire-humans platform
 2. What it does — three sides: agents, owners, workers
 3. How we built it — PayPal (Orders, capture/refund, Payouts, webhooks), Claude (screening, vision verification, ops agent), AG Studio + Studio Agent Framework, Channel3, MCP, Render
 4. Tools and models used and how (required by the rules)
 5. Safety — the policy, the red-team method and results
 6. Challenges and what we learned
-7. What's next — identity checks, ratings, Venmo payouts, more task types
+7. What's next — ratings, repeat-worker trust, more task types, Venmo payouts (not available in the PayPal sandbox)

@@ -1,5 +1,5 @@
 import { expect, test } from "@playwright/test";
-import { samplePhoto } from "./fixtures";
+import { samplePhoto, takePhoto } from "./fixtures";
 import { signInAs } from "./helpers";
 
 // Day 7 happy path (local): agent posts → worker claims and submits → verifier decides →
@@ -43,8 +43,8 @@ test("from agent post to PayPal payout", async ({ browser, request }) => {
   await worker.goto(`/work/tasks/${created.id}`);
   await worker.getByRole("button", { name: /^Claim and reserve/ }).click();
   await expect(worker).toHaveURL(/\/work\/my-task$/);
-  await worker.getByLabel("Photo 1: Serial number plate").setInputFiles(samplePhoto("good-1"));
-  await worker.getByLabel("Photo 2: Front panel with power light on").setInputFiles(samplePhoto("good-2"));
+  await takePhoto(worker, "Photo 1: Serial number plate", samplePhoto("good-1"));
+  await takePhoto(worker, "Photo 2: Front panel with power light on", samplePhoto("good-2"));
   await expect(worker.getByRole("button", { name: "Submit proof" })).toBeEnabled({ timeout: 90_000 });
   await worker.getByRole("button", { name: "Submit proof" }).click();
 

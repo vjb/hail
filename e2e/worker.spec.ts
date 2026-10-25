@@ -1,5 +1,5 @@
 import { expect, test, type APIRequestContext, type Page } from "@playwright/test";
-import { samplePhoto } from "./fixtures";
+import { samplePhoto, takePhoto } from "./fixtures";
 import { expectAccessible, signInAs } from "./helpers";
 
 // Day 6 gate: at 390px a seeded worker claims a task and submits two photos; it shows verifying.
@@ -45,10 +45,11 @@ test("a worker claims a task on a phone and submits two photos", async ({ page, 
   await signInAs(page, "worker1");
   // Free up the worker if an earlier run left a reservation.
   await page.goto("/work/my-task");
+  await page.getByRole("heading", { level: 1 }).first().waitFor();
   const giveBack = page.getByRole("button", { name: "Give this task back" });
   if (await giveBack.isVisible().catch(() => false)) {
     await giveBack.click();
-    await expect(page.getByText("You gave the task back.")).toBeVisible();
+    await expect(giveBack).toBeHidden({ timeout: 15_000 });
   }
 
   await page.goto("/work");
@@ -72,8 +73,9 @@ test("a worker claims a task on a phone and submits two photos", async ({ page, 
   await expect(page.getByRole("timer")).toBeVisible();
   await expectAccessible(page);
 
-  await page.getByLabel("Photo 1: Serial number plate, readable").setInputFiles(samplePhoto("good-1"));
-  await page.getByLabel("Photo 2: Front panel of the machine").setInputFiles(samplePhoto("good-2"));
+  const code = await takePhoto(page, "Photo 1: Serial number plate, readable", samplePhoto("good-1"));
+  expect(code).toMatch(/^[A-Z]{3}-\d{3}$/);
+  await takePhoto(page, "Photo 2: Front panel of the machine", samplePhoto("good-2"));
   // Each photo gets the quick check: either "Looks good" or a specific retake prompt.
   await expect(page.getByText(/Looks good|retake this photo/).first()).toBeVisible({ timeout: 90_000 });
   await expect(page.getByRole("button", { name: "Submit proof" })).toBeEnabled({ timeout: 90_000 });

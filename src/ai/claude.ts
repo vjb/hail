@@ -104,7 +104,8 @@ export class ClaudeProvider implements AIProvider {
         { type: "text", text: `${asData("task", task)}
 
 This photo is meant to show: ${JSON.stringify(input.item)}
-Is it usable?` },
+${input.challengeCode ? `The worker was asked to write this code on paper and keep it in the photo: ${JSON.stringify(input.challengeCode)}
+` : ""}Is it usable?` },
       ],
       schema: PhotoCheckOutput,
       maxTokens: 3000,

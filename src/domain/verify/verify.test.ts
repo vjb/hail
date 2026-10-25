@@ -9,9 +9,9 @@ import { createBounty, decideReview } from "@/domain/bounty/service";
 import { createApiKey } from "@/domain/keys/keys";
 import { creditTopup, getBalances, ownerLedgerSum } from "@/domain/ledger/ledger";
 import { pollPayouts, recordPayoutStatus } from "@/domain/payouts/payouts";
-import { addProofPhoto, claimBounty, submitProof } from "@/domain/work/work";
+import { claimBounty, submitProof } from "@/domain/work/work";
 import { setPayPalFetch } from "@/integrations/paypal/client";
-import { makeUser } from "../../../tests/helpers";
+import { makeUser, snapProof } from "../../../tests/helpers";
 import { decide, verifySubmission } from "./verify";
 
 afterAll(() => closeDb());
@@ -61,7 +61,7 @@ async function submitted() {
   });
   const worker = await makeUser("worker", { paypalEmail: "w@example.com" });
   const { claimId } = await claimBounty(db(), worker, b.id);
-  await addProofPhoto(db(), worker, claimId, 0, await sharp({ create: { width: 800, height: 600, channels: 3, background: "#777" } }).jpeg().toBuffer());
+  await snapProof(db(), worker, claimId, 0, await sharp({ create: { width: 800, height: 600, channels: 3, background: "#777" } }).jpeg().toBuffer());
   const { submissionId } = await submitProof(db(), worker, claimId, {});
   return { ownerId, bountyId: b.id, submissionId };
 }

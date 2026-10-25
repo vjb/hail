@@ -12,10 +12,10 @@ import { creditTopup, getBalances, ownerLedgerSum } from "@/domain/ledger/ledger
 import { pollPayouts } from "@/domain/payouts/payouts";
 import { verifySubmission } from "@/domain/verify/verify";
 import { withdraw } from "@/domain/withdrawals/withdrawals";
-import { addProofPhoto, claimBounty, submitProof } from "@/domain/work/work";
+import { claimBounty, submitProof } from "@/domain/work/work";
 import { setPayPalFetch } from "@/integrations/paypal/client";
 import { newId } from "@/lib/ids";
-import { makeUser } from "../../../tests/helpers";
+import { makeUser, snapProof } from "../../../tests/helpers";
 import { decideAppeal, expireBounties, fileAppeal, lapseReviews, reopenUnappealed } from "./timers";
 
 afterAll(() => closeDb());
@@ -66,7 +66,7 @@ async function submittedFor(ctx: Awaited<ReturnType<typeof funded>>["ctx"], pass
   const b = await post(ctx);
   const worker = await makeUser("worker", { paypalEmail: "w@example.com" });
   const { claimId } = await claimBounty(db(), worker, b.id);
-  await addProofPhoto(db(), worker, claimId, 0, await sharp({ create: { width: 400, height: 300, channels: 3, background: "#888" } }).jpeg().toBuffer());
+  await snapProof(db(), worker, claimId, 0, await sharp({ create: { width: 400, height: 300, channels: 3, background: "#888" } }).jpeg().toBuffer());
   const { submissionId } = await submitProof(db(), worker, claimId, {});
   await verifySubmission(db(), submissionId);
   return { bountyId: b.id, worker };

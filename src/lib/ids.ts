@@ -12,6 +12,6 @@ export function randomToken(length: number): string {
   return out.length === length ? out : out + randomToken(length - out.length);
 }
 
-export type IdPrefix = "usr" | "key" | "bty" | "top" | "wdr" | "clm" | "sub" | "apl" | "pay" | "ph";
+export type IdPrefix = "usr" | "key" | "bty" | "top" | "wdr" | "clm" | "sub" | "apl" | "pay" | "ph" | "chl";
 
 export const newId = (prefix: IdPrefix) => `${prefix}_${randomToken(16)}`;

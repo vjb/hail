@@ -3,12 +3,12 @@ import sharp from "sharp";
 import { afterAll, describe, expect, it } from "vitest";
 import { setAIProvider } from "@/ai";
 import { closeDb, db } from "@/db/client";
-import { bounties, claims } from "@/db/schema";
+import { bounties, claims, photos, proofChallenges } from "@/db/schema";
 import { createBounty } from "@/domain/bounty/service";
 import { createApiKey } from "@/domain/keys/keys";
 import { creditTopup } from "@/domain/ledger/ledger";
-import { makeUser } from "../../../tests/helpers";
-import { addProofPhoto, claimBounty, expireOverdueClaims, releaseClaim, submitProof } from "./work";
+import { makeUser, snapProof } from "../../../tests/helpers";
+import { addProofPhoto, claimBounty, expireOverdueClaims, issueChallenge, newChallengeCode, releaseClaim, submitProof } from "./work";
 
 afterAll(() => closeDb());
 
@@ -63,7 +63,7 @@ describe("worker flow", () => {
     await expireOverdueClaims(db());
     const [row] = await db().select().from(bounties).where(eq(bounties.id, id));
     expect(row.status).toBe("open");
-    await expect(addProofPhoto(db(), w, claimId, 0, await jpeg())).rejects.toMatchObject({ code: "invalid_state" });
+    await expect(snapProof(db(), w, claimId, 0, await jpeg())).rejects.toMatchObject({ code: "invalid_state" });
   });
 
   it("releasing gives the task back", async () => {
@@ -79,7 +79,7 @@ describe("worker flow", () => {
     const id = await openBounty();
     const w = await worker();
     const { claimId } = await claimBounty(db(), w, id);
-    const r = await addProofPhoto(db(), w, claimId, 0, await jpeg());
+    const r = await snapProof(db(), w, claimId, 0, await jpeg());
     expect(r.check.usable).toBe(true);
     const meta = await sharp((await db().query.photos.findFirst({ where: (p, { eq: e }) => e(p.id, r.photoId) }))!.bytes).metadata();
     expect(Math.max(meta.width!, meta.height!)).toBeLessThanOrEqual(1600);
@@ -96,7 +96,7 @@ describe("worker flow", () => {
       checkPhoto: async () => ({ ok: true, model: "f", promptVersion: "f", value: { usable: false, problems: ["sign is blurry"], retake_hint: "Hold still and tap to focus." } }),
       verifyProof: async () => ({ ok: false, error: "n/a", model: "f", promptVersion: "f" }),
     });
-    const r = await addProofPhoto(db(), w, claimId, 0, await jpeg());
+    const r = await snapProof(db(), w, claimId, 0, await jpeg());
     expect(r.check.usable).toBe(false);
     expect(r.extendedTo!.getTime()).toBeGreaterThan(expiresAt.getTime());
   });
@@ -105,9 +105,9 @@ describe("worker flow", () => {
     const id = await openBounty();
     const w = await worker();
     const { claimId } = await claimBounty(db(), w, id);
-    await addProofPhoto(db(), w, claimId, 0, await jpeg());
+    await snapProof(db(), w, claimId, 0, await jpeg());
     await expect(submitProof(db(), w, claimId, { texts: { 2: "9-5" } })).rejects.toThrow(/Door/);
-    await addProofPhoto(db(), w, claimId, 1, await jpeg());
+    await snapProof(db(), w, claimId, 1, await jpeg());
     await expect(submitProof(db(), w, claimId, {})).rejects.toThrow(/Opening hours/);
     await submitProof(db(), w, claimId, { texts: { 2: "9am to 5pm" } });
     const [row] = await db().select().from(bounties).where(eq(bounties.id, id));
@@ -119,8 +119,45 @@ describe("worker flow", () => {
     const w = await worker();
     const other = await worker();
     const { claimId } = await claimBounty(db(), w, id);
-    await expect(addProofPhoto(db(), w, claimId, 2, await jpeg())).rejects.toMatchObject({ code: "invalid_request" });
-    await expect(addProofPhoto(db(), other, claimId, 0, await jpeg())).rejects.toMatchObject({ code: "not_found" });
-    await expect(addProofPhoto(db(), w, claimId, 0, Buffer.from("not an image"))).rejects.toMatchObject({ code: "invalid_request" });
+    await expect(snapProof(db(), w, claimId, 2, await jpeg())).rejects.toMatchObject({ code: "invalid_request" });
+    await expect(snapProof(db(), other, claimId, 0, await jpeg())).rejects.toMatchObject({ code: "not_found" });
+    await expect(snapProof(db(), w, claimId, 0, Buffer.from("not an image"))).rejects.toMatchObject({ code: "invalid_request" });
+  });
+
+  it("challenge codes are short and easy to write by hand", () => {
+    for (let i = 0; i < 50; i++) expect(newChallengeCode()).toMatch(/^[ACDEFHJKMNPRTUVWXY]{3}-[34679]{3}$/);
+  });
+
+  it("a photo must answer a fresh, unused challenge for its own slot", async () => {
+    const id = await openBounty();
+    const w = await worker();
+    const { claimId } = await claimBounty(db(), w, id);
+    const c = await issueChallenge(db(), w, claimId, 0);
+    expect(c.expiresAt.getTime() - Date.now()).toBeGreaterThan(100_000);
+    await expect(addProofPhoto(db(), w, claimId, 1, await jpeg(), { challengeId: c.challengeId, source: "camera" })).rejects.toThrow(/isn't for this photo/);
+    const r = await addProofPhoto(db(), w, claimId, 0, await jpeg(), { challengeId: c.challengeId, source: "file" });
+    const [p] = await db().select().from(photos).where(eq(photos.id, r.photoId));
+    expect(p.challengeId).toBe(c.challengeId);
+    expect(p.captureSource).toBe("file");
+    await expect(addProofPhoto(db(), w, claimId, 0, await jpeg(), { challengeId: c.challengeId, source: "camera" })).rejects.toThrow(/already used/);
+    await expect(addProofPhoto(db(), w, claimId, 0, await jpeg(), { challengeId: "chl_nope", source: "camera" })).rejects.toThrow(/isn't for this photo/);
+  });
+
+  it("a photo uploaded after the challenge window is refused", async () => {
+    const id = await openBounty();
+    const w = await worker();
+    const { claimId } = await claimBounty(db(), w, id);
+    const c = await issueChallenge(db(), w, claimId, 0);
+    await db().update(proofChallenges).set({ expiresAt: new Date(Date.now() - 5 * 60_000) }).where(eq(proofChallenges.id, c.challengeId));
+    await expect(addProofPhoto(db(), w, claimId, 0, await jpeg(), { challengeId: c.challengeId, source: "camera" })).rejects.toThrow(/ran out of time/);
+  });
+
+  it("only the claimant can get a challenge, and only for a photo slot", async () => {
+    const id = await openBounty();
+    const w = await worker();
+    const other = await worker();
+    const { claimId } = await claimBounty(db(), w, id);
+    await expect(issueChallenge(db(), other, claimId, 0)).rejects.toMatchObject({ code: "not_found" });
+    await expect(issueChallenge(db(), w, claimId, 2)).rejects.toMatchObject({ code: "invalid_request" });
   });
 });

@@ -15,6 +15,9 @@ export const WINDOWS = {
   appeal: 24 * HOUR,
 } as const;
 
+/** Proof challenge: the photo must be taken soon after the code appears. Real-world time, never scaled. */
+export const CHALLENGE = { window: 2 * MINUTE, uploadGrace: 90_000 } as const;
+
 export const scaled = (ms: number) => Math.max(1000, Math.round(ms / scale()));
 
 export const fromNow = (ms: number) => new Date(Date.now() + scaled(ms));

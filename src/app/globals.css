@@ -880,3 +880,30 @@ table.data th.num {
   text-decoration-color: var(--signal);
   text-decoration-thickness: 2px;
 }
+
+/* Proof capture: the fresh photo code and the in-page camera. */
+.challenge {
+  background: var(--tint-signal);
+  border-radius: var(--r-card);
+  padding: var(--s-3);
+}
+.challenge-code {
+  margin: 0;
+  font-family: var(--font-mono);
+  font-size: var(--text-3xl);
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-align: center;
+  color: var(--ink);
+  background: var(--surface);
+  border: 2px dashed var(--ink-2);
+  border-radius: var(--r-input);
+  padding: var(--s-3);
+}
+.camera-view {
+  width: 100%;
+  max-height: 60vh;
+  object-fit: cover;
+  border-radius: var(--r-input);
+  background: var(--ink);
+}

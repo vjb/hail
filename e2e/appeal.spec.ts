@@ -1,5 +1,5 @@
 import { expect, test } from "@playwright/test";
-import { samplePhoto } from "./fixtures";
+import { samplePhoto, takePhoto } from "./fixtures";
 import { expectAccessible, signInAs } from "./helpers";
 
 // Rejected proof → the worker appeals once → the owner accepts → real sandbox payout.
@@ -31,7 +31,7 @@ test("worker appeals a rejection and the owner accepts it", async ({ browser, re
   if (await giveBack.isVisible().catch(() => false)) await giveBack.click();
   await worker.goto(`/work/tasks/${b.id}`);
   await worker.getByRole("button", { name: /^Claim and reserve/ }).click();
-  await worker.getByLabel("Photo 1: Serial number plate").setInputFiles(samplePhoto("bad-1"));
+  await takePhoto(worker, "Photo 1: Serial number plate", samplePhoto("bad-1"));
   await expect(worker.getByRole("button", { name: "Submit proof" })).toBeEnabled({ timeout: 90_000 });
   await worker.getByRole("button", { name: "Submit proof" }).click();
 

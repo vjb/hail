@@ -102,7 +102,10 @@ Refund against one or more previous top-up captures: `POST /v2/payments/captures
 Endpoint `/api/webhooks/paypal`. Verify every event with `POST /v1/notifications/verify-webhook-signature` (using our webhook ID). Store raw events in `webhook_events` with unique event ID for idempotency. Subscribe to at least: `PAYMENT.CAPTURE.COMPLETED`, `PAYMENT.CAPTURE.REFUNDED`, `PAYMENT.PAYOUTS-ITEM.SUCCEEDED`, `PAYMENT.PAYOUTS-ITEM.FAILED`, `PAYMENT.PAYOUTS-ITEM.UNCLAIMED`, `PAYMENT.PAYOUTSBATCH.SUCCESS`.
 
 ### Stretch: PayPal Agent Toolkit
-If ahead of schedule, give the control room's ops agent read-only PayPal tools via PayPal's Agent Toolkit (e.g., list transactions) so it can reconcile the ledger against PayPal in plain English. Only after the MVP works.
+If ahead of schedule, give the control room's ops agent read-only PayPal tools via PayPal's Agent Toolkit (e.g., list transactions) so it can reconcile the ledger against PayPal in plain English. Only after the MVP works. Spike (D-022): `@paypal/agent-toolkit` 1.11 works against our sandbox; its tools are merchant-side (orders, capture as `pay_order`, invoices, refunds, disputes, tracking, `list_transactions`), with no payouts and no payee field.
+
+### Verify, then pay (in the requester agent, not in Hail; D-022)
+The agent's purchase from a seller uses Orders v2 with `intent: AUTHORIZE` and `purchase_units[].payee.email_address` = the seller. The buyer approves once; the agent authorizes (funds held, valid 29 days in sandbox), posts the Hail bounty, then captures the authorization on a verified match or voids it otherwise. Verified in sandbox on 2026-10-24 (capture → `COMPLETED`, void → `VOIDED`). A third-party payee must be a real sandbox account; an unknown email is refused at authorize (`TRANSACTION_REFUSED`).
 
 ## Bounty state machine
 
@@ -150,7 +153,11 @@ Rules:
 - `bounty_events` — bounty_id, from_status, to_status, actor, detail (json), created_at
 - `webhook_events` — paypal_event_id (unique), type, payload, processed_at
 - `callback_deliveries` — bounty_id, event, url, attempts, last_status
-- `photos` — id, mime, bytes (resized to ≤ 1600px, JPEG) — Postgres storage is fine at hackathon scale
+- `photos` — id, mime, bytes (resized to ≤ 1600px, JPEG) — Postgres storage is fine at hackathon scale; `challenge_id` and `capture_source` (`camera` = in-page camera, `file` = the phone's camera app) for proof photos
+- `proof_challenges` — id, claim_id, slot, code, issued_at, expires_at, used_at (D-023)
+
+### Proof capture (D-023)
+"Take photo" calls `POST /api/work/claims/{id}/challenge` with the slot and gets a fresh code (`KTR-482`: 3 letters, 3 digits, no look-alike characters) valid for 2 minutes, real time, never scaled by `DEMO_TIME_SCALE`. The page opens the camera (`getUserMedia`, rear camera) with the code on screen; if the browser can't, the phone's camera app (file input with `capture`) is the fallback under the same code. The upload must name the challenge: it must belong to this claim and slot, be unused, and arrive within the window plus 90 s upload grace; it is marked used atomically. The quick check is told the code and asks for a retake if it can't read it on paper in the shot. The code is never drawn onto the image by the app: a handwritten code in the scene is the evidence. C2PA, if present, is only on file-path photos (an in-page canvas capture carries no signature) and must be read before the photo is re-encoded.
 
 ## AI layer
 

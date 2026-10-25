@@ -1,12 +1,13 @@
-import { and, asc, desc, eq, gt, inArray, lte, sql } from "drizzle-orm";
+import { randomInt } from "node:crypto";
+import { and, asc, desc, eq, gt, inArray, isNull, lte, sql } from "drizzle-orm";
 import sharp from "sharp";
 import { ai } from "@/ai";
 import type { DB } from "@/db/client";
-import { bounties, claims, photos, submissions, users, verifications, type PhotoCheck } from "@/db/schema";
+import { bounties, claims, photos, proofChallenges, submissions, users, verifications, type PhotoCheck } from "@/db/schema";
 import { DomainError } from "@/domain/bounty/service";
 import { transition } from "@/domain/bounty/state";
 import { newId } from "@/lib/ids";
-import { fromNow, scaled, WINDOWS } from "@/lib/time";
+import { CHALLENGE, fromNow, scaled, WINDOWS } from "@/lib/time";
 
 // The worker side: browse, claim (with a countdown), capture proof (per-photo quick check with
 // retake), submit. Verification and payout continue from `verifying` (Day 7).
@@ -116,23 +117,73 @@ export async function normalizePhoto(input: Buffer) {
   }
 }
 
+// Easy to write by hand and read back: no I/L/1, O/Q/0, S/5, Z/2, B/8, G/6.
+const CODE_LETTERS = "ACDEFHJKMNPRTUVWXY";
+const CODE_DIGITS = "34679";
+
+export function newChallengeCode() {
+  const pick = (set: string, n: number) => Array.from({ length: n }, () => set[randomInt(set.length)]).join("");
+  return `${pick(CODE_LETTERS, 3)}-${pick(CODE_DIGITS, 3)}`;
+}
+
+/**
+ * Issues a fresh challenge for one photo slot: a short code the worker writes on paper and keeps in
+ * the photo, which must be uploaded within the challenge window. Each challenge answers one photo.
+ */
+export async function issueChallenge(database: DB, workerId: string, claimId: string, slot: number) {
+  const { bounty } = await ownActiveClaim(database, workerId, claimId);
+  if (bounty.deliverables[slot]?.type !== "photo") throw new DomainError("invalid_request", "That photo slot doesn't exist for this task.");
+  const id = newId("chl");
+  const code = newChallengeCode();
+  const issuedAt = new Date();
+  const expiresAt = new Date(issuedAt.getTime() + CHALLENGE.window);
+  await database.insert(proofChallenges).values({ id, claimId, slot, code, issuedAt, expiresAt });
+  return { challengeId: id, code, expiresAt };
+}
+
+/** Marks the challenge used, once. Throws a worker-facing error if it's wrong, used or too old. */
+async function useChallenge(database: DB, claimId: string, slot: number, challengeId: string, now = new Date()) {
+  const [c] = await database.select().from(proofChallenges).where(eq(proofChallenges.id, challengeId));
+  if (!c || c.claimId !== claimId || c.slot !== slot) throw new DomainError("invalid_request", "That photo code isn't for this photo. Get a new code and take the photo again.");
+  if (c.usedAt) throw new DomainError("invalid_request", "That photo code was already used. Get a new code and take the photo again.");
+  if (now.getTime() > c.expiresAt.getTime() + CHALLENGE.uploadGrace) throw new DomainError("invalid_request", "That photo code ran out of time. Get a new code and take the photo again.");
+  const used = await database
+    .update(proofChallenges)
+    .set({ usedAt: now })
+    .where(and(eq(proofChallenges.id, challengeId), isNull(proofChallenges.usedAt)))
+    .returning({ id: proofChallenges.id });
+  if (!used.length) throw new DomainError("invalid_request", "That photo code was already used. Get a new code and take the photo again.");
+  return c;
+}
+
 /**
  * Stores a proof photo for one deliverable slot and runs the quick check. If the check finds a
  * problem, the worker gets a retake prompt and the reservation is extended (up to 3 times).
  */
-export async function addProofPhoto(database: DB, workerId: string, claimId: string, slot: number, file: Buffer) {
+export async function addProofPhoto(
+  database: DB,
+  workerId: string,
+  claimId: string,
+  slot: number,
+  file: Buffer,
+  capture: { challengeId: string; source: "camera" | "file" },
+) {
   const { claim, bounty } = await ownActiveClaim(database, workerId, claimId);
   const deliverable = bounty.deliverables[slot];
   if (!deliverable || deliverable.type !== "photo") throw new DomainError("invalid_request", "That photo slot doesn't exist for this task.");
   const norm = await normalizePhoto(file);
+  const challenge = await useChallenge(database, claimId, slot, capture.challengeId);
   const id = newId("ph");
-  await database.insert(photos).values({ id, ownerUserId: workerId, claimId, slot, mime: "image/jpeg", width: norm.width, height: norm.height, bytes: norm.bytes });
+  await database
+    .insert(photos)
+    .values({ id, ownerUserId: workerId, claimId, slot, challengeId: challenge.id, captureSource: capture.source, mime: "image/jpeg", width: norm.width, height: norm.height, bytes: norm.bytes });
 
   const r = await ai().checkPhoto(
     {
       bounty: { title: bounty.title, instructions: bounty.instructions, acceptanceChecklist: bounty.acceptanceChecklist, product: bounty.product ?? null },
       item: deliverable.description,
       image: { mime: "image/jpeg", base64: norm.bytes.toString("base64") },
+      challengeCode: challenge.code,
     },
     { bountyId: bounty.id },
   );

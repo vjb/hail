@@ -48,6 +48,8 @@ export type PhotoCheckInput = {
   bounty: Pick<BountyForAI, "title" | "instructions" | "acceptanceChecklist"> & { product?: { title?: string; attributes?: Record<string, string> } | null };
   item: string;
   image: { mime: "image/jpeg"; base64: string };
+  /** The fresh code the worker was asked to write on paper and include in this photo. */
+  challengeCode?: string | null;
 };
 
 export const VerifyOutput = z.object({

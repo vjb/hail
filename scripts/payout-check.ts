@@ -13,7 +13,8 @@ import { createApiKey } from "../src/domain/keys/keys";
 import { getBalances } from "../src/domain/ledger/ledger";
 import { settleSoon } from "../src/domain/payouts/payouts";
 import { verifySubmission } from "../src/domain/verify/verify";
-import { addProofPhoto, claimBounty, submitProof } from "../src/domain/work/work";
+import { claimBounty, submitProof } from "../src/domain/work/work";
+import { snapProof } from "../tests/helpers";
 
 async function main() {
   setAIProvider({
@@ -37,7 +38,7 @@ async function main() {
     spots: 1,
   });
   const { claimId } = await claimBounty(db(), worker.id, b.id);
-  await addProofPhoto(db(), worker.id, claimId, 0, await sharp({ create: { width: 800, height: 600, channels: 3, background: "#2050a0" } }).jpeg().toBuffer());
+  await snapProof(db(), worker.id, claimId, 0, await sharp({ create: { width: 800, height: 600, channels: 3, background: "#2050a0" } }).jpeg().toBuffer());
   const { submissionId } = await submitProof(db(), worker.id, claimId, {});
   const v = await verifySubmission(db(), submissionId);
   console.log("verified:", v?.result);

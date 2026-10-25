@@ -18,6 +18,8 @@ export const LIMITS = {
   signInPerIp: { limit: 50, windowMs: 15 * 60_000 },
   /** Proof photo uploads (each runs an AI quick check), per worker. */
   photosPerWorker: { limit: 40, windowMs: 15 * 60_000 },
+  /** Photo codes (challenges), per worker. Each "Take photo" asks for one. */
+  challengesPerWorker: { limit: 60, windowMs: 15 * 60_000 },
 } satisfies Record<string, Limit>;
 
 function current(key: string, { windowMs }: Limit, now: number) {

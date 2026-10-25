@@ -140,3 +140,16 @@ Consequences: The spec's non-goal changes from "identity verification" to "our o
 Context: D-020 added Venmo payouts only if a sandbox spike showed they settle.
 Finding: `npm run spike:venmo` sent $1.00 payouts with `recipient_wallet: "Venmo"` to a phone and to a handle. PayPal sandbox rejected both with 400 `VALIDATION_ERROR`, `items[0].recipient_wallet`: "Recipient wallet not supported in sandbox." We never call live endpoints, so Venmo can't be built or demoed.
 Decision: Venmo is cut (first on the cut list anyway). Payouts stay PayPal-only. `createPayout` keeps an optional recipient so the spike stays reproducible; nothing in the product uses it.
+
+## D-022 — Verify-then-pay uses authorize, then capture or void (2026-10-24)
+Context: The pitch now leads with verify-then-pay ("your agent's eyes before it spends money"). We needed to know how an agent can hold a payment to a seller and release it only after Hail verifies.
+Findings (sandbox, 2026-10-24):
+- PayPal Agent Toolkit (`@paypal/agent-toolkit` 1.11) runs against our sandbox. Its tools are merchant-side: orders (`create_order`, `get_order`, `pay_order` = capture), invoices, refunds, disputes, shipment tracking, transactions. No payouts, no payee field. `pay_order` before buyer approval is refused (422).
+- Orders v2 with `intent: AUTHORIZE` and a `payee`: buyer approves, we authorize (held, expires in 29 days), then capture (`COMPLETED`) or void (`VOIDED`). Both verified.
+- The payee must be a real sandbox account (an unknown email → `TRANSACTION_REFUSED` at authorize); the seller must also differ from the buyer.
+Decision: The requester agent (outside developer, round 3) does authorize → Hail bounty → capture on a verified match, void otherwise. Hail itself doesn't change; it exposes the verified result. The demo needs a second sandbox business account as the seller (human step). The toolkit may be offered to the outside developer for the order steps but isn't required.
+Also: the verifier must pay the worker for honest proof even when the item doesn't match the listing ("pays for the truth, not for a yes"). Folded into the verifier integrity work (verify-v2).
+
+## D-023 — Proof capture: fresh code per photo, in-page camera (2026-10-24)
+Context: D-020 "proof you can trust". Industry practice for trusted photos: controlled capture, a fresh challenge, server time, AI forensics, accountable identity, human review; signed provenance (C2PA) where the device supports it. EXIF is trivially faked; SynthID only marks images from Google's own generators, so it can't show a photo is real.
+Decision: Each photo answers a server-issued code (2 min, real time, single use, per claim and slot) that the worker writes on paper and includes. The page opens the camera itself; the phone's camera app is the fallback under the same code, so a gallery pick only works if it was taken in the last two minutes with the code in it. The quick check asks for a retake when the code isn't readable. The app never stamps the code onto the image. Recorded per photo: challenge and capture source. Proof checks in the verifier, payouts to verified PayPal accounts and the certificate follow (build plan Oct 26–28).

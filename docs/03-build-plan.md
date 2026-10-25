@@ -34,7 +34,7 @@ Days 1–8 were finished by Oct 24, so the week the table above gave them is fre
 
 | Date | Work | Human |
 |---|---|---|
-| Sat Oct 25 | ~~Venmo payouts sandbox spike~~ done Oct 24: not supported in sandbox, cut (D-021). In-app camera capture with a challenge code and time window. | HH-009 phone test on the live URL |
+| Sat Oct 25 | ~~Venmo payouts sandbox spike~~ done Oct 24: not supported in sandbox, cut (D-021). In-app camera capture with a challenge code and time window — done Oct 24 (D-023). | HH-009 phone test on the live URL |
 | Sun Oct 26 | Verifier integrity checks (challenge code, photographed screen, generated or edited image, same item across photos). Proof eval set: real photos, generated photos, photos of a screen, missing or wrong codes. | Take a few real phone photos for the proof eval set |
 | Mon Oct 27 | Connect PayPal (Log in with PayPal) with account verification status; one PayPal account per worker; suspension; first-payout hold for new workers. | Enable "Log in with PayPal" and the account-verification attribute on the sandbox app (H1) |
 | Tue Oct 28 | Proof certificate page; Content Credentials badge if present. | — |

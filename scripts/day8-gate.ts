@@ -17,7 +17,8 @@ import { getBalances } from "../src/domain/ledger/ledger";
 import { sweep } from "../src/domain/sweep/sweep";
 import { verifySubmission } from "../src/domain/verify/verify";
 import { withdraw } from "../src/domain/withdrawals/withdrawals";
-import { addProofPhoto, claimBounty, submitProof } from "../src/domain/work/work";
+import { claimBounty, submitProof } from "../src/domain/work/work";
+import { snapProof } from "../tests/helpers";
 
 const log = (...a: unknown[]) => console.log(new Date().toLocaleTimeString("en-US", { timeZone: "America/New_York" }), ...a);
 
@@ -50,7 +51,7 @@ async function main() {
   // 1. Ignored review auto-pays within the scaled window.
   const b = await createBounty(db(), ctx, { ...base, title: "Day 8 gate: ignored review", rewardCents: 300 });
   const { claimId } = await claimBounty(db(), worker.id, b.id);
-  await addProofPhoto(db(), worker.id, claimId, 0, await sharp({ create: { width: 400, height: 300, channels: 3, background: "#456" } }).jpeg().toBuffer());
+  await snapProof(db(), worker.id, claimId, 0, await sharp({ create: { width: 400, height: 300, channels: 3, background: "#456" } }).jpeg().toBuffer());
   const { submissionId } = await submitProof(db(), worker.id, claimId, {});
   await verifySubmission(db(), submissionId);
   const [rev] = await db().select().from(bounties).where(eq(bounties.id, b.id));

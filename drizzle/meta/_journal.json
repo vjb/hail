@@ -15,6 +15,13 @@
       "when": 1792879068575,
       "tag": "0001_photo_slots",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1792895390118,
+      "tag": "0002_proof_challenges",
+      "breakpoints": true
     }
   ]
 }

@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState, useRef, useState } from "react";
+import { useActionState, useEffect, useRef, useState } from "react";
 import { AlertTriangle, Camera, CheckCircle2, LoaderCircle, MapPin, RotateCcw } from "lucide-react";
 import { FormError, formatMoney } from "@/components/ui";
 import { appealAction, claimAction, paypalEmailAction, releaseAction, submitAction, type WorkState } from "./actions";
@@ -62,20 +62,116 @@ export function ReleaseButton({ claimId }: { claimId: string }) {
 
 type Check = { usable: boolean; problems: string[]; retakeHint: string };
 type Slot = { status: "empty" | "uploading" | "checked" | "error"; preview?: string; check?: Check; error?: string; progress?: number };
+type Challenge = { challengeId: string; code: string; expiresAt: string };
 
-/** One photo deliverable: camera/file input, preview, upload progress, and the quick check. */
+const secondsLeft = (iso: string) => Math.max(0, Math.round((new Date(iso).getTime() - Date.now()) / 1000));
+const mmss = (s: number) => `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`;
+
+/**
+ * One photo deliverable. "Take photo" asks the server for a fresh code, then opens the camera in the
+ * page with the code on screen; the worker writes it on paper and keeps it in the shot. If the browser
+ * can't open the camera, the phone's own camera (file input) is the fallback, under the same code.
+ */
 function PhotoSlot({ claimId, index, label, initial, onChecked }: { claimId: string; index: number; label: string; initial?: Check | null; onChecked: (s: Slot) => void }) {
   const [slot, setSlot] = useState<Slot>(initial ? { status: "checked", check: initial, preview: undefined } : { status: "empty" });
+  const [challenge, setChallenge] = useState<Challenge | null>(null);
+  const [left, setLeft] = useState(0);
+  const [starting, setStarting] = useState(false);
+  const [camera, setCamera] = useState<"off" | "starting" | "live" | "unavailable">("off");
+  const [problem, setProblem] = useState<string | null>(null);
   const input = useRef<HTMLInputElement>(null);
+  const video = useRef<HTMLVideoElement>(null);
+  const stream = useRef<MediaStream | null>(null);
   const id = `photo-${index}`;
 
-  function upload(file: File) {
+  function stopCamera() {
+    stream.current?.getTracks().forEach((t) => t.stop());
+    stream.current = null;
+  }
+  useEffect(() => stopCamera, []);
+
+  useEffect(() => {
+    if (!challenge) return;
+    const tick = () => {
+      const s = secondsLeft(challenge.expiresAt);
+      setLeft(s);
+      if (s === 0) {
+        stopCamera();
+        setCamera("off");
+      }
+      return s;
+    };
+    tick();
+    const t = setInterval(() => tick() === 0 && clearInterval(t), 1000);
+    return () => clearInterval(t);
+  }, [challenge]);
+
+  // Attach the stream once the <video> is on the page.
+  useEffect(() => {
+    if (camera === "live" && video.current && stream.current) {
+      video.current.srcObject = stream.current;
+      video.current.play().catch(() => {});
+    }
+  }, [camera]);
+
+  async function openCamera() {
+    if (!navigator.mediaDevices?.getUserMedia) return setCamera("unavailable");
+    setCamera("starting");
+    try {
+      stream.current = await navigator.mediaDevices.getUserMedia({ video: { facingMode: { ideal: "environment" }, width: { ideal: 1920 }, height: { ideal: 1440 } }, audio: false });
+      setCamera("live");
+    } catch {
+      setCamera("unavailable");
+    }
+  }
+
+  async function start() {
+    setProblem(null);
+    setStarting(true);
+    try {
+      const res = await fetch(`/api/work/claims/${claimId}/challenge`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ slot: index }) });
+      const body = (await res.json().catch(() => ({}))) as Partial<Challenge> & { error?: string };
+      if (!res.ok || !body.challengeId) {
+        setProblem(body.error ?? "Couldn't get a photo code. Try again.");
+        return;
+      }
+      setChallenge(body as Challenge);
+      await openCamera();
+    } catch {
+      setProblem("No connection. Move somewhere with signal and try again.");
+    } finally {
+      setStarting(false);
+    }
+  }
+
+  function cancel() {
+    stopCamera();
+    setCamera("off");
+    setChallenge(null);
+  }
+
+  function shoot() {
+    const v = video.current;
+    if (!v || !v.videoWidth) return;
+    const c = document.createElement("canvas");
+    c.width = v.videoWidth;
+    c.height = v.videoHeight;
+    c.getContext("2d")!.drawImage(v, 0, 0);
+    c.toBlob((b) => b && upload(b, "camera"), "image/jpeg", 0.92);
+  }
+
+  function upload(file: Blob, source: "camera" | "file") {
+    if (!challenge) return;
+    stopCamera();
+    setCamera("off");
     const preview = URL.createObjectURL(file);
-    const next: Slot = { status: "uploading", preview, progress: 0 };
-    setSlot(next);
+    setSlot({ status: "uploading", preview, progress: 0 });
     const fd = new FormData();
     fd.append("slot", String(index));
-    fd.append("photo", file);
+    fd.append("challengeId", challenge.challengeId);
+    fd.append("source", source);
+    fd.append("photo", file, "photo.jpg");
+    setChallenge(null);
     const xhr = new XMLHttpRequest();
     xhr.open("POST", `/api/work/claims/${claimId}/photos`);
     xhr.upload.onprogress = (e) => e.lengthComputable && setSlot((s) => ({ ...s, progress: Math.round((e.loaded / e.total) * 100) }));
@@ -98,19 +194,63 @@ function PhotoSlot({ claimId, index, label, initial, onChecked }: { claimId: str
 
   const ok = slot.status === "checked" && slot.check?.usable;
   const retake = slot.status === "checked" && slot.check && !slot.check.usable;
+  const active = !!challenge && left > 0;
+  const expired = !!challenge && left === 0;
   return (
     <div className="card card-tight stack-sm" style={{ borderColor: retake ? "var(--signal)" : ok ? "var(--paid)" : undefined }}>
       <div className="spread">
-        <label htmlFor={id} style={{ fontWeight: 600 }}>
+        <span id={`${id}-title`} style={{ fontWeight: 600 }}>
           Photo {index + 1}: {label}
-        </label>
+        </span>
         {ok && (
           <span className="pill pill-paid">
             <CheckCircle2 aria-hidden="true" /> Looks good
           </span>
         )}
       </div>
-      {slot.preview && (
+
+      {active && challenge && (
+        <section className="challenge stack-sm" aria-labelledby={`${id}-code-intro`}>
+          <p id={`${id}-code-intro`} style={{ margin: 0 }}>
+            Write this code on paper and keep it in the photo, next to what you&apos;re photographing:
+          </p>
+          <p className="challenge-code" aria-label={`Photo code: ${challenge.code.split("").join(" ")}`}>
+            {challenge.code}
+          </p>
+          <p className="muted" style={{ margin: 0, fontSize: "var(--text-sm)" }}>
+            <span className="mono">{mmss(left)}</span> left to take this photo. A new code each time shows the photo was taken just now.
+          </p>
+          {camera === "live" && <video ref={video} className="camera-view" playsInline muted aria-label={`Camera preview for photo ${index + 1}`} />}
+          {camera === "starting" && (
+            <div role="status" className="row muted">
+              <LoaderCircle aria-hidden="true" width={18} className="spin" /> Opening the camera…
+            </div>
+          )}
+          {camera === "unavailable" && (
+            <p role="status" style={{ margin: 0 }}>
+              We couldn&apos;t open the camera here. Use your phone&apos;s camera instead; the same code and time limit apply.
+            </p>
+          )}
+          {camera === "live" && (
+            <button type="button" className="btn btn-primary btn-block btn-lg" onClick={shoot}>
+              <Camera aria-hidden="true" width={18} /> Take photo {index + 1}
+            </button>
+          )}
+          <button type="button" className={`btn ${camera === "live" ? "btn-quiet" : "btn-primary"} btn-block`} onClick={() => input.current?.click()}>
+            {camera === "live" ? "Use my phone's camera app instead" : "Open my phone's camera"}
+          </button>
+          <button type="button" className="btn btn-quiet" onClick={cancel}>
+            Cancel
+          </button>
+        </section>
+      )}
+      {expired && challenge && slot.status !== "uploading" && (
+        <p role="alert" style={{ margin: 0 }}>
+          Time&apos;s up for code {challenge.code}. Get a new code to take this photo.
+        </p>
+      )}
+
+      {slot.preview && !active && (
         // eslint-disable-next-line @next/next/no-img-element
         <img src={slot.preview} alt={`Your photo: ${label}`} style={{ width: "100%", maxHeight: 260, objectFit: "contain", borderRadius: 8, background: "var(--paper)" }} />
       )}
@@ -120,7 +260,7 @@ function PhotoSlot({ claimId, index, label, initial, onChecked }: { claimId: str
           {slot.progress !== undefined && slot.progress < 100 ? `Uploading… ${slot.progress}%` : "Checking your photo…"}
         </div>
       )}
-      {retake && (
+      {retake && !active && (
         <div role="alert" className="stack-sm" style={{ background: "var(--tint-signal)", padding: "var(--s-3)", borderRadius: 8 }}>
           <strong className="row" style={{ gap: 6 }}>
             <AlertTriangle aria-hidden="true" width={18} /> Almost there: retake this photo
@@ -132,7 +272,11 @@ function PhotoSlot({ claimId, index, label, initial, onChecked }: { claimId: str
           </span>
         </div>
       )}
-      {slot.status === "error" && <FormError>{slot.error}</FormError>}
+      {slot.status === "error" && !active && <FormError>{slot.error}</FormError>}
+      {problem && <FormError>{problem}</FormError>}
+      <label htmlFor={id} className="visually-hidden">
+        Photo {index + 1}: {label}
+      </label>
       <input
         ref={input}
         id={id}
@@ -140,23 +284,34 @@ function PhotoSlot({ claimId, index, label, initial, onChecked }: { claimId: str
         accept="image/*"
         capture="environment"
         className="visually-hidden"
+        disabled={!active}
         onChange={(e) => {
           const f = e.target.files?.[0];
-          if (f) upload(f);
+          if (f) upload(f, "file");
           e.target.value = "";
         }}
       />
-      <button type="button" className={`btn ${ok ? "btn-secondary" : "btn-primary"} btn-block`} onClick={() => input.current?.click()} disabled={slot.status === "uploading"} aria-describedby={retake ? undefined : undefined}>
-        {slot.status === "empty" ? (
-          <>
-            <Camera aria-hidden="true" width={18} /> Take photo
-          </>
-        ) : (
-          <>
-            <RotateCcw aria-hidden="true" width={18} /> Retake photo
-          </>
-        )}
-      </button>
+      {!active && (
+        <button type="button" className={`btn ${ok ? "btn-secondary" : "btn-primary"} btn-block`} onClick={start} disabled={slot.status === "uploading" || starting} aria-describedby={`${id}-title`}>
+          {starting ? (
+            <>
+              <LoaderCircle aria-hidden="true" width={18} className="spin" /> Getting your code…
+            </>
+          ) : slot.status === "empty" && !expired ? (
+            <>
+              <Camera aria-hidden="true" width={18} /> Take photo
+            </>
+          ) : slot.status === "empty" ? (
+            <>
+              <RotateCcw aria-hidden="true" width={18} /> Get a new code
+            </>
+          ) : (
+            <>
+              <RotateCcw aria-hidden="true" width={18} /> Retake photo
+            </>
+          )}
+        </button>
+      )}
     </div>
   );
 }

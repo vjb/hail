@@ -27,6 +27,7 @@ export const ALL_TABLES = [
   "verifications",
   "submissions",
   "photos",
+  "proof_challenges",
   "claims",
   "screenings",
   "bounties",

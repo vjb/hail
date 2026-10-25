@@ -318,6 +318,24 @@ export const callbackDeliveries = pgTable(
 
 export type PhotoCheck = { usable: boolean; problems: string[]; retakeHint: string; model?: string };
 
+// A fresh code shown when the worker opens the camera for one photo slot. The photo must include it
+// (written on paper) and be uploaded before the challenge expires. Each challenge is used once.
+export const proofChallenges = pgTable(
+  "proof_challenges",
+  {
+    id: text("id").primaryKey(),
+    claimId: text("claim_id").notNull().references(() => claims.id),
+    slot: integer("slot").notNull(),
+    code: text("code").notNull(),
+    issuedAt: ts("issued_at").notNull().defaultNow(),
+    expiresAt: ts("expires_at").notNull(),
+    usedAt: ts("used_at"),
+  },
+  (t) => [index("proof_challenges_claim_idx").on(t.claimId, t.slot)],
+);
+
+export const captureSourceEnum = pgEnum("capture_source", ["camera", "file"]);
+
 export const photos = pgTable(
   "photos",
   {
@@ -326,6 +344,9 @@ export const photos = pgTable(
     // Set while a worker captures proof for a claim: which claim and which deliverable slot.
     claimId: text("claim_id").references(() => claims.id),
     slot: integer("slot"),
+    // Proof photos carry the challenge they answered and how they were captured (null for seeded history).
+    challengeId: text("challenge_id"),
+    captureSource: captureSourceEnum("capture_source"),
     check: jsonb("check").$type<PhotoCheck>(),
     mime: text("mime").notNull(),
     width: integer("width"),
