@@ -192,7 +192,7 @@ export function Checklist({ items, results }: { items: string[]; results?: Check
         const r = results?.find((x) => x.item === item) ?? results?.[i];
         const state = !r ? "todo" : r.passed === true ? "pass" : r.passed === false ? "fail" : "unknown";
         const Icon = state === "pass" ? CheckCircle2 : state === "fail" ? XCircle : state === "unknown" ? CircleHelp : CircleDashed;
-        const word = state === "pass" ? "Passed" : state === "fail" ? "Not met" : state === "unknown" ? "Unclear" : "To capture";
+        const word = state === "pass" ? "Passed" : state === "fail" ? (r?.cause === "item" ? "Not met by the item" : "Not met") : state === "unknown" ? "Unclear" : "To capture";
         return (
           <li key={i}>
             <Icon aria-hidden="true" className={state === "todo" ? "" : `check-${state}`} />

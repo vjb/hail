@@ -3,7 +3,7 @@ import { samplePhoto, takePhoto } from "./fixtures";
 import { signInAs } from "./helpers";
 
 // Day 7 happy path (local): agent posts → worker claims and submits → verifier decides →
-// (owner accepts if the verifier was unsure) → real PayPal sandbox payout → paid.
+// owner accepts (the sample photos have no photo code) → real PayPal sandbox payout → paid.
 
 test("from agent post to PayPal payout", async ({ browser, request }) => {
   test.setTimeout(300_000);
@@ -56,9 +56,13 @@ test("from agent post to PayPal payout", async ({ browser, request }) => {
   }
   test.info().annotations.push({ type: "verifier", description: status });
 
-  if (status === "needs_owner_review") {
+  // The sample photos are AI-generated and carry no photo code, so they must never be paid
+  // automatically: Hail sends them to the owner, and says why.
+  expect(status).toBe("needs_owner_review");
+  {
     await owner.goto(`/owner/tasks/${created.id}`);
     await expect(owner.getByRole("heading", { name: "Proof to review" })).toBeVisible();
+    await expect(owner.getByText("Photo code: not visible").first()).toBeVisible();
     await owner.getByRole("button", { name: `Accept proof and pay: ${title}` }).click();
     await expect(owner.getByText("Accepted. The worker is being paid.")).toBeVisible();
   }

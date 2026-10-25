@@ -21,7 +21,7 @@ async function main() {
     name: "stub-pass",
     screenBounty: async () => ({ ok: true, model: "stub", promptVersion: "stub", value: { decision: "allow", category: "place_photo", rationale: "Stub.", confidence: 0.99 } }),
     checkPhoto: async () => ({ ok: true, model: "stub", promptVersion: "stub", value: { usable: true, problems: [], retake_hint: "" } }),
-    verifyProof: async (i) => ({ ok: true, model: "stub", promptVersion: "stub", value: { summary: "Stubbed pass for the payout check.", checklist: i.bounty.acceptanceChecklist.map((item) => ({ item, passed: true, reason: "Stub.", confidence: 0.99 })) } }),
+    verifyProof: async (i) => ({ ok: true, model: "stub", promptVersion: "stub", value: { summary: "Stubbed pass for the payout check.", photos: i.photos.map(() => ({ code: "matches" as const, screen: false, generated_or_edited: false })), same_scene: null, concerns: [], checklist: i.bounty.acceptanceChecklist.map((item) => ({ item, passed: true, reason: "Stub.", confidence: 0.99 })) } }),
   });
   const [owner] = await db().select().from(users).where(eq(users.email, process.env.DEMO_OWNER_EMAIL!.toLowerCase()));
   const [worker] = await db().select().from(users).where(eq(users.email, process.env.DEMO_WORKER2_EMAIL!.toLowerCase()));

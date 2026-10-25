@@ -230,13 +230,20 @@ export const submissions = pgTable("submissions", {
 });
 
 export const verificationResultEnum = pgEnum("verification_result", ["pass", "fail", "uncertain"]);
-export type ChecklistResult = { item: string; passed: boolean | null; reason: string; confidence?: number };
+export type ChecklistResult = { item: string; passed: boolean | null; reason: string; confidence?: number; cause?: "item" | "proof" | null };
+/** Proof checks from the verifier (verify-v2): per photo, plus whether the photos agree, plus doubts. */
+export type ProofChecks = {
+  photos: Array<{ code: "matches" | "missing" | "different" | "unreadable" | "not_requested"; screen: boolean; generatedOrEdited: boolean; source: "camera" | "file" | null }>;
+  sameScene: boolean | null;
+  concerns: string[];
+};
 
 export const verifications = pgTable("verifications", {
   id: bigserial("id", { mode: "number" }).primaryKey(),
   submissionId: text("submission_id").notNull().references(() => submissions.id),
   result: verificationResultEnum("result").notNull(),
   checklistResults: jsonb("checklist_results").$type<ChecklistResult[]>().notNull(),
+  proofChecks: jsonb("proof_checks").$type<ProofChecks>(),
   rationale: text("rationale").notNull(),
   confidence: real("confidence"),
   model: text("model"),

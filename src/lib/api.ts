@@ -157,10 +157,14 @@ async function bountyResult(b: BountyRow) {
   const byOwner = accepted && accepted.actor !== "verifier";
   const base = env().APP_BASE_URL.replace(/\/$/, "");
   const texts = (sub.notes ?? "").trim();
+  // Item results are the verifier's findings about the item, whoever accepted the work: an owner's
+  // approval pays the worker but doesn't turn an unmet item into a met one.
+  const checklist = (v?.checklistResults ?? b.acceptanceChecklist.map((item) => ({ item, passed: null, reason: "" }))).map((c) => ({ item: c.item, passed: c.passed, reason: c.reason }));
   return {
     verification: byOwner ? "owner_approved" : "pass",
+    checklist_met: checklist.length > 0 && checklist.every((c) => c.passed === true),
     summary: v?.rationale ?? null,
-    checklist: (v?.checklistResults ?? []).map((c) => ({ item: c.item, passed: byOwner ? true : c.passed === true })),
+    checklist,
     deliverables: [
       ...sub.photoIds.map((id) => ({ type: "photo", url: `${base}/api/v1/photos/${id}` })),
       ...(texts ? [{ type: "text", value: texts }] : []),

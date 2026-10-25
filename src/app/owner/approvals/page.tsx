@@ -56,6 +56,7 @@ export default async function ApprovalsPage() {
                       checklist={b.acceptanceChecklist}
                       results={pr.verification?.checklistResults}
                       summary={pr.verification?.rationale}
+                      proofChecks={pr.verification?.proofChecks}
                     />
                   )}
                   <ReviewButtons bountyId={b.id} title={b.title} />
@@ -99,6 +100,7 @@ export default async function ApprovalsPage() {
                       checklist={b.acceptanceChecklist}
                       results={proof.verification?.checklistResults}
                       summary={proof.verification?.rationale}
+                      proofChecks={proof.verification?.proofChecks}
                     />
                   )}
                   <AppealButtons bountyId={b.id} title={b.title} />

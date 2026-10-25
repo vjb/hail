@@ -52,15 +52,35 @@ export type PhotoCheckInput = {
   challengeCode?: string | null;
 };
 
+export const PhotoProofCheck = z.object({
+  code: z.enum(["matches", "missing", "different", "unreadable", "not_requested"]),
+  screen: z.boolean(),
+  generated_or_edited: z.boolean(),
+});
+
 export const VerifyOutput = z.object({
-  checklist: z.array(z.object({ item: z.string(), passed: z.boolean().nullable(), reason: z.string(), confidence: z.number() })),
+  checklist: z.array(
+    z.object({
+      item: z.string(),
+      passed: z.boolean().nullable(),
+      // Why an item failed: the item itself doesn't meet it (honest finding) or the proof doesn't show it.
+      cause: z.enum(["item", "proof"]).nullable().optional(),
+      reason: z.string(),
+      confidence: z.number(),
+    }),
+  ),
+  // Proof checks (verify-v2): one per photo, in order. Optional so a model that omits them is treated as doubtful, not as a crash.
+  photos: z.array(PhotoProofCheck).optional(),
+  same_scene: z.boolean().nullable().optional(),
+  concerns: z.array(z.string()).optional(),
   summary: z.string(),
 });
 export type VerifyOutput = z.infer<typeof VerifyOutput>;
 
 export type VerifyInput = {
   bounty: Pick<BountyForAI, "title" | "instructions" | "acceptanceChecklist"> & { product?: { title?: string; attributes?: Record<string, string> } | null };
-  photos: Array<{ label: string; base64: string }>;
+  /** `challengeCode` is the code the worker was asked to include in that photo (null for photos taken without one). */
+  photos: Array<{ label: string; base64: string; challengeCode?: string | null }>;
   notes: string | null;
   distanceMeters: number | null;
 };

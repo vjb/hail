@@ -119,7 +119,8 @@ ${input.challengeCode ? `The worker was asked to write this code on paper and ke
     const task = { title: input.bounty.title, instructions: input.bounty.instructions, acceptance_checklist: input.bounty.acceptanceChecklist, reference_product: input.bounty.product ?? null };
     const content: Anthropic.ContentBlockParam[] = [];
     input.photos.forEach((p, i) => {
-      content.push({ type: "text", text: `Photo ${i + 1}, meant to show: ${JSON.stringify(p.label)}` });
+      const code = p.challengeCode ? ` Photo code the worker was asked to include: ${JSON.stringify(p.challengeCode)}.` : " No photo code was issued for this photo.";
+      content.push({ type: "text", text: `Photo ${i + 1}, meant to show: ${JSON.stringify(p.label)}.${code}` });
       content.push({ type: "image", source: { type: "base64", media_type: "image/jpeg", data: p.base64 } });
     });
     const where = input.distanceMeters === null ? "The worker did not share a location." : `The worker's shared location was about ${Math.round(input.distanceMeters)} m from the task location.`;
@@ -129,7 +130,7 @@ ${asData("worker_notes", input.notes ?? "")}
 
 ${where}
 
-Check every acceptance checklist item, in order.` });
+Check every acceptance checklist item, in order, then the proof checks for every photo, in order.` });
     return structured({
       purpose: "verify",
       model: env().AI_MODEL_VERIFY,
@@ -140,7 +141,9 @@ Check every acceptance checklist item, in order.` });
       maxTokens: 6000,
       effort: "medium",
       ctx,
-      outcome: (v) => v.checklist.map((x) => (x.passed === true ? "P" : x.passed === false ? "F" : "?")).join(""),
+      outcome: (v) =>
+        v.checklist.map((x) => (x.passed === true ? "P" : x.passed === false ? (x.cause === "item" ? "I" : "F") : "?")).join("") +
+        (v.photos ?? []).map((p) => (p.code === "matches" || p.code === "not_requested") && !p.screen && !p.generated_or_edited ? "+" : "!").join(""),
     });
   }
 }

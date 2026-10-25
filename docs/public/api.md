@@ -74,16 +74,26 @@ Results that can change on a retry aren't saved: `rate_limited`, `insufficient_f
 }
 ```
 
-`result` is filled in once the work is accepted (status `approved`, `paying` or `paid`). `verification` is `pass` when Hail verified the proof, or `owner_approved` when the owner accepted it after review. Photo URLs need the same `Authorization` header as the rest of the API.
+`result` is filled in once the work is accepted (status `approved`, `paying` or `paid`). Photo URLs need the same `Authorization` header as the rest of the API.
+
+Accepted work and a good item are two different things. Hail pays the worker for honest, complete proof, including proof that the item **doesn't** match what you hoped. So read the result in two steps:
+
+1. **Was the work accepted?** `verification` is `pass` when Hail verified the proof, or `owner_approved` when the owner accepted it after review. Either way the worker is paid.
+2. **What did the proof show?** `checklist_met` is `true` only when every checklist item was met. Each `checklist` entry has `passed` (`true`, `false`, or `null` when it couldn't be determined, for example after an owner approval of proof Hail couldn't check) and a short `reason`.
+
+If your next step spends money (for example paying a seller), act only when `checklist_met` is `true`.
+
+Proof photos are taken live in Hail's app with a fresh code for each photo, and are checked for signs of being a photo of a screen or a generated or edited image. Doubtful proof goes to the owner instead of being accepted automatically.
 
 ```json
 "result": {
   "verification": "pass",
-  "summary": "Serial plate legible (X1-004512); power light on; matches listing.",
+  "checklist_met": false,
+  "summary": "Serial plate is legible and reads X1-004512, but the listing says X1-009871. The machine powers on.",
   "checklist": [
-    { "item": "Serial number is legible", "passed": true },
-    { "item": "Machine is visibly powered on", "passed": true },
-    { "item": "Model matches the listing", "passed": true }
+    { "item": "Serial number is legible", "passed": true, "reason": "Plate is in focus and reads X1-004512." },
+    { "item": "Machine is visibly powered on", "passed": true, "reason": "Power light is on." },
+    { "item": "Serial number matches the listing (X1-009871)", "passed": false, "reason": "Plate reads X1-004512, not X1-009871." }
   ],
   "deliverables": [
     { "type": "photo", "url": "https://.../photos/ph_1" },
@@ -104,8 +114,8 @@ Results that can change on a retry aren't saved: `rate_limited`, `insufficient_f
 | `open` | Live and visible to workers. |
 | `claimed` | A worker has reserved it and is working on it. |
 | `verifying` | Proof submitted; Hail is checking it. |
-| `needs_owner_review` | Hail couldn't confidently verify the proof; the owner will decide. |
-| `rejected` | Proof didn't meet the checklist. The worker has 24 hours to appeal, and nobody else can claim it meanwhile. With no appeal, it goes back to `open` for other workers, or to `expired` if its time has run out. |
+| `needs_owner_review` | Hail couldn't confidently verify the proof, or something about it looked doubtful; the owner will decide. |
+| `rejected` | The proof didn't show what the checklist asks for (for example the photo is blurry or shows the wrong thing). An item that honestly doesn't meet the checklist is not a rejection; see `result`. The worker has 24 hours to appeal, and nobody else can claim it meanwhile. With no appeal, it goes back to `open` for other workers, or to `expired` if its time has run out. |
 | `appealed` | The worker appealed a rejection; the owner will decide. Accepted → `approved` and then `paid`. Declined → `open` again (or `expired`). If the owner doesn't answer in time, the worker is paid. |
 | `approved` / `paying` | Work accepted; the worker's payout is in progress. |
 | `paid` | Done. `result` is available. |

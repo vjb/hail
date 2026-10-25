@@ -102,6 +102,7 @@ export default async function TaskDetail({ params }: PageProps<"/owner/tasks/[id
             checklist={b.acceptanceChecklist}
             results={proof.verification?.checklistResults}
             summary={proof.verification?.rationale}
+            proofChecks={proof.verification?.proofChecks}
           />
           {proof.payout && (
             <p className="muted" style={{ margin: 0 }}>

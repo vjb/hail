@@ -1,0 +1,1 @@
+ALTER TABLE "verifications" ADD COLUMN "proof_checks" jsonb;

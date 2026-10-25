@@ -6,3 +6,5 @@ date,prompt_version,model,cases,accuracy,allow,needs_approval,block,false_allows
 2026-10-25T01:33:00.909Z,screen-v3,claude-haiku-5-5,67,0.985,23/23,11/11,32/33,0,0.000171
 2026-10-25T01:33:26.701Z,screen-v3,claude-haiku-5-5,67,0.985,23/23,11/11,32/33,0,0.000143
 2026-10-25T01:34:13.490Z,screen-v3,claude-haiku-5-5,67,1.000,23/23,12/12,32/32,0,0.000147
+2026-10-25T02:59:25.749Z,proof,verify-v2,6,5,83.3,1,waiting:R1 R2 R3 R4 R5 R6
+2026-10-25T03:00:19.772Z,proof,verify-v2,6,6,100,0,waiting:R1 R2 R3 R4 R5 R6

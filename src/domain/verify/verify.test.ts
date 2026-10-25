@@ -12,7 +12,7 @@ import { pollPayouts, recordPayoutStatus } from "@/domain/payouts/payouts";
 import { claimBounty, submitProof } from "@/domain/work/work";
 import { setPayPalFetch } from "@/integrations/paypal/client";
 import { makeUser, snapProof } from "../../../tests/helpers";
-import { decide, verifySubmission } from "./verify";
+import { decide, proofDoubts, verifySubmission } from "./verify";
 
 afterAll(() => closeDb());
 
@@ -43,7 +43,7 @@ const fakeVerifier = (passed: Array<boolean | null>, confidence = 0.95): AIProvi
   name: "v",
   screenBounty: async () => ({ ok: true, model: "f", promptVersion: "f", value: { decision: "allow", category: "place_photo", rationale: "ok", confidence: 0.95 } }),
   checkPhoto: async () => ({ ok: true, model: "f", promptVersion: "f", value: { usable: true, problems: [], retake_hint: "" } }),
-  verifyProof: async (input) => ({ ok: true, model: "f", promptVersion: "f", value: { summary: "Checked.", checklist: input.bounty.acceptanceChecklist.map((item, i) => ({ item, passed: passed[i] ?? null, reason: "r", confidence })) } }),
+  verifyProof: async (input) => ({ ok: true, model: "f", promptVersion: "f", value: { summary: "Checked.", photos: input.photos.map(() => ({ code: "matches" as const, screen: false, generated_or_edited: false })), same_scene: null, concerns: [], checklist: input.bounty.acceptanceChecklist.map((item, i) => ({ item, passed: passed[i] ?? null, reason: "r", confidence })) } }),
 });
 
 async function submitted() {
@@ -81,6 +81,41 @@ describe("verification decision", () => {
   });
   it("a missing item is uncertain", () => {
     expect(decide(items([true]), ["a", "b"])).toBe("uncertain");
+  });
+  it("pays for the truth: an item that fails because of the item itself still passes the work", () => {
+    const honest = [{ item: "a", passed: true, reason: "", confidence: 0.9 }, { item: "b", passed: false, cause: "item" as const, reason: "Serial differs", confidence: 0.9 }];
+    expect(decide(honest, ["a", "b"])).toBe("pass");
+    expect(decide([{ ...honest[1], cause: "proof" as const }], ["b"])).toBe("fail");
+  });
+  it("any doubt about the proof goes to the owner, never auto-pay", () => {
+    expect(decide(items([true, true]), ["a", "b"], ["Photo 1 looks like a picture of a screen."])).toBe("uncertain");
+    // A confident failure of the proof still fails, doubts or not.
+    expect(decide(items([false]), ["a"], ["x"])).toBe("fail");
+  });
+});
+
+describe("proof checks", () => {
+  const clean = { code: "matches" as const, screen: false, generatedOrEdited: false, source: "camera" as const };
+  it("clean checks raise no doubts", () => {
+    expect(proofDoubts({ photos: [clean, clean], sameScene: true, concerns: [] }, 2, [true, true])).toEqual([]);
+  });
+  it("flags a missing or wrong code, a screen, editing, mismatched photos and stated concerns", () => {
+    const d = proofDoubts(
+      { photos: [{ ...clean, code: "missing" }, { ...clean, code: "different", screen: true, generatedOrEdited: true }], sameScene: false, concerns: ["Lighting differs."] },
+      2,
+      [true, true],
+    );
+    expect(d.join(" ")).toMatch(/Photo 1: the photo code isn't visible/);
+    expect(d.join(" ")).toMatch(/Photo 2: a different photo code/);
+    expect(d.join(" ")).toMatch(/screen/);
+    expect(d.join(" ")).toMatch(/generated or edited/);
+    expect(d.join(" ")).toMatch(/same item or place/);
+    expect(d).toContain("Lighting differs.");
+  });
+  it("missing or incomplete checks are a doubt, and so is a photo taken without a code", () => {
+    expect(proofDoubts(null, 1, [true])).toHaveLength(1);
+    expect(proofDoubts({ photos: [clean], sameScene: null, concerns: [] }, 2, [true, true])).toHaveLength(1);
+    expect(proofDoubts({ photos: [{ ...clean, code: "not_requested" }], sameScene: null, concerns: [] }, 1, [false])).toEqual(["Photo 1 was taken without a photo code."]);
   });
 });
 

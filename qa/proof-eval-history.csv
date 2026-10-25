@@ -1,0 +1,2 @@
+date,prompt_version,cases,correct,accuracy,auto_paid_fakes,waiting
+2026-10-25T02:59:05Z,verify-v2,6,6,100,0,R1 R2 R3 R4 R5 R6

@@ -46,7 +46,7 @@ const verifier = (passed: Array<boolean | null>): AIProvider => ({
   name: "v",
   screenBounty: async () => ({ ok: true, model: "f", promptVersion: "f", value: { decision: "allow", category: "place_photo", rationale: "ok", confidence: 0.95 } }),
   checkPhoto: async () => ({ ok: true, model: "f", promptVersion: "f", value: { usable: true, problems: [], retake_hint: "" } }),
-  verifyProof: async (i) => ({ ok: true, model: "f", promptVersion: "f", value: { summary: "s", checklist: i.bounty.acceptanceChecklist.map((item, k) => ({ item, passed: passed[k] ?? null, reason: "r", confidence: 0.9 })) } }),
+  verifyProof: async (i) => ({ ok: true, model: "f", promptVersion: "f", value: { summary: "s", photos: i.photos.map(() => ({ code: "matches" as const, screen: false, generated_or_edited: false })), same_scene: null, concerns: [], checklist: i.bounty.acceptanceChecklist.map((item, k) => ({ item, passed: passed[k] ?? null, reason: "r", confidence: 0.9 })) } }),
 });
 
 async function funded(cents = 10000) {

@@ -27,7 +27,7 @@ async function main() {
     name: "stub-uncertain",
     screenBounty: async () => ({ ok: true, model: "stub", promptVersion: "stub", value: { decision: "allow", category: "place_photo", rationale: "Stub.", confidence: 0.99 } }),
     checkPhoto: async () => ({ ok: true, model: "stub", promptVersion: "stub", value: { usable: true, problems: [], retake_hint: "" } }),
-    verifyProof: async (i) => ({ ok: true, model: "stub", promptVersion: "stub", value: { summary: "Stub: unclear.", checklist: i.bounty.acceptanceChecklist.map((item) => ({ item, passed: null, reason: "Stub.", confidence: 0.5 })) } }),
+    verifyProof: async (i) => ({ ok: true, model: "stub", promptVersion: "stub", value: { summary: "Stub: unclear.", photos: i.photos.map(() => ({ code: "matches" as const, screen: false, generated_or_edited: false })), same_scene: null, concerns: [], checklist: i.bounty.acceptanceChecklist.map((item) => ({ item, passed: null, reason: "Stub.", confidence: 0.5 })) } }),
   });
   const [owner] = await db().select().from(users).where(eq(users.email, process.env.DEMO_OWNER_EMAIL!.toLowerCase()));
   const [worker] = await db().select().from(users).where(eq(users.email, process.env.DEMO_WORKER2_EMAIL!.toLowerCase()));

@@ -81,6 +81,8 @@ Pushes to `main` deploy automatically.
 | `npm run webhook:register -- <url>` | Create or reuse the PayPal sandbox webhook and write its ID to `.env` |
 | `npm run key:create -- <name> <cap-cents> [file]` | Create an API key for the demo owner |
 | `npm run eval:screening` | Run the labeled screening set through the real screen; appends to `qa/eval-history.csv` |
+| `npm run eval:proof` | Run the labeled proof set (`tests/proof/cases.ts`) through the real verifier; appends to `qa/proof-eval-history.csv`. Real-photo cases (R*) need photos in `tests/proof/photos/` (gitignored) |
+| `npm run spike:venmo` | Venmo payouts sandbox check (D-021: not supported in sandbox) |
 | `npm run mcp:smoke -- <base-url> <key-file>` | Exercise the MCP server with the official MCP client |
 | `npm run payout:check` | Drive one task to a real sandbox payout (AI verdict stubbed) |
 
