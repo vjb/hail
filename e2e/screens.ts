@@ -17,6 +17,7 @@ export type Screen = {
 
 export const screens: Screen[] = [
   { slug: "landing", name: "Home page", description: "A first-time visitor learns what Hail is and picks owner or earner.", role: "public", path: "/" },
+  { slug: "api-guide", name: "API guide", description: "A developer reads how to connect their AI agent to Hail.", role: "public", path: "/docs/api" },
   { slug: "sign-in", name: "Sign in", description: "Someone signs in with their email and password.", role: "public", path: "/sign-in" },
   {
     slug: "sign-in-error",
