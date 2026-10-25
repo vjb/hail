@@ -170,3 +170,80 @@ export function CopyPageLink({ label = "Copy link" }: { label?: string }) {
     </button>
   );
 }
+
+// ---------- Distances on the task list (F-2) ----------
+// The worker's position, shared once by tapping "Show distances". Kept for this tab only, so the
+// browser asks for location only when the worker chooses to.
+type Spot = { lat: number; lng: number };
+const SPOT_KEY = "hail.spot";
+let spot: Spot | null = null;
+const spotListeners = new Set<() => void>();
+function readSpot(): Spot | null {
+  if (spot) return spot;
+  try {
+    const raw = sessionStorage.getItem(SPOT_KEY);
+    spot = raw ? (JSON.parse(raw) as Spot) : null;
+  } catch {
+    spot = null;
+  }
+  return spot;
+}
+function setSpot(s: Spot) {
+  spot = s;
+  try {
+    sessionStorage.setItem(SPOT_KEY, JSON.stringify(s));
+  } catch {
+    // Storage blocked: distances last until the page closes.
+  }
+  spotListeners.forEach((l) => l());
+}
+function subscribeSpot(l: () => void) {
+  spotListeners.add(l);
+  return () => spotListeners.delete(l);
+}
+const useSpot = () => useSyncExternalStore(subscribeSpot, readSpot, () => null);
+
+function fmtDistance(m: number) {
+  return m < 1000 ? `${Math.round(m / 10) * 10} m away` : `${(m / 1000).toFixed(1)} km away`;
+}
+
+export function ShowDistancesButton() {
+  const here = useSpot();
+  const [state, setState] = useState<{ busy?: boolean; error?: string }>({});
+  if (here) return null;
+  return (
+    <div className="row" style={{ gap: "var(--s-2)" }}>
+      <button
+        type="button"
+        className="btn btn-secondary"
+        disabled={state.busy}
+        onClick={() => {
+          if (!navigator.geolocation) return setState({ error: "This browser can't share location." });
+          setState({ busy: true });
+          navigator.geolocation.getCurrentPosition(
+            (p) => {
+              setSpot({ lat: p.coords.latitude, lng: p.coords.longitude });
+              setState({});
+            },
+            () => setState({ error: "Location wasn't shared, so distances can't be shown." }),
+            { timeout: 15000 },
+          );
+        }}
+      >
+        {state.busy ? "Finding you…" : "Show distances"}
+      </button>
+      {state.error && (
+        <span role="status" className="muted" style={{ fontSize: "var(--text-sm)" }}>
+          {state.error}
+        </span>
+      )}
+    </div>
+  );
+}
+
+/** "0.4 km away" on a task card, once the worker has shared their location. Nothing otherwise. */
+export function CardDistance({ lat, lng }: { lat: number; lng: number }) {
+  const here = useSpot();
+  if (!here) return null;
+  return <span>{fmtDistance(distanceMeters({ lat, lng }, here))}</span>;
+}

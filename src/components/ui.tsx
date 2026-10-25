@@ -16,6 +16,7 @@ import {
   XCircle,
   type LucideIcon,
   EyeOff,
+  Wallet,
 } from "lucide-react";
 import type { ChecklistResult } from "@/db/schema";
 
@@ -106,6 +107,22 @@ export function SetAsideBadge({ cents }: { cents?: number }) {
   );
 }
 
+/** The owner's two promises, at a glance under the balance (F-1). */
+export function OwnerTrustBadges() {
+  return (
+    <div className="row" style={{ gap: "var(--s-2)", marginTop: "var(--s-3)" }}>
+      <span className="badge">
+        <Lock aria-hidden="true" />
+        Pay set aside before posting
+      </span>
+      <span className="badge badge-quiet">
+        <Wallet aria-hidden="true" />
+        Paid out with PayPal
+      </span>
+    </div>
+  );
+}
+
 export function ScreenedBadge() {
   return (
     <span className="badge badge-quiet">
@@ -135,7 +152,7 @@ export function timeLeft(until: Date, now = new Date()) {
   return `${Math.max(1, m)} min left`;
 }
 
-export function TaskCard({ href, title, rewardCents, deliverables, expiresAt, place }: { href: string; title: string; rewardCents: number; deliverables: Array<{ type: string }>; expiresAt: Date; place?: string | null }) {
+export function TaskCard({ href, title, rewardCents, deliverables, expiresAt, place, distance }: { href: string; title: string; rewardCents: number; deliverables: Array<{ type: string }>; expiresAt: Date; place?: string | null; distance?: ReactNode }) {
   return (
     <Link href={href} className="card card-tight task-card stack-sm">
       <div className="task-card-top">
@@ -152,13 +169,18 @@ export function TaskCard({ href, title, rewardCents, deliverables, expiresAt, pl
         <span>{effortSummary(deliverables)}</span>
         <span>{timeLeft(expiresAt)}</span>
         {place && <span>{place}</span>}
+        {distance}
       </div>
+      {/* The whole card is the link; this says what tapping it does (F-2). */}
+      <span className="task-card-cue" aria-hidden="true">
+        View and claim →
+      </span>
     </Link>
   );
 }
 
 // ---------- Balance ----------
-export function BalanceCard({ availableCents, heldCents, action }: { availableCents: number; heldCents: number; action?: ReactNode }) {
+export function BalanceCard({ availableCents, heldCents, action, footer }: { availableCents: number; heldCents: number; action?: ReactNode; footer?: ReactNode }) {
   return (
     <section className="card" aria-labelledby="balance-heading">
       <div className="spread">
@@ -181,6 +203,7 @@ export function BalanceCard({ availableCents, heldCents, action }: { availableCe
           <p className="muted">Reserved for open tasks. Paid to workers on approval.</p>
         </div>
       </div>
+      {footer}
     </section>
   );
 }

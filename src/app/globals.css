@@ -987,3 +987,17 @@ table.data th.num {
 .wrap-anywhere {
   overflow-wrap: anywhere;
 }
+
+/* "View and claim →" on worker task cards (F-2): reads as the card's action. */
+.task-card-cue {
+  align-self: flex-end;
+  font-weight: 600;
+  font-size: var(--text-sm);
+  color: var(--ink);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+.task-card:hover .task-card-cue,
+.task-card:focus-visible .task-card-cue {
+  text-decoration-thickness: 2px;
+}

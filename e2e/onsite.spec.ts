@@ -42,6 +42,12 @@ test("on-site task: blocked from across town, accepted on site", async ({ browse
     await giveBack.click();
     await expect(giveBack).toBeHidden({ timeout: 15_000 });
   }
+  // F-2: the task list shows distances once the worker chooses to share their location.
+  await page.goto("/work");
+  const card = page.getByRole("link", { name: new RegExp(title) });
+  await expect(card.getByText("View and claim →")).toBeVisible();
+  await page.getByRole("button", { name: "Show distances" }).click();
+  await expect(card.getByText(/2\.\d km away/)).toBeVisible();
   await page.goto(`/work/tasks/${created.id}`);
   await expect(page.getByText(/On site only: .* within 150 m/)).toBeVisible();
   await page.getByRole("button", { name: "How far am I?" }).click();

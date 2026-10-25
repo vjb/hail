@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { AutoRefresh } from "@/components/client";
+import { AutoRefresh, CardDistance, ShowDistancesButton } from "@/components/client";
+import { placeOf } from "@/lib/geo";
 import { ButtonLink, EmptyState, TaskCard } from "@/components/ui";
 import { db } from "@/db/client";
 import { activeClaimFor, listOpenBounties } from "@/domain/work/work";
@@ -41,13 +42,15 @@ export default async function WorkerTasks({ searchParams }: { searchParams: Prom
           <ButtonLink href="/work/my-task">Continue</ButtonLink>
         </div>
       )}
+      {/* Only tasks with coordinates have a distance; the button shows when any does. */}
+      {open.some((b) => placeOf(b.location)) && <ShowDistancesButton />}
       {open.length === 0 ? (
         <EmptyState title="No open tasks right now">New tasks appear here as soon as they&apos;re posted. Check back soon.</EmptyState>
       ) : (
         <ul className="stack-sm" style={{ listStyle: "none", padding: 0, margin: 0 }} aria-label="Open tasks">
           {open.map((b) => (
             <li key={b.id}>
-              <TaskCard href={`/work/tasks/${b.id}`} title={b.title} rewardCents={b.rewardCents} deliverables={b.deliverables} expiresAt={b.expiresAt} place={b.location?.address} />
+              <TaskCard href={`/work/tasks/${b.id}`} title={b.title} rewardCents={b.rewardCents} deliverables={b.deliverables} expiresAt={b.expiresAt} place={b.location?.address} distance={placeOf(b.location) ? <CardDistance lat={placeOf(b.location)!.lat} lng={placeOf(b.location)!.lng} /> : null} />
             </li>
           ))}
         </ul>

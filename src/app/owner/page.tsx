@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { BalanceCard, ButtonLink, EmptyState, formatDateTime, Money, StatusPill } from "@/components/ui";
+import { BalanceCard, ButtonLink, EmptyState, formatDateTime, Money, OwnerTrustBadges, StatusPill } from "@/components/ui";
 import { db } from "@/db/client";
 import { getBalances } from "@/domain/ledger/ledger";
 import { approvalCount, listOwnerBounties } from "@/domain/owner/queries";
@@ -14,10 +14,10 @@ export default async function OwnerOverview() {
   return (
     <div className="stack">
       <div>
-        <h1>Overview</h1>
+        <h1>Real-world tasks for your agents</h1>
         <p className="muted">Your agents post tasks; Hail screens them, sets the pay aside, and pays the person who does the work.</p>
       </div>
-      <BalanceCard availableCents={bal.availableCents} heldCents={bal.heldCents} action={<ButtonLink href="/owner/balance">Add funds</ButtonLink>} />
+      <BalanceCard availableCents={bal.availableCents} heldCents={bal.heldCents} action={<ButtonLink href="/owner/balance">Add funds</ButtonLink>} footer={<OwnerTrustBadges />} />
       {waiting > 0 && (
         <section className="card spread" aria-labelledby="waiting-heading" style={{ borderColor: "var(--review)" }}>
           <div>

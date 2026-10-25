@@ -22,7 +22,7 @@ test.describe("sign-in per role", () => {
   test("owner lands on the owner overview", async ({ page }) => {
     await signInAs(page, "owner");
     await expect(page).toHaveURL(/\/owner$/);
-    await expect(page.getByRole("heading", { name: "Overview" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Real-world tasks for your agents" })).toBeVisible();
     await expect(page.getByRole("navigation", { name: "Owner" })).toBeVisible();
     await expect(page.getByRole("banner").getByText("Available")).toBeVisible();
     await expectAccessible(page);
