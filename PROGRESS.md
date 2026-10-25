@@ -288,8 +288,8 @@ Gate evidence:
 - `npm test` **140/140** at the last commit.
 
 ## Resume here (next session)
-1. Day 8 gate recorded (passed). Render is on free plans (D-017). Sample photos (HH-010) are in `C:\Users\vjbel\Downloads\hail-photos`, to be wired into e2e and seed.
-2. Waiting on the human: HH-008 (Render), HH-009 (phone test), HH-010 (sample photos), the Discord join, and AG Studio activation on Nov 1 (Day 9 control room).
+1. Day 8 gate recorded (passed). **Live at https://hail-g9h8.onrender.com** on Render free plans (D-017): health OK, webhook `0UX03626T43587307` registered and set, GitHub sweep workflow ran successfully. Sample photos (HH-010) are in `C:\Users\vjbel\Downloads\hail-photos` and checked against the real verifier (good x3 pass, bad x3 fail); next, copy them into the repo, wire them into e2e (un-skip the happy path) and seed.
+2. Waiting on the human: HH-009 (phone test at the Render URL), a card on Render before ~Nov 20 so it can go paid (free DB expires ~Nov 23), the Discord join, and AG Studio activation on Nov 1 (Day 9 control room).
 3. Next work that doesn't need the human:
    - Days 13–14 hardening: review rate limits and auth; error/loading states everywhere.
    - Refresh the screenshot manifest and take a run.
