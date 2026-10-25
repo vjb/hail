@@ -7,14 +7,14 @@ import { bounties, claims, photos, proofChallenges } from "@/db/schema";
 import { createBounty } from "@/domain/bounty/service";
 import { createApiKey } from "@/domain/keys/keys";
 import { creditTopup } from "@/domain/ledger/ledger";
-import { makeUser, snapProof } from "../../../tests/helpers";
+import { makeUser, snapProof, uniquePhoto } from "../../../tests/helpers";
 import { getConnectedProfile, setPayPalFetch } from "@/integrations/paypal/client";
 import { users } from "@/db/schema";
 import { addProofPhoto, claimBounty, connectPayPal, expireOverdueClaims, issueChallenge, newChallengeCode, releaseClaim, submitProof } from "./work";
 
 afterAll(() => closeDb());
 
-const jpeg = () => sharp({ create: { width: 2400, height: 1800, channels: 3, background: "#c0a060" } }).jpeg().toBuffer();
+const jpeg = () => uniquePhoto(2400, 1800);
 
 async function openBounty() {
   const ownerId = await makeUser("owner");
@@ -143,6 +143,16 @@ describe("worker flow", () => {
     expect(p.captureSource).toBe("file");
     await expect(addProofPhoto(db(), w, claimId, 0, await jpeg(), { challengeId: c.challengeId, source: "camera" })).rejects.toThrow(/already used/);
     await expect(addProofPhoto(db(), w, claimId, 0, await jpeg(), { challengeId: "chl_nope", source: "camera" })).rejects.toThrow(/isn't for this photo/);
+  });
+
+  it("a newer code replaces an unused older one for the same photo (PF-010)", async () => {
+    const id = await openBounty();
+    const w = await worker();
+    const { claimId } = await claimBounty(db(), w, id);
+    const old = await issueChallenge(db(), w, claimId, 0);
+    const fresh = await issueChallenge(db(), w, claimId, 0);
+    await expect(addProofPhoto(db(), w, claimId, 0, await jpeg(), { challengeId: old.challengeId, source: "camera" })).rejects.toThrow(/replaced by a newer one/);
+    await addProofPhoto(db(), w, claimId, 0, await jpeg(), { challengeId: fresh.challengeId, source: "camera" });
   });
 
   it("a photo uploaded after the challenge window is refused", async () => {

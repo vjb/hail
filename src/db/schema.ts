@@ -1,5 +1,6 @@
 import { sql } from "drizzle-orm";
 import {
+  bigint,
   bigserial,
   boolean,
   check,
@@ -353,6 +354,8 @@ export const proofChallenges = pgTable(
     issuedAt: ts("issued_at").notNull().defaultNow(),
     expiresAt: ts("expires_at").notNull(),
     usedAt: ts("used_at"),
+    // Set when a newer code is issued for the same photo before this one was used.
+    supersededAt: ts("superseded_at"),
   },
   (t) => [index("proof_challenges_claim_idx").on(t.claimId, t.slot)],
 );
@@ -373,6 +376,8 @@ export const photos = pgTable(
     // Content Credentials (C2PA) read from the original upload, if it carried any.
     contentCredentials: jsonb("content_credentials").$type<ContentCredentials>(),
     check: jsonb("check").$type<PhotoCheck>(),
+    // Perceptual fingerprint (src/lib/phash.ts) to spot one photo reused across tasks.
+    dhash: bigint("dhash", { mode: "bigint" }),
     mime: text("mime").notNull(),
     width: integer("width"),
     height: integer("height"),

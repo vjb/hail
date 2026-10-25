@@ -43,6 +43,20 @@
       "when": 1792898437705,
       "tag": "0005_content_credentials",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1792942864532,
+      "tag": "0006_photo_dhash",
+      "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1792942883835,
+      "tag": "0007_challenge_superseded",
+      "breakpoints": true
     }
   ]
 }

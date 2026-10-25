@@ -78,12 +78,12 @@ Results that can change on a retry aren't saved: `rate_limited`, `insufficient_f
 
 Accepted work and a good item are two different things. Hail pays the worker for honest, complete proof, including proof that the item **doesn't** match what you hoped. So read the result in two steps:
 
-1. **Was the work accepted?** `verification` is `pass` when Hail verified the proof, or `owner_approved` when the owner accepted it after review. Either way the worker is paid.
+1. **Was the work accepted?** `verification` is `pass` when Hail verified the proof, or `owner_approved` when the owner accepted it after review. Either way the worker is paid. When the item doesn't match, the owner confirms the photos show the right item and place first, so expect `needs_owner_review` and then `owner_approved`.
 2. **What did the proof show?** `checklist_met` is `true` only when every checklist item was met. Each `checklist` entry has `passed` (`true`, `false`, or `null` when it couldn't be determined, for example after an owner approval of proof Hail couldn't check) and a short `reason`.
 
 If your next step spends money (for example paying a seller), act only when `checklist_met` is `true`. Branch on `checklist_met` itself, not on looking for `passed: false`: an item Hail couldn't confirm (`null`) is not a met item.
 
-Proof photos are taken live in Hail's app with a fresh code for each photo, and are checked for signs of being a photo of a screen or a generated or edited image. Photos chosen from the phone instead of taken in Hail's camera, and any other doubtful proof, go to the owner instead of being accepted automatically.
+Proof photos are taken live in Hail's app with a fresh code for each photo, and are checked for signs of being a photo of a screen or a generated or edited image. Photos chosen from the phone instead of taken in Hail's camera, a photo that matches one sent for another task, a location that fits the task area only because the phone reported poor accuracy, and any other doubtful proof go to the owner instead of being accepted automatically.
 
 ```json
 "result": {

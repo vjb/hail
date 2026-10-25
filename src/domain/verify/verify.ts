@@ -1,10 +1,11 @@
-import { desc, eq, inArray } from "drizzle-orm";
+import { and, desc, eq, inArray, isNotNull, ne, sql } from "drizzle-orm";
 import { ai } from "@/ai";
 import type { DB } from "@/db/client";
 import { bounties, photos, proofChallenges, submissions, users, verifications, type ChecklistResult, type ContentCredentials, type ProofChecks } from "@/db/schema";
 import type { VerifyOutput } from "@/ai/provider";
 import { transition } from "@/domain/bounty/state";
-import { distanceMeters, placeOf } from "@/lib/geo";
+import { checkLocation, distanceMeters, placeOf } from "@/lib/geo";
+import { SAME_PHOTO_MAX_BITS } from "@/lib/phash";
 import { startPayout } from "@/domain/payouts/payouts";
 
 // Verification (verify-v2): AI checks the proof against the bounty's own checklist and runs proof
@@ -67,6 +68,9 @@ export function decide(items: ChecklistResult[], expected: string[], doubts: str
   // A failure without a stated cause is treated as the proof's (the stricter reading).
   if (items.some((x) => x.passed === false && x.cause !== "item" && confident(x))) return "fail";
   if (doubts.length) return "uncertain";
+  // The item didn't match: honest proof, but the owner confirms it's the right item and place before
+  // anyone is paid, so a photo of any other object plus an alibi can't pay itself (PF-008, PF-009).
+  if (items.some((x) => x.passed === false)) return "uncertain";
   if (items.every((x) => x.passed !== null && confident(x))) return "pass";
   return "uncertain";
 }
@@ -94,12 +98,47 @@ export function interpret(
         concerns: (value.concerns ?? []).slice(0, 5),
       }
     : null;
-  const doubts = [...proofDoubts(proofChecks, photos.length, photos.map((p) => !!p.code)), ...credentialDoubts(photos.map((p) => p.credentials ?? null), photos.map((p) => p.source)), ...accountDoubts];
+  const itemDoubts = items.some((x) => x.passed === false && x.cause === "item") ? ["The item didn't match the listing. Check the photos show the right item and place before the worker is paid."] : [];
+  const doubts = [...proofDoubts(proofChecks, photos.length, photos.map((p) => !!p.code)), ...credentialDoubts(photos.map((p) => p.credentials ?? null), photos.map((p) => p.source)), ...accountDoubts, ...itemDoubts];
   const result = decide(items, checklist, doubts);
   const rationale = result === "uncertain" && doubts.length ? `${value.summary} Sent to the owner because: ${doubts.join(" ")}` : value.summary;
   return { items, proofChecks, result, rationale, doubts };
 }
 
+
+type SubmissionRow = typeof submissions.$inferSelect;
+type BountyRow = typeof bounties.$inferSelect;
+type PhotoRow = typeof photos.$inferSelect;
+
+/**
+ * Doubts Hail can see without the model (D-033): a photo that matches one sent for another task,
+ * a photo flagged as unusable when it was taken, and a location inside the task area only thanks
+ * to the phone's own accuracy estimate.
+ */
+export async function submissionDoubts(database: DB, s: SubmissionRow, b: BountyRow, ordered: PhotoRow[]) {
+  const doubts: string[] = [];
+  for (const [i, p] of ordered.entries()) {
+    if (p.check && p.check.usable === false) doubts.push(`Photo ${i + 1} was flagged when it was taken${p.check.problems.length ? `: ${p.check.problems.join(" ")}` : "."}`);
+    if (p.dhash === null || p.dhash === undefined) continue;
+    const same = await database
+      .select({ id: photos.id })
+      .from(photos)
+      .where(
+        and(
+          isNotNull(photos.dhash),
+          isNotNull(photos.claimId),
+          ne(photos.claimId, s.claimId),
+          sql`length(replace(((${photos.dhash} # ${p.dhash.toString()}::bigint)::bit(64))::text, '0', '')) <= ${SAME_PHOTO_MAX_BITS}`,
+        ),
+      )
+      .limit(1);
+    if (same.length) doubts.push(`Photo ${i + 1} looks the same as a photo sent for another task.`);
+  }
+  const loc = checkLocation(b.location, s.location);
+  if (loc.required && loc.shared && loc.ok && loc.distanceM > loc.radiusM)
+    doubts.push(`The phone placed the worker ${loc.distanceM} m away, inside the ${loc.radiusM} m area only after allowing for poor location accuracy.`);
+  return doubts;
+}
 
 /** Verifies a submission whose bounty is `verifying`. Idempotent: does nothing if already decided. */
 export async function verifySubmission(database: DB, submissionId: string) {
@@ -131,7 +170,10 @@ export async function verifySubmission(database: DB, submissionId: string) {
   let proofChecks: ProofChecks | null = null;
   if (r.ok) {
     const [w] = await database.select({ verified: users.paypalVerified }).from(users).where(eq(users.id, s.workerId));
-    const accountDoubts = w?.verified === false ? ["The worker's PayPal account isn't verified yet, so their pay waits for your review."] : [];
+    const accountDoubts = [
+      ...(w?.verified === false ? ["The worker's PayPal account isn't verified yet, so their pay waits for your review."] : []),
+      ...(await submissionDoubts(database, s, b, ordered)),
+    ];
     ({ items, proofChecks, result, rationale } = interpret(r.value, b.acceptanceChecklist, ordered.map((p) => ({ code: codeFor(p), source: p.captureSource ?? null, credentials: p.contentCredentials ?? null })), accountDoubts));
   } else {
     items = b.acceptanceChecklist.map((item) => ({ item, passed: null, reason: "Automatic check unavailable.", confidence: 0 }));

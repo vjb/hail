@@ -215,3 +215,13 @@ Decisions:
 
 ## D-032 — Design lab round 2 fixes (2026-10-25)
 All eight findings fixed; nothing deferred. Notable choices: per-photo checks reuse the checklist's icon + word pattern (OK / Check / Flagged) and are shared by the owner page and the certificate; "Report as not genuine" became a two-step, explained confirmation because it pauses a worker; forms sent offline are held on the page app-wide (one capture-phase submit guard in the offline notice); the camera stops spinning after 3 s without an answer and points to the phone-camera fallback; scrollable tables get CSS-only edge shadows. The certificate gains a copy-link button (small, in scope: it exists to be shared).
+
+## D-033 — Proof-fraud round 1: what pays itself, and what now goes to the owner (2026-10-25)
+Findings (proof-fraud red team, 10 attempts, 6 paid automatically): the tester scripted uploads, labeled every photo `camera` (the label is the app's claim, not something the server can prove), and either generated a fresh photo with the live code (C2PA stripped) or reused one base photo with a blank note and stamped each new code onto it in milliseconds. Also: an unused older code stayed valid after a new one was issued (PF-010); a location 278 m from a 100 m task passed by claiming 200 m GPS accuracy (PF-007); a photo of any object plus a "the listing was mislabeled" note was paid as honest negative proof (PF-008, PF-009).
+Decisions:
+- A new code for a photo replaces any unused older one.
+- Every proof photo gets a 64-bit perceptual fingerprint (dHash). A photo within 10 bits of one sent for another task is a doubt. Measured on our photos: stamped or re-encoded copies differ by ≤ 6 bits, different scenes by ≥ 21.
+- A location inside the area only after the accuracy allowance is a doubt (still not blocked).
+- A photo flagged as unusable when taken is a doubt.
+- An item that doesn't match the listing no longer auto-pays: the owner confirms it's the right item and place. The worker is still paid for honest proof once confirmed (or when the review window lapses). This narrows D-021: "pays for the truth" now runs through the owner.
+Open (human decision): a fresh, AI-made photo with the live code, labeled as a camera photo, still auto-pays (PF-003). No server-side check can prove a photo came from Hail's camera. Recommended fix: new workers' first few tasks always go to owner review (a trust ramp), plus reported fakes pausing the account (D-027). Not built yet because it changes the demo flow.

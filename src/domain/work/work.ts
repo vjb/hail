@@ -8,6 +8,7 @@ import { DomainError } from "@/domain/bounty/service";
 import { transition } from "@/domain/bounty/state";
 import { newId } from "@/lib/ids";
 import { readContentCredentials } from "@/integrations/c2pa";
+import { photoHash } from "@/lib/phash";
 import { env } from "@/lib/env";
 import { checkLocation } from "@/lib/geo";
 import { CHALLENGE, fromNow, scaled, WINDOWS } from "@/lib/time";
@@ -142,7 +143,14 @@ export async function issueChallenge(database: DB, workerId: string, claimId: st
   const code = newChallengeCode();
   const issuedAt = new Date();
   const expiresAt = new Date(issuedAt.getTime() + CHALLENGE.window);
-  await database.insert(proofChallenges).values({ id, claimId, slot, code, issuedAt, expiresAt });
+  await database.transaction(async (tx) => {
+    // A new code replaces any unused one for this photo, so codes can't be stockpiled (PF-010).
+    await tx
+      .update(proofChallenges)
+      .set({ supersededAt: issuedAt })
+      .where(and(eq(proofChallenges.claimId, claimId), eq(proofChallenges.slot, slot), isNull(proofChallenges.usedAt), isNull(proofChallenges.supersededAt)));
+    await tx.insert(proofChallenges).values({ id, claimId, slot, code, issuedAt, expiresAt });
+  });
   return { challengeId: id, code, expiresAt };
 }
 
@@ -151,11 +159,12 @@ async function consumeChallenge(database: DB, claimId: string, slot: number, cha
   const [c] = await database.select().from(proofChallenges).where(eq(proofChallenges.id, challengeId));
   if (!c || c.claimId !== claimId || c.slot !== slot) throw new DomainError("invalid_request", "That photo code isn't for this photo. Get a new code and take the photo again.");
   if (c.usedAt) throw new DomainError("invalid_request", "That photo code was already used. Get a new code and take the photo again.");
+  if (c.supersededAt) throw new DomainError("invalid_request", "That photo code was replaced by a newer one. Take the photo with the newest code.");
   if (now.getTime() > c.expiresAt.getTime() + CHALLENGE.uploadGrace) throw new DomainError("invalid_request", "That photo code ran out of time. Get a new code and take the photo again.");
   const used = await database
     .update(proofChallenges)
     .set({ usedAt: now })
-    .where(and(eq(proofChallenges.id, challengeId), isNull(proofChallenges.usedAt)))
+    .where(and(eq(proofChallenges.id, challengeId), isNull(proofChallenges.usedAt), isNull(proofChallenges.supersededAt)))
     .returning({ id: proofChallenges.id });
   if (!used.length) throw new DomainError("invalid_request", "That photo code was already used. Get a new code and take the photo again.");
   return c;
@@ -182,7 +191,7 @@ export async function addProofPhoto(
   const id = newId("ph");
   await database
     .insert(photos)
-    .values({ id, ownerUserId: workerId, claimId, slot, challengeId: challenge.id, captureSource: capture.source, contentCredentials, mime: "image/jpeg", width: norm.width, height: norm.height, bytes: norm.bytes });
+    .values({ id, ownerUserId: workerId, claimId, slot, challengeId: challenge.id, captureSource: capture.source, contentCredentials, mime: "image/jpeg", width: norm.width, height: norm.height, bytes: norm.bytes, dhash: await photoHash(norm.bytes) });
 
   const r = await ai().checkPhoto(
     {

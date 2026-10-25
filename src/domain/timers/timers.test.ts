@@ -1,5 +1,4 @@
 import { eq } from "drizzle-orm";
-import sharp from "sharp";
 import { afterAll, beforeEach, describe, expect, it } from "vitest";
 import { setAIProvider } from "@/ai";
 import type { AIProvider } from "@/ai/provider";
@@ -15,7 +14,7 @@ import { withdraw } from "@/domain/withdrawals/withdrawals";
 import { claimBounty, submitProof } from "@/domain/work/work";
 import { setPayPalFetch } from "@/integrations/paypal/client";
 import { newId } from "@/lib/ids";
-import { makeUser, snapProof } from "../../../tests/helpers";
+import { makeUser, snapProof, uniquePhoto } from "../../../tests/helpers";
 import { decideAppeal, expireBounties, fileAppeal, lapseReviews, reopenUnappealed } from "./timers";
 
 afterAll(() => closeDb());
@@ -66,7 +65,7 @@ async function submittedFor(ctx: Awaited<ReturnType<typeof funded>>["ctx"], pass
   const b = await post(ctx);
   const worker = await makeUser("worker", { paypalEmail: "w@example.com" });
   const { claimId } = await claimBounty(db(), worker, b.id);
-  await snapProof(db(), worker, claimId, 0, await sharp({ create: { width: 400, height: 300, channels: 3, background: "#888" } }).jpeg().toBuffer());
+  await snapProof(db(), worker, claimId, 0, await uniquePhoto(400, 300));
   const { submissionId } = await submitProof(db(), worker, claimId, {});
   await verifySubmission(db(), submissionId);
   return { bountyId: b.id, worker };

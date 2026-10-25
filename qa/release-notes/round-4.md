@@ -1,6 +1,6 @@
 # Hail release notes — round 4
 
-These notes cover findings from red team round 2, outside developer round 3, UAT round 1 and design lab round 2. They describe what you should now see on the live site, not how it was done.
+These notes cover findings from red team round 2, outside developer round 3, UAT round 1, design lab round 2 and proof-fraud round 1. They describe what you should now see on the live site, not how it was done.
 
 ## Red team (next round)
 
@@ -49,3 +49,13 @@ These notes cover findings from red team round 2, outside developer round 3, UAT
 | DL-2-06 | Sending a form while offline keeps you on the page and moves focus to the offline notice. |
 | DL-2-07 | If the camera doesn't open within a few seconds, the spinner is replaced by a note pointing to "Open my phone's camera". |
 | DL-2-08 | Tables that scroll sideways on a phone show a soft shadow at the edge with more columns. |
+
+## Proof-fraud red team (round 2)
+
+| Finding | What you'll see now |
+|---|---|
+| PF-010 | Getting a new photo code makes any unused older code for that photo invalid ("replaced by a newer one"). |
+| PF-004 to PF-010 | A photo that looks the same as one sent for another task, even with a new code written on it, goes to the owner. |
+| PF-007 | A location inside the task area only because the phone reported poor accuracy goes to the owner. |
+| PF-008, PF-009 | Proof of an item that doesn't match the listing goes to the owner before anyone is paid. So does a photo the app flagged when it was taken. |
+| PF-001 to PF-003 | Still open: a freshly generated photo with the live code can be accepted. Retest after the next notes. |

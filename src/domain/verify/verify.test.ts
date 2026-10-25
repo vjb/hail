@@ -1,5 +1,4 @@
 import { eq } from "drizzle-orm";
-import sharp from "sharp";
 import { afterAll, beforeEach, describe, expect, it } from "vitest";
 import { setAIProvider } from "@/ai";
 import type { AIProvider } from "@/ai/provider";
@@ -12,7 +11,7 @@ import { pollPayouts, recordPayoutStatus } from "@/domain/payouts/payouts";
 import { decideAppeal, fileAppeal } from "@/domain/timers/timers";
 import { claimBounty, submitProof } from "@/domain/work/work";
 import { setPayPalFetch } from "@/integrations/paypal/client";
-import { makeUser, snapProof } from "../../../tests/helpers";
+import { makeUser, snapProof, uniquePhoto } from "../../../tests/helpers";
 import { decide, proofDoubts, verifySubmission } from "./verify";
 
 afterAll(() => closeDb());
@@ -62,7 +61,7 @@ async function submitted() {
   });
   const worker = await makeUser("worker", { paypalEmail: "w@example.com" });
   const { claimId } = await claimBounty(db(), worker, b.id);
-  await snapProof(db(), worker, claimId, 0, await sharp({ create: { width: 800, height: 600, channels: 3, background: "#777" } }).jpeg().toBuffer());
+  await snapProof(db(), worker, claimId, 0, await uniquePhoto());
   const { submissionId } = await submitProof(db(), worker, claimId, {});
   return { ownerId, bountyId: b.id, submissionId, worker };
 }
@@ -83,9 +82,9 @@ describe("verification decision", () => {
   it("a missing item is uncertain", () => {
     expect(decide(items([true]), ["a", "b"])).toBe("uncertain");
   });
-  it("pays for the truth: an item that fails because of the item itself still passes the work", () => {
+  it("an item that doesn't match isn't the worker's failure, but the owner confirms it before pay (PF-008)", () => {
     const honest = [{ item: "a", passed: true, reason: "", confidence: 0.9 }, { item: "b", passed: false, cause: "item" as const, reason: "Serial differs", confidence: 0.9 }];
-    expect(decide(honest, ["a", "b"])).toBe("pass");
+    expect(decide(honest, ["a", "b"])).toBe("uncertain");
     expect(decide([{ ...honest[1], cause: "proof" as const }], ["b"])).toBe("fail");
   });
   it("any doubt about the proof goes to the owner, never auto-pay", () => {
@@ -254,5 +253,53 @@ describe("proof certificate", () => {
     const [p] = await db().select().from(photosTable).where(eq(photosTable.id, (await db().select().from(submissionsTable).where(eq(submissionsTable.id, submissionId)))[0].photoIds[0]));
     expect(cert?.photos[0].sha256).toBe(fingerprint(p.bytes));
     expect(cert?.photos[0].secondsAfterCode).not.toBeNull();
+  });
+});
+
+describe("doubts Hail sees without the model (D-033)", () => {
+  async function postAndSubmit(photo: Buffer, opts: { location?: { lat: number; lng: number; radius_m?: number }; at?: { lat: number; lng: number; accuracy_m?: number } } = {}) {
+    const ownerId = await makeUser("owner");
+    await db().transaction((t) => creditTopup(t, ownerId, 10000, "CAP-" + ownerId));
+    const key = await createApiKey(db(), { ownerId, name: "t", dailyCapCents: 100000 });
+    const b = await createBounty(db(), { ownerId, apiKeyId: key.id, dailyCapCents: 100000, actor: "agent:t" }, {
+      title: "Photograph a serial label",
+      instructions: "Photograph the serial label.",
+      deliverables: [{ type: "photo", description: "Label" }],
+      acceptanceChecklist: ["Serial readable", "Model visible"],
+      rewardCents: 500,
+      expiresInMinutes: 120,
+      spots: 1,
+      location: opts.location ? { address: "Example Square", ...opts.location } : null,
+    });
+    const worker = await makeUser("worker", { paypalEmail: "w@example.com" });
+    const { claimId } = await claimBounty(db(), worker, b.id);
+    await snapProof(db(), worker, claimId, 0, photo);
+    const { submissionId } = await submitProof(db(), worker, claimId, { location: opts.at ?? null });
+    setAIProvider(fakeVerifier([true, true]));
+    const r = await verifySubmission(db(), submissionId);
+    return { bountyId: b.id, r };
+  }
+
+  it("one base photo reused for another task, with a new code stamped on it, goes to the owner (PF-005)", async () => {
+    const base = await uniquePhoto();
+    const first = await postAndSubmit(base);
+    expect(first.r?.result).toBe("pass");
+    const sharp = (await import("sharp")).default;
+    const stamp = await sharp({ create: { width: 90, height: 40, channels: 3, background: "#fff" } }).png().toBuffer();
+    const restamped = await sharp(base).composite([{ input: stamp, left: 40, top: 40 }]).jpeg({ quality: 92 }).toBuffer();
+    const second = await postAndSubmit(restamped);
+    expect(second.r?.result).toBe("uncertain");
+    expect(second.r?.rationale).toMatch(/same as a photo sent for another task/);
+    expect(await status(second.bountyId)).toBe("needs_owner_review");
+  });
+
+  it("inside the area only thanks to poor GPS accuracy goes to the owner (PF-007)", async () => {
+    const place = { lat: 40.7587, lng: -73.9851, radius_m: 100 };
+    const north278 = { lat: 40.7587 + 0.0025, lng: -73.9851, accuracy_m: 200 };
+    const stretched = await postAndSubmit(await uniquePhoto(), { location: place, at: north278 });
+    expect(stretched.r?.result).toBe("uncertain");
+    expect(stretched.r?.rationale).toMatch(/poor location accuracy/);
+    const onSite = await postAndSubmit(await uniquePhoto(), { location: place, at: { lat: 40.7588, lng: -73.9851, accuracy_m: 15 } });
+    expect(onSite.r?.result).toBe("pass");
   });
 });

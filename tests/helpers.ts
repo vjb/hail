@@ -16,3 +16,17 @@ export async function snapProof(database: DB, workerId: string, claimId: string,
   const c = await issueChallenge(database, workerId, claimId, slot);
   return addProofPhoto(database, workerId, claimId, slot, file, { challengeId: c.challengeId, source: "camera" });
 }
+
+/** A photo no other test uses: random large color blocks, so each has its own stable fingerprint (D-033). */
+export async function uniquePhoto(width = 800, height = 600) {
+  const sharp = (await import("sharp")).default;
+  const rnd = (n: number) => Math.floor(Math.random() * n);
+  const color = () => `rgb(${rnd(256)},${rnd(256)},${rnd(256)})`;
+  const blocks = Array.from({ length: 10 }, () => {
+    const w = Math.round(width * (0.15 + Math.random() * 0.35));
+    const h = Math.round(height * (0.15 + Math.random() * 0.35));
+    return `<rect x="${rnd(width - w)}" y="${rnd(height - h)}" width="${w}" height="${h}" fill="${color()}"/>`;
+  }).join("");
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}"><rect width="100%" height="100%" fill="${color()}"/>${blocks}</svg>`;
+  return sharp(Buffer.from(svg)).jpeg().toBuffer();
+}
