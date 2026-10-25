@@ -9,6 +9,7 @@ import { transition } from "@/domain/bounty/state";
 import { newId } from "@/lib/ids";
 import { readContentCredentials } from "@/integrations/c2pa";
 import { env } from "@/lib/env";
+import { checkLocation } from "@/lib/geo";
 import { CHALLENGE, fromNow, scaled, WINDOWS } from "@/lib/time";
 
 // The worker side: browse, claim (with a countdown), capture proof (per-photo quick check with
@@ -227,6 +228,13 @@ export async function submitProof(database: DB, workerId: string, claimId: strin
     if (d.type === "location" && !input.location) missing.push(d.description);
   });
   if (missing.length) throw new DomainError("invalid_request", `Still needed: ${missing.join("; ")}.`);
+
+  // Tasks with coordinates need the worker on site (D-028).
+  const where = checkLocation(bounty.location, input.location);
+  if (where.required && !where.shared) throw new DomainError("invalid_request", `This task needs your location: share it while you're within ${where.radiusM} m of the task.`);
+  if (where.required && where.shared && !where.ok) {
+    throw new DomainError("invalid_request", `You're about ${where.distanceM} m from the task location. Move within ${where.radiusM} m, then share your location again.`);
+  }
 
   const notes = [textParts.join("\n"), input.notes?.trim()].filter(Boolean).join("\n\n").slice(0, 4000) || null;
   return database.transaction(async (tx) => {

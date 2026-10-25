@@ -3,6 +3,7 @@ import { desc, eq, inArray } from "drizzle-orm";
 import type { DB } from "@/db/client";
 import { bounties, bountyEvents, photos, proofChallenges, submissions, verifications } from "@/db/schema";
 import { env } from "@/lib/env";
+import { distanceMeters, placeOf } from "@/lib/geo";
 
 // Proof certificate (D-026): a shareable page for an accepted result. It shows what was checked and
 // how, with a SHA-256 fingerprint of each photo (the exact bytes the API serves), never the photos,
@@ -71,5 +72,6 @@ export async function loadCertificate(database: DB, bountyId: string) {
       };
     }),
     place: sub.location ? { lat: approx(sub.location.lat), lng: approx(sub.location.lng) } : null,
+    onSite: sub.location && placeOf(b.location) ? { distanceM: Math.round(distanceMeters(sub.location, placeOf(b.location)!)), radiusM: placeOf(b.location)!.radiusM } : null,
   };
 }

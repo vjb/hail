@@ -7,6 +7,8 @@ import { db } from "@/db/client";
 import { bounties } from "@/db/schema";
 import { activeClaimFor, getWorker } from "@/domain/work/work";
 import { env } from "@/lib/env";
+import { placeOf } from "@/lib/geo";
+import { DistanceToTask } from "@/components/client";
 import { requireRole } from "@/lib/auth";
 import { scaled, WINDOWS } from "@/lib/time";
 import { eq } from "drizzle-orm";
@@ -63,6 +65,15 @@ export default async function WorkerTaskDetail({ params }: PageProps<"/work/task
             <li>
               <MapPin aria-hidden="true" />
               <span>{b.location.address}</span>
+            </li>
+          )}
+          {placeOf(b.location) && (
+            <li>
+              <MapPin aria-hidden="true" />
+              <span>
+                On site only: you&apos;ll share your location when you submit, and need to be within {placeOf(b.location)!.radiusM} m of the task.{" "}
+                <DistanceToTask lat={placeOf(b.location)!.lat} lng={placeOf(b.location)!.lng} />
+              </span>
             </li>
           )}
         </ul>

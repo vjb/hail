@@ -188,3 +188,14 @@ Finding: with a real sandbox seller (`payee` = a separate business account), cap
 Decision: the requester agent authorizes to its **own** business account, then on a verified match captures and pays the seller with Payouts; otherwise it voids. Verified end to end in sandbox with the agent's own app (`hail-requester-agent`, business `sb-t4ap453470450`): $300 hold → capture `COMPLETED` → payout to the seller (`sb-is02s53470435`) `SUCCESS`; second hold → `VOIDED`.
 Also done 2026-10-25 (H1, by the agent with the human's go-ahead): Log in with PayPal enabled on the Hail sandbox app (email, verification status, payer ID; return URL `/work/paypal/callback`); `PAYPAL_LOGIN_ENABLED=true` on Render.
 Connect PayPal verified live 2026-10-25: demo worker Sam connected the sandbox buyer account → "PayPal connected", verified badge. PayPal's userinfo sent `user_id, sub, payer_id, verified_account, emails`, matching the parser (D-025's "unverified" note is resolved).
+
+## D-028 — On-site tasks: accuracy-aware location block (2026-10-25) [HH: chosen by the human]
+Context: The demo is filmed in NYC ("the agent's eyes on the ground"); the human chose a hard block over owner review, then the accuracy-aware variant after the trade-offs (indoor GPS in Midtown, remote testers, declined permissions).
+Decision: a bounty with `lat`/`lng` is on-site only. Submit requires a shared location within the radius (`radius_m`, default 150 m, minimum 100 m), allowing up to 200 m of the phone's own accuracy estimate. Address-only bounties are unaffected (all seeded demo tasks). The worker sees the rule and a "How far am I?" check before claiming, live distance on the proof screen, and Submit stays disabled while clearly outside. Result gains `distance_m`; the certificate states the distance and radius. Shared pure logic in `src/lib/geo.ts`, enforced server-side in `submitProof`.
+Not done: distances on the task list (a link card can't hold the check button); revisit if testers ask.
+
+## D-029 — Demo story and test roles (2026-10-25) [HH: chosen by the human]
+- Hero: a used purchase in NYC with verify-then-pay (D-022), then a ~20 s Times Square "is it packed right now?" scout. Shot around Nov 7–9 after the control room; item and camera person to be decided. The Gemini-built requester agent appears on screen.
+- Placeholders: Nano Banana images (used item serial and whole item with a code on paper, Times Square with a code) for development only, labeled as fakes in tests, never in the video.
+- Parallel outside testers: extra demo workers Jordan (design lab) and Riley (proof-fraud red team, after D-028).
+- Considered and dropped for now: short text answers, visible verification stages.

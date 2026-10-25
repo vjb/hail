@@ -4,6 +4,7 @@ import { db } from "@/db/client";
 import { apiKeys, bountyEvents, idempotencyRecords, submissions, verifications, type bounties } from "@/db/schema";
 import { certificateUrl } from "@/domain/proof/certificate";
 import { env } from "@/lib/env";
+import { distanceMeters, placeOf } from "@/lib/geo";
 import { desc } from "drizzle-orm";
 import { DomainError, finalScreening } from "@/domain/bounty/service";
 import { findActiveKey, type ApiKeyRecord } from "@/domain/keys/keys";
@@ -171,6 +172,8 @@ async function bountyResult(b: BountyRow) {
       ...(texts ? [{ type: "text", value: texts }] : []),
       ...(sub.location ? [{ type: "location", lat: sub.location.lat, lng: sub.location.lng }] : []),
     ],
+    // How far from the task's coordinates the worker was when submitting (null without coordinates or a shared location).
+    distance_m: sub.location && placeOf(b.location) ? Math.round(distanceMeters(sub.location, placeOf(b.location)!)) : null,
     completed_at: (accepted?.createdAt ?? sub.createdAt).toISOString(),
     certificate_url: certificateUrl(b.id),
   };

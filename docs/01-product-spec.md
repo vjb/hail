@@ -54,7 +54,8 @@ Hail is the trustworthy version, built on PayPal:
 - **Open bounties** list: title, reward, location/distance (if any), expiry.
 - **Bounty detail**: instructions, "what to capture" checklist, product context (image/specs) when the bounty references a product, and a visible **"Pay set aside"** badge showing the reward is already funded.
 - **Claim** (a claim reserves the bounty for a limited time with a visible countdown, then it reopens and the worker is told). Other workers no longer see it as available.
-- **Submit proof**: in-app camera capture with a fresh challenge code (see "Proof you can trust"), notes, optional location; upload progress and confirmation.
+- **Submit proof**: in-app camera capture with a fresh challenge code (see "Proof you can trust"), notes, location (required for on-site tasks); upload progress and confirmation.
+- **On-site tasks** (added 2026-10-25, D-028): a task with coordinates can only be submitted from within its radius (default 150 m, minimum 100 m), allowing for the phone's stated accuracy. The worker sees the requirement and can check their distance before claiming; the distance appears in the result and on the proof certificate.
 - **Status**: updates live without a manual refresh (polling is fine): verifying → approved → paid, or rejected with the unmet checklist items and reasons plus an appeal button (one appeal).
 - **Earnings**: payouts and their PayPal status, with a correct total.
 

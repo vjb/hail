@@ -3,6 +3,7 @@
 import { useActionState, useEffect, useRef, useState } from "react";
 import { AlertTriangle, Camera, CheckCircle2, LoaderCircle, MapPin, RotateCcw } from "lucide-react";
 import { FormError, formatMoney } from "@/components/ui";
+import { checkLocation } from "@/lib/geo";
 import { appealAction, claimAction, paypalEmailAction, releaseAction, submitAction, type WorkState } from "./actions";
 
 function Notice({ state }: { state: WorkState }) {
@@ -326,16 +327,21 @@ export function ProofCapture({
   claimId,
   deliverables,
   initialChecks,
+  place,
 }: {
   claimId: string;
   deliverables: Array<{ type: "photo" | "text" | "location"; description: string }>;
   initialChecks: Record<number, Check | null>;
+  /** Set when the task has coordinates: the worker must be within the radius to submit. */
+  place?: { lat: number; lng: number; radius_m: number } | null;
 }) {
   const [state, action, pending] = useActionState(submitAction, {});
   const [slots, setSlots] = useState<Record<number, Slot>>(() => Object.fromEntries(Object.entries(initialChecks).map(([k, v]) => [k, v ? { status: "checked", check: v } : { status: "empty" }])));
   const [location, setLocation] = useState<{ lat: number; lng: number; accuracy_m?: number } | null>(null);
   const [locError, setLocError] = useState<string | null>(null);
-  const needsLocation = deliverables.some((d) => d.type === "location");
+  const needsLocation = deliverables.some((d) => d.type === "location") || !!place;
+  const where = place ? checkLocation(place, location) : null;
+  const tooFar = !!where && where.required && where.shared && !where.ok;
   const photoSlots = deliverables.map((d, i) => ({ d, i })).filter((x) => x.d.type === "photo");
   const allPhotos = photoSlots.every(({ i }) => slots[i]?.status === "checked");
   const anyRetake = photoSlots.some(({ i }) => slots[i]?.status === "checked" && !slots[i]?.check?.usable);
@@ -360,9 +366,26 @@ export function ProofCapture({
           <strong>Location {needsLocation ? "(required)" : "(optional)"}</strong>
         </div>
         <p className="muted" style={{ margin: 0, fontSize: "var(--text-sm)" }}>
-          Sharing where you are helps confirm you were at the right place. It&apos;s only shown to the task&apos;s owner.
+          {place
+            ? `This task needs you on site: share your location while you're within ${Math.max(place.radius_m, 100)} m of the task. It's only shown to the task's owner.`
+            : "Sharing where you are helps confirm you were at the right place. It's only shown to the task's owner."}
         </p>
-        {location ? (
+        {location && where?.required && where.shared ? (
+          where.ok ? (
+            <p className="badge" role="status">
+              You&apos;re about {where.distanceM} m from the task. That&apos;s close enough.
+            </p>
+          ) : (
+            <div role="alert" className="stack-sm">
+              <FormError>
+                You&apos;re about {where.distanceM} m from the task location. Move within {where.radiusM} m, then share your location again.
+              </FormError>
+              <button type="button" className="btn btn-secondary" onClick={() => setLocation(null)}>
+                Share my location again
+              </button>
+            </div>
+          )
+        ) : location ? (
           <p className="badge" role="status">
             Location added (±{Math.round(location.accuracy_m ?? 0)} m)
           </p>
@@ -392,7 +415,7 @@ export function ProofCapture({
       </div>
       <Notice state={state} />
       {anyRetake && <p className="muted">You can still submit, but photos marked for a retake may not pass verification.</p>}
-      <button type="submit" className="btn btn-primary btn-block btn-lg" disabled={pending || !allPhotos || (needsLocation && !location)}>
+      <button type="submit" className="btn btn-primary btn-block btn-lg" disabled={pending || !allPhotos || (needsLocation && !location) || tooFar}>
         {pending ? "Submitting…" : allPhotos ? "Submit proof" : "Take every photo to submit"}
       </button>
     </form>

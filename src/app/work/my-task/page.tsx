@@ -5,6 +5,7 @@ import { ButtonLink, Checklist, EmptyState, Money, SetAsideBadge, StatusPill } f
 import { db } from "@/db/client";
 import { activeClaimFor, workerHistory } from "@/domain/work/work";
 import { requireRole } from "@/lib/auth";
+import { placeOf } from "@/lib/geo";
 import { appealDeadline } from "@/domain/timers/timers";
 import { AppealForm, ProofCapture, ReleaseButton } from "../forms";
 
@@ -46,7 +47,7 @@ export default async function MyTask() {
           <h3 style={{ margin: 0 }}>Accepted when</h3>
           <Checklist items={b.acceptanceChecklist} />
         </section>
-        <ProofCapture claimId={claim.id} deliverables={b.deliverables} initialChecks={initialChecks} />
+        <ProofCapture claimId={claim.id} deliverables={b.deliverables} initialChecks={initialChecks} place={placeOf(b.location) ? { lat: placeOf(b.location)!.lat, lng: placeOf(b.location)!.lng, radius_m: placeOf(b.location)!.radiusM } : null} />
         <ReleaseButton claimId={claim.id} />
       </div>
     );

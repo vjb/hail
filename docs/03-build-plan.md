@@ -39,7 +39,8 @@ Days 1–8 were finished by Oct 24, so the week the table above gave them is fre
 | Mon Oct 27 | Built Oct 24 behind `PAYPAL_LOGIN_ENABLED`, waiting for H1 (D-025): Connect PayPal (Log in with PayPal) with account verification status; one PayPal account per worker; suspension; first-payout hold for new workers. | Enable "Log in with PayPal" and the account-verification attribute on the sandbox app (H1) |
 | Tue Oct 28 | Done Oct 24 (D-026): proof certificate page; Content Credentials badge if present. | — |
 | Wed Oct 29 | Verify, then pay: brief the outside developer (round 3) to pay the seller from the requester agent via PayPal after a verified pass. Hail side: whatever the result needs (certificate link). | Create a sandbox PayPal app for the requester agent (H1) |
-| Thu Oct 30 | Fixes from UAT round 1, red team round 2 and outsider round 2. | — |
+| Sun Oct 26 (added) | On-site tasks with an accuracy-aware location block (D-028). Nano Banana placeholder images. Demo workers Jordan and Riley. | Start Gemini roles 1 (round 3), 2 (round 2), 3 (UAT round 1), 5 (round 2) |
+| Thu Oct 30 | Fixes from UAT round 1, red team round 2 and outsider round 3; proof-fraud red team (new role) after D-028. | — |
 | Fri Oct 31 | Buffer. Pull Day 13–14 polish forward if clear. | — |
 
 **Gate (Oct 31):** on the live URL, a generated photo, a photo of a screen and a photo without the challenge code each end in owner review or rejection, never auto-pay; a real photo with the code passes; a verified PayPal worker gets paid; the requester agent pays the seller only after a verified pass. Proof eval ≥ 90% with zero auto-paid fakes.

@@ -1,12 +1,13 @@
 import AxeBuilder from "@axe-core/playwright";
 import { expect, type Page } from "@playwright/test";
 
-export type DemoRole = "owner" | "worker1" | "worker2" | "admin";
+export type DemoRole = "owner" | "worker1" | "worker2" | "worker3" | "admin";
 
 const creds: Record<DemoRole, [string, string]> = {
   owner: ["DEMO_OWNER_EMAIL", "DEMO_OWNER_PASSWORD"],
   worker1: ["DEMO_WORKER1_EMAIL", "DEMO_WORKER1_PASSWORD"],
   worker2: ["DEMO_WORKER2_EMAIL", "DEMO_WORKER2_PASSWORD"],
+  worker3: ["DEMO_WORKER3_EMAIL", "DEMO_WORKER3_PASSWORD"],
   admin: ["DEMO_ADMIN_EMAIL", "DEMO_ADMIN_PASSWORD"],
 };
 

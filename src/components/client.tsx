@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState, useSyncExternalStore, type ReactNode } from "react";
+import { distanceMeters } from "@/lib/geo";
 import { ClipboardCheck, ClipboardList, Gauge, Inbox, KeyRound, LayoutDashboard, ListTodo, SlidersHorizontal, Wallet } from "lucide-react";
 
 const NAV_ICONS = { ClipboardCheck, ClipboardList, Gauge, Inbox, KeyRound, LayoutDashboard, ListTodo, SlidersHorizontal, Wallet };
@@ -106,5 +107,33 @@ export function Toast({ message }: { message?: string | null }) {
     <div aria-live="polite" role="status">
       {shown && <div className="toast">{shown}</div>}
     </div>
+  );
+}
+
+/** "How far am I?" on a task with coordinates: asks for location only when tapped. */
+export function DistanceToTask({ lat, lng }: { lat: number; lng: number }) {
+  const [state, setState] = useState<{ busy?: boolean; text?: string }>({});
+  if (state.text) return <span role="status">{state.text}</span>;
+  return (
+    <button
+      type="button"
+      className="btn btn-quiet"
+      style={{ padding: 0, minHeight: 0, textDecoration: "underline" }}
+      disabled={state.busy}
+      onClick={() => {
+        if (!navigator.geolocation) return setState({ text: "This browser can't share location." });
+        setState({ busy: true });
+        navigator.geolocation.getCurrentPosition(
+          (p) => {
+            const m = Math.round(distanceMeters({ lat, lng }, { lat: p.coords.latitude, lng: p.coords.longitude }));
+            setState({ text: m < 1000 ? `You're about ${m} m away.` : `You're about ${(m / 1000).toFixed(1)} km away.` });
+          },
+          () => setState({ text: "Location wasn't shared." }),
+          { enableHighAccuracy: true, timeout: 15000 },
+        );
+      }}
+    >
+      {state.busy ? "Checking…" : "How far am I?"}
+    </button>
   );
 }

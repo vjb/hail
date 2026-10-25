@@ -197,3 +197,34 @@ describe("Connect PayPal", () => {
     await expect(getConnectedProfile("tok")).rejects.toThrow(/profile read failed/);
   });
 });
+
+describe("on-site tasks", () => {
+  async function onSiteBounty() {
+    const ownerId = await makeUser("owner");
+    await db().transaction((t) => creditTopup(t, ownerId, 10000, "CAP-" + ownerId));
+    const key = await createApiKey(db(), { ownerId, name: "t", dailyCapCents: 100000 });
+    const b = await createBounty(db(), { ownerId, apiKeyId: key.id, dailyCapCents: 100000, actor: "agent:t" }, {
+      title: "How busy is the square?",
+      instructions: "Photograph the square from the red steps.",
+      deliverables: [{ type: "photo", description: "Wide shot" }],
+      acceptanceChecklist: ["Square visible"],
+      rewardCents: 1000,
+      expiresInMinutes: 120,
+      spots: 1,
+      location: { address: "Father Duffy Square", lat: 40.7587, lng: -73.9851, radius_m: 150 },
+    });
+    return b.id;
+  }
+
+  it("refuses a submission without a location or from clearly elsewhere, accepts one on site", async () => {
+    const id = await onSiteBounty();
+    const w = await worker();
+    const { claimId } = await claimBounty(db(), w, id);
+    await snapProof(db(), w, claimId, 0, await jpeg());
+    await expect(submitProof(db(), w, claimId, {})).rejects.toThrow(/needs your location/);
+    await expect(submitProof(db(), w, claimId, { location: { lat: 40.7650, lng: -73.9851, accuracy_m: 10 } })).rejects.toThrow(/about 70\d m from the task/);
+    await submitProof(db(), w, claimId, { location: { lat: 40.7590, lng: -73.9853, accuracy_m: 25 } });
+    const [row] = await db().select().from(bounties).where(eq(bounties.id, id));
+    expect(row.status).toBe("verifying");
+  });
+});

@@ -4,6 +4,7 @@ import type { DB } from "@/db/client";
 import { bounties, photos, proofChallenges, submissions, users, verifications, type ChecklistResult, type ContentCredentials, type ProofChecks } from "@/db/schema";
 import type { VerifyOutput } from "@/ai/provider";
 import { transition } from "@/domain/bounty/state";
+import { distanceMeters, placeOf } from "@/lib/geo";
 import { startPayout } from "@/domain/payouts/payouts";
 
 // Verification (verify-v2): AI checks the proof against the bounty's own checklist and runs proof
@@ -94,15 +95,6 @@ export function interpret(
   return { items, proofChecks, result, rationale, doubts };
 }
 
-function distanceMeters(a: { lat: number; lng: number }, b: { lat?: number; lng?: number } | null | undefined) {
-  if (!b || b.lat === undefined || b.lng === undefined) return null;
-  const R = 6371000;
-  const toRad = (d: number) => (d * Math.PI) / 180;
-  const dLat = toRad(b.lat - a.lat);
-  const dLng = toRad(b.lng - a.lng);
-  const h = Math.sin(dLat / 2) ** 2 + Math.cos(toRad(a.lat)) * Math.cos(toRad(b.lat)) * Math.sin(dLng / 2) ** 2;
-  return 2 * R * Math.asin(Math.sqrt(h));
-}
 
 /** Verifies a submission whose bounty is `verifying`. Idempotent: does nothing if already decided. */
 export async function verifySubmission(database: DB, submissionId: string) {
@@ -123,7 +115,7 @@ export async function verifySubmission(database: DB, submissionId: string) {
       bounty: { title: b.title, instructions: b.instructions, acceptanceChecklist: b.acceptanceChecklist, product: b.product ?? null },
       photos: ordered.map((p) => ({ label: b.deliverables[p.slot ?? 0]?.description ?? "Proof photo", base64: p.bytes.toString("base64"), challengeCode: codeFor(p) })),
       notes: s.notes,
-      distanceMeters: s.location ? distanceMeters(s.location, b.location) : null,
+      distanceMeters: s.location && placeOf(b.location) ? distanceMeters(s.location, placeOf(b.location)!) : null,
     },
     { bountyId: b.id, submissionId },
   );

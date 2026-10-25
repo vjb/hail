@@ -99,6 +99,11 @@ export default async function ProofCertificate({ params }: { params: Promise<{ i
           <ul style={{ margin: 0, paddingLeft: "var(--s-4)" }}>
             <li>Each photo answered a fresh code, shown in the app for two minutes, that the person wrote on paper and kept in the shot.</li>
             <li>An AI verifier{cert.model ? ` (${cert.model}, ${cert.promptVersion})` : ""} checked every checklist item and looked for signs of a screen, editing or generation. Doubtful proof goes to the task owner instead of being accepted automatically.</li>
+            {cert.onSite && (
+              <li>
+                The task required being on site: the person was about {cert.onSite.distanceM} m from the task location when they sent the proof (allowed: within {cert.onSite.radiusM} m).
+              </li>
+            )}
             {cert.place ? (
               <li>
                 The person shared their location: about {cert.place.lat}, {cert.place.lng} (rounded to about 1 km).
