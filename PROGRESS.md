@@ -292,7 +292,8 @@ Gate evidence:
 
 **Gemini roles (workspaces in `../hail-gemini/`, outside the repo):**
 - **Triaged (59668dd, D-031, issues #31–#50, `qa/release-notes/round-4.md`):** role 1 outside developer round 3, role 2 red team round 2, role 3 UAT round 1. Screen-v4 eval 76/77 with zero false allows; location validation tightened; certificate cleanup; give-back confirmation. Open: #49 (real-phone camera test, human). Release notes still need copying into workspaces 1–3 after the next deploy.
-- **Still running:** 5 design lab short round 2 (Jordan), 7 proof-fraud red team round 1 (Riley, new). **Hold deploys until they finish** (deploys restart the site and pollute results); batch fixes. bde06bb and 59668dd are committed but not pushed.
+- **Design lab round 2 triaged** (54600c2, D-032, issues #51–#58, all fixed).
+- **Still running:** 7 proof-fraud red team round 1 (Riley, new). **Hold deploys until they finish** (deploys restart the site and pollute results); batch fixes. Commits from bde06bb through 54600c2 are not pushed.
 - Later: 4 mock judge and 6 first impressions after the video (~Nov 9–10); full design-lab matrix once more ~Nov 6.
 
 **Demo plan (D-029):** NYC. Hero = used purchase with verify-then-pay (agent holds money in its own PayPal account → Hail bounty → capture + payout to seller, or void; D-022 amended), then a ~20 s Times Square scout. Shoot ~Nov 7–9 after the control room; item and camera person TBD. Gemini-built requester agent on screen.
@@ -301,6 +302,6 @@ Gate evidence:
 
 **Waiting on the human:** real appliance photos for R1–R6, demo item + camera person, completing outside-developer bounties when asked, HH-009 phone test, AG Studio license Nov 1, Render card before ~Nov 20.
 
-**Next without the human:** triage 5 and 7 as they land; then push (deploy) and hand round-4 notes to workspaces 1–3; Day 9 control room from Nov 1. Before judging, undo test-period changes (build plan "Undo test-period changes").
+**Next without the human:** triage 7 when it lands; then push (deploy) and hand round-4 notes to workspaces 1, 2, 3 and 5; Day 9 control room from Nov 1. Before judging, undo test-period changes (build plan "Undo test-period changes").
 
 **Local:** dev server `npx next dev -p 3000` (restart after schema or native-module changes; never `next build` while it runs). Automation Chrome: port 9333, profile `C:/Users/vjbel/AppData/Local/hail-setup-chrome` (PayPal, Render, Gemini signed in).
