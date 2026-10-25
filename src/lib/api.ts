@@ -189,7 +189,8 @@ export async function serializeBounty(b: BountyRow) {
     title: b.title,
     instructions: b.instructions,
     deliverables: b.deliverables,
-    acceptance_checklist: b.acceptanceChecklist,
+    // The agent's own hidden values come back to the agent as { item, expected }.
+    acceptance_checklist: b.acceptanceChecklist.map((item, i) => (b.checklistExpected?.[i] ? { item, expected: b.checklistExpected[i] } : item)),
     reward_cents: b.rewardCents,
     spots: b.spots,
     location: b.location ?? null,

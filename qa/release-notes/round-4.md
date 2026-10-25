@@ -25,6 +25,7 @@ These notes cover findings from red team round 2, outside developer round 3, UAT
 | FL-10 | api.md says to branch on `checklist_met` itself: an item with `passed: null` is not met. |
 | FL-11 | api.md states that `certificate_url` is a public page and needs no `Authorization` header. |
 | FL-12 | Not reproduced: the MCP `create_bounty` schema already has `spots` minimum 1 and maximum 1. |
+| New | **Hidden values**: a checklist item can be `{ "item": "...", "expected": "..." }`. Workers never see `expected`, and Hail checks the photo against it. Try it in the verify-then-pay flow: put the listing's serial in `expected`. See The bounty object → Hidden values. |
 | — | `location` rules tightened. `lat` and `lng` go together, and `radius_m` (100–50,000) only with both. See Bounties → Create a bounty. |
 
 ## UAT (round 2)

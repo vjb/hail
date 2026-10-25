@@ -116,7 +116,9 @@ ${input.challengeCode ? `The worker was asked to write this code on paper and ke
   }
 
   verifyProof(input: VerifyInput, ctx?: AIContext) {
-    const task = { title: input.bounty.title, instructions: input.bounty.instructions, acceptance_checklist: input.bounty.acceptanceChecklist, reference_product: input.bounty.product ?? null };
+    const expected = input.bounty.checklistExpected;
+    const checklist = input.bounty.acceptanceChecklist.map((item, i) => (expected?.[i] ? { item, expected: expected[i] } : item));
+    const task = { title: input.bounty.title, instructions: input.bounty.instructions, acceptance_checklist: checklist, reference_product: input.bounty.product ?? null };
     const content: Anthropic.ContentBlockParam[] = [];
     input.photos.forEach((p, i) => {
       const code = p.challengeCode ? ` Photo code the worker was asked to include: ${JSON.stringify(p.challengeCode)}.` : " No photo code was issued for this photo.";

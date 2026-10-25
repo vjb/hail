@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { createBountySchema, LIMITS } from "./validation";
+import { createBountySchema, LIMITS, toCreateInput } from "./validation";
 
 // The MCP tool schemas advertise LIMITS; these checks keep REST validation and LIMITS in step.
 const base = {
@@ -60,5 +60,23 @@ describe("bounty limits match validation", () => {
     expect(ok({ location: { address: "210 Market St", radius_m: 200 } })).toBe(false);
     expect(ok({ location: { address: "210 Market St" } })).toBe(true);
     expect(ok({ location: { lat: 39.78, lng: -89.65 } })).toBe(true);
+  });
+});
+
+describe("hidden values (D-034)", () => {
+  it("checklist items can carry an expected value, mixed with plain strings", () => {
+    expect(ok({ acceptance_checklist: ["Machine powers on", { item: "Serial matches the listing", expected: "X1-009871" }] })).toBe(true);
+    expect(ok({ acceptance_checklist: [{ item: "Serial matches the listing" }] })).toBe(true);
+    expect(ok({ acceptance_checklist: [{ item: "Serial", expected: "x".repeat(LIMITS.expected + 1) }] })).toBe(false);
+    expect(ok({ acceptance_checklist: [{ item: "", expected: "X1" }] })).toBe(false);
+    expect(ok({ acceptance_checklist: [{ expected: "X1" }] })).toBe(false);
+  });
+
+  it("splits items from hidden values for storage", () => {
+    const parsed = createBountySchema.parse({ ...base, acceptance_checklist: ["Powers on", { item: "Serial matches", expected: "X1-009871" }] });
+    const input = toCreateInput(parsed);
+    expect(input.acceptanceChecklist).toEqual(["Powers on", "Serial matches"]);
+    expect(input.checklistExpected).toEqual([null, "X1-009871"]);
+    expect(toCreateInput(createBountySchema.parse(base)).checklistExpected).toBeNull();
   });
 });

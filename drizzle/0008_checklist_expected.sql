@@ -1,0 +1,1 @@
+ALTER TABLE "bounties" ADD COLUMN "checklist_expected" jsonb;

@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { redactHidden, redactResults } from "@/lib/hidden";
 import { CheckCircle2, Hourglass, XCircle } from "lucide-react";
 import { AutoRefresh, Countdown } from "@/components/client";
 import { ButtonLink, Checklist, EmptyState, Money, SetAsideBadge, StatusPill } from "@/components/ui";
@@ -126,7 +127,7 @@ export default async function MyTask() {
           <h2 className="row" style={{ margin: 0, color: "var(--blocked-text)" }}>
             <XCircle aria-hidden="true" /> Your proof didn&apos;t meet the checklist
           </h2>
-          {v && <p style={{ margin: 0 }}>{v.rationale}</p>}
+          {v && <p style={{ margin: 0 }}>{redactHidden(v.rationale, b.checklistExpected)}</p>}
           {appealDeadline(b) && new Date() < appealDeadline(b)! && <AppealForm bountyId={b.id} deadline={appealDeadline(b)!.toISOString()} />}
         </section>
       )}
@@ -135,7 +136,7 @@ export default async function MyTask() {
           <h2 id="results" style={{ fontSize: "var(--text-lg)", margin: 0 }}>
             Checklist results
           </h2>
-          <Checklist items={b.acceptanceChecklist} results={v.checklistResults} />
+          <Checklist items={b.acceptanceChecklist} results={redactResults(v.checklistResults, b.checklistExpected)} />
         </section>
       )}
     </div>

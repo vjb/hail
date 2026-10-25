@@ -156,7 +156,7 @@ export async function verifySubmission(database: DB, submissionId: string) {
   const codeFor = (p: (typeof ordered)[number]) => challenges.find((c) => c.id === p.challengeId)?.code ?? null;
   const r = await ai().verifyProof(
     {
-      bounty: { title: b.title, instructions: b.instructions, acceptanceChecklist: b.acceptanceChecklist, product: b.product ?? null },
+      bounty: { title: b.title, instructions: b.instructions, acceptanceChecklist: b.acceptanceChecklist, checklistExpected: b.checklistExpected ?? null, product: b.product ?? null },
       photos: ordered.map((p) => ({ label: b.deliverables[p.slot ?? 0]?.description ?? "Proof photo", base64: p.bytes.toString("base64"), challengeCode: codeFor(p) })),
       notes: s.notes,
       distanceMeters: s.location && placeOf(b.location) ? distanceMeters(s.location, placeOf(b.location)!) : null,

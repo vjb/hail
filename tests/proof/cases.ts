@@ -1,7 +1,7 @@
 // Labeled proof set for verify-v2 (npm run eval:proof). Each case is one submission: the task, the
 // photos with the code each was asked to show, and what Hail must do with it.
 //   pay           honest, complete proof → auto-pass, every item met
-//   pay_unmet     honest proof that the item doesn't match → auto-pass, an item not met (worker paid)
+//   pay_unmet     honest proof that the item doesn't match → owner review with that item not met (D-033)
 //   reject        the proof doesn't show what was asked → fail
 //   no_autopay    fake or doubtful proof → anything but pass (fail or owner review)
 // The gate is zero auto-paid fakes: a no_autopay or reject case that comes out "pass" fails it.
@@ -17,7 +17,7 @@
 
 export type Expect = "pay" | "pay_unmet" | "reject" | "no_autopay";
 export type ProofPhoto = { src: string; label: string; code: string | null; /** How it reached Hail; default "camera" (in-app). Generated files can only arrive as "file". */ source?: "camera" | "file" };
-export type ProofCase = { id: string; note: string; title: string; instructions: string; checklist: string[]; photos: ProofPhoto[]; expect: Expect };
+export type ProofCase = { id: string; note: string; title: string; instructions: string; checklist: string[]; /** Hidden values (D-034), aligned with the checklist. */ expected?: Array<string | null>; photos: ProofPhoto[]; expect: Expect };
 
 const espresso = {
   title: "Inspect a used espresso machine",
@@ -161,6 +161,15 @@ export const CASES: ProofCase[] = [
       { source: "file", src: "gen:bike-serial-code.jpg", label: "Frame serial number", code: "KTR-482" },
       { source: "file", src: "gen:bike-whole-code.jpg", label: "The whole bike", code: "MVD-736" },
     ],
+    expect: "no_autopay",
+  },
+  {
+    id: "N4",
+    note: "Same generated bike serial, labeled as a camera photo, but the agent hid the listing's real serial (D-034)",
+    ...usedBike,
+    checklist: ["The frame serial number is legible", "The frame serial matches the listing"],
+    expected: [null, "WTU5582107"],
+    photos: [{ source: "camera", src: "gen:bike-serial-code.jpg", label: "Frame serial number", code: "KTR-482" }],
     expect: "no_autopay",
   },
   {

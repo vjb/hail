@@ -225,3 +225,10 @@ Decisions:
 - A photo flagged as unusable when taken is a doubt.
 - An item that doesn't match the listing no longer auto-pays: the owner confirms it's the right item and place. The worker is still paid for honest proof once confirmed (or when the review window lapses). This narrows D-021: "pays for the truth" now runs through the owner.
 Open (human decision): a fresh, AI-made photo with the live code, labeled as a camera photo, still auto-pays (PF-003). No server-side check can prove a photo came from Hail's camera. Recommended fix: new workers' first few tasks always go to owner review (a trust ramp), plus reported fakes pausing the account (D-027). Not built yet because it changes the demo flow.
+
+## D-034 — Hidden values: check the photo against what the agent already knows (2026-10-25) [HH: chosen by the human]
+Why: no one can reliably tell a good generated photo from a real one (D-033, PF-003). But a faker can only draw what they know, and until now the checklist told them ("serial matches X1-009871").
+Decision: a checklist item can be `{ item, expected }`. `expected` (≤ 120 chars) is stored apart from the item text (`bounties.checklist_expected`) and goes only to the verifier and the screen, never to the capture-time photo check or any worker page. The verifier passes the item only on an exact match (ignoring case, spaces, dashes) and is told never to quote the value. Worker-facing text is redacted server-side as a backstop. Owners see the value, labeled as hidden from the worker. Agents get it back in `acceptance_checklist`.
+Chosen: on a mismatch the owner reviews (D-033); the worker photographs only and never types the value.
+Evidence: proof eval N4. The Nano Banana bike-serial fake, labeled as a camera photo with the right code, would have auto-paid; with a hidden serial it goes to the owner. verify-v3, 10/10, 0 auto-paid fakes.
+Not covered: tasks with no known truth (scouting). Second opinions and random audits are recorded in issue #64 (agents pay for second opinions they request; Hail pays for random audits).

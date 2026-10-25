@@ -10,6 +10,7 @@ export const LIMITS = {
   title: 120,
   instructions: 2000,
   itemText: 300,
+  expected: 120,
   deliverables: { min: 1, max: 5 },
   checklist: { min: 1, max: 8 },
   reward: { min: 100, max: 20000 },
@@ -32,6 +33,10 @@ const deliverable = z.object({
   description: z.string({ error: "deliverables[].description is required" }).trim().min(1, "deliverables[].description is required").max(LIMITS.itemText, "deliverables[].description must be 300 characters or fewer"),
 });
 
+const checklistText = z.string().trim().min(1, "acceptance_checklist items can't be empty").max(LIMITS.itemText, "acceptance_checklist items must be 300 characters or fewer");
+// A hidden value: what the agent knows the item shows (e.g. the listing's serial). Workers never see it (D-034).
+const expectedValue = z.string().trim().min(1, "acceptance_checklist[].expected can't be empty").max(LIMITS.expected, "acceptance_checklist[].expected must be 120 characters or fewer");
+
 const httpsUrl = z
   .string()
   .max(LIMITS.url)
@@ -48,7 +53,9 @@ export const createBountySchema = z.object({
   instructions: z.string({ error: "instructions is required" }).trim().min(1, "instructions is required").max(LIMITS.instructions, "instructions must be 2,000 characters or fewer"),
   deliverables: z.array(deliverable, { error: "deliverables must be an array" }).min(LIMITS.deliverables.min, "deliverables needs 1 to 5 items").max(LIMITS.deliverables.max, "deliverables needs 1 to 5 items"),
   acceptance_checklist: z
-    .array(z.string().trim().min(1, "acceptance_checklist items can't be empty").max(LIMITS.itemText, "acceptance_checklist items must be 300 characters or fewer"), { error: "acceptance_checklist must be an array of strings" })
+    .array(z.union([checklistText, z.object({ item: checklistText, expected: expectedValue.optional() }, { error: "acceptance_checklist items must be strings or { item, expected } objects" })], { error: "acceptance_checklist items must be strings or { item, expected } objects" }), {
+      error: "acceptance_checklist must be an array",
+    })
     .min(LIMITS.checklist.min, "acceptance_checklist needs 1 to 8 items")
     .max(LIMITS.checklist.max, "acceptance_checklist needs 1 to 8 items"),
   reward_cents: z.number({ error: "reward_cents must be an integer number of cents" }).int("reward_cents must be an integer number of cents").min(LIMITS.reward.min, "reward_cents must be between 100 and 20000").max(LIMITS.reward.max, "reward_cents must be between 100 and 20000"),
@@ -81,7 +88,8 @@ export function toCreateInput(b: CreateBountyBody): CreateBountyInput {
     title: b.title,
     instructions: b.instructions,
     deliverables: b.deliverables,
-    acceptanceChecklist: b.acceptance_checklist,
+    acceptanceChecklist: b.acceptance_checklist.map((c) => (typeof c === "string" ? c : c.item)),
+    checklistExpected: b.acceptance_checklist.some((c) => typeof c !== "string" && c.expected) ? b.acceptance_checklist.map((c) => (typeof c === "string" ? null : (c.expected ?? null))) : null,
     rewardCents: b.reward_cents,
     expiresInMinutes: b.expires_in_minutes,
     spots: b.spots,

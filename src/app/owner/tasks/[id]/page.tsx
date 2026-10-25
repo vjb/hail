@@ -105,6 +105,7 @@ export default async function TaskDetail({ params }: PageProps<"/owner/tasks/[id
             location={proof.submission.location ?? null}
             submittedAt={proof.submission.createdAt}
             checklist={b.acceptanceChecklist}
+            expected={b.checklistExpected}
             results={proof.verification?.checklistResults}
             summary={proof.verification?.rationale}
             proofChecks={proof.verification?.proofChecks}
@@ -169,7 +170,7 @@ export default async function TaskDetail({ params }: PageProps<"/owner/tasks/[id
             ))}
           </ul>
           <h3>Accepted when</h3>
-          <Checklist items={b.acceptanceChecklist} />
+          <Checklist items={b.acceptanceChecklist} expected={b.checklistExpected} />
           <p className="muted">Expires {formatDateTime(b.expiresAt)}.</p>
           {(b.status === "open" || b.status === "pending_approval") && <CancelButton bountyId={b.id} />}
         </section>

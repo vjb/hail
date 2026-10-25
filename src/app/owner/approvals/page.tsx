@@ -54,6 +54,7 @@ export default async function ApprovalsPage() {
                       location={pr.submission.location ?? null}
                       submittedAt={pr.submission.createdAt}
                       checklist={b.acceptanceChecklist}
+                      expected={b.checklistExpected}
                       results={pr.verification?.checklistResults}
                       summary={pr.verification?.rationale}
                       proofChecks={pr.verification?.proofChecks}
@@ -98,6 +99,7 @@ export default async function ApprovalsPage() {
                       location={proof.submission.location ?? null}
                       submittedAt={proof.submission.createdAt}
                       checklist={b.acceptanceChecklist}
+                      expected={b.checklistExpected}
                       results={proof.verification?.checklistResults}
                       summary={proof.verification?.rationale}
                       proofChecks={proof.verification?.proofChecks}

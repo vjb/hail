@@ -12,3 +12,4 @@ date,prompt_version,model,cases,accuracy,allow,needs_approval,block,false_allows
 2026-10-25T14:41:54.779Z,proof,verify-v2,9,9,100,0,waiting:R1 R2 R3 R4 R5 R6
 2026-10-25T15:07:09.962Z,screen-v4,claude-haiku-5-5,77,0.987,27/28,15/15,34/34,0,0.000168
 2026-10-25T15:07:44.732Z,screen-v4,claude-haiku-5-5,77,0.987,27/28,15/15,34/34,0,0.000145
+2026-10-25T16:13:30.185Z,proof,verify-v3,10,10,100,0,waiting:R1 R2 R3 R4 R5 R6

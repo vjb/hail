@@ -60,7 +60,7 @@ async function run(c: ProofCase): Promise<Row | "waiting"> {
   const creds = await Promise.all(buffers.map((x, i) => readContentCredentials(x!, c.photos[i].src.endsWith(".png") ? "image/png" : "image/jpeg")));
   const norm = await Promise.all(buffers.map((x) => normalizePhoto(x!)));
   const r = await ai().verifyProof({
-    bounty: { title: c.title, instructions: c.instructions, acceptanceChecklist: c.checklist, product: null },
+    bounty: { title: c.title, instructions: c.instructions, acceptanceChecklist: c.checklist, checklistExpected: c.expected ?? null, product: null },
     photos: c.photos.map((p, i) => ({ label: p.label, base64: norm[i].bytes.toString("base64"), challengeCode: p.code })),
     notes: null,
     distanceMeters: null,
@@ -69,7 +69,7 @@ async function run(c: ProofCase): Promise<Row | "waiting"> {
   const v = interpret(r.value, c.checklist, c.photos.map((p, i) => ({ code: p.code, source: p.source ?? "camera", credentials: creds[i] })));
   const met = v.items.every((x) => x.passed === true);
   const ok =
-    c.expect === "pay" ? v.result === "pass" && met : c.expect === "pay_unmet" ? v.result === "pass" && !met : c.expect === "reject" ? v.result === "fail" : v.result !== "pass";
+    c.expect === "pay" ? v.result === "pass" && met : c.expect === "pay_unmet" ? v.result === "uncertain" && v.items.some((x) => x.passed === false && x.cause === "item") : c.expect === "reject" ? v.result === "fail" : v.result !== "pass";
   const autoPaidFake = (c.expect === "no_autopay" || c.expect === "reject") && v.result === "pass";
   const checks = (v.proofChecks?.photos ?? []).map((p) => `code=${p.code}${p.screen ? " SCREEN" : ""}${p.generatedOrEdited ? " GEN/EDIT" : ""}${p.credentials?.aiGenerated ? " C2PA:AI" : ""}`).join(" | ");
   const items = v.items.map((x) => (x.passed === true ? "P" : x.passed === false ? (x.cause === "item" ? "I" : "F") : "?")).join("");

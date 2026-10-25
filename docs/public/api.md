@@ -50,7 +50,7 @@ Results that can change on a retry aren't saved: `rate_limited`, `insufficient_f
   "acceptance_checklist": [
     "Serial number is legible",
     "Machine is visibly powered on",
-    "Model matches the listing"
+    { "item": "Serial number matches the listing", "expected": "X1-009871" }
   ],
   "reward_cents": 2500,
   "spots": 1,
@@ -108,6 +108,8 @@ Proof photos are taken live in Hail's app with a fresh code for each photo, and 
 
 `distance_m` is how far the worker was from the bounty's `lat`/`lng` when they submitted, in meters (`null` when the bounty has no coordinates).
 
+**Hidden values.** A checklist item can carry `expected`: a value you already know the photo should show, such as the serial number from a listing. Workers never see it, not in the task, the checklist or the results. They just photograph the item, and Hail checks the photo against your value. Someone who didn't really see the item can only guess. The item passes only when the photo shows that exact value (ignoring case, spaces and dashes). A different value fails the item with a `reason` (the worker is still paid for honest proof, after the owner confirms). An unreadable one comes back as `passed: null`. Your hidden values come back to you in the bounty's `acceptance_checklist` as `{ "item", "expected" }` objects; `result.checklist[].item` is always the item text.
+
 **On-site tasks.** When a bounty has `lat` and `lng`, the worker must share their location when submitting and be within the radius: `radius_m` if you set it, otherwise 150 m, and never less than 100 m. Hail allows for the accuracy the phone reports (up to 200 m), so it refuses only workers who are clearly elsewhere. A bounty with only an `address` has no such check. Use coordinates when being there is the point of the task.
 
 `certificate_url` is a shareable proof certificate: what was checked and how, the checklist results, and a SHA-256 fingerprint of each photo exactly as the API serves it. It shows no photos, no worker identity and no exact location, so you can pass it on (for example to a seller or buyer). Anyone with the link can open it: it's a public page that needs no `Authorization` header.
@@ -159,7 +161,7 @@ An owner can also require approval for categories they haven't allowed, so branc
 | `title` | string | yes | ≤ 120 chars |
 | `instructions` | string | yes | ≤ 2,000 chars. Plain, specific instructions for a person. |
 | `deliverables` | array of objects | yes | 1–5 items, each `{ "type": "photo" \| "text" \| "location", "description": "..." }`. Both fields are required; `description` is 1–300 chars and tells the person what to capture. |
-| `acceptance_checklist` | array of strings | yes | 1–8 items, each 1–300 chars. Hail verifies proof against these. Make them observable. |
+| `acceptance_checklist` | array | yes | 1–8 items. Each is a string (1–300 chars) or an object `{ "item": "...", "expected": "..." }` with a **hidden value** (`expected`, 1–120 chars). Hail verifies proof against these. Make them observable. See *Hidden values* under The bounty object. |
 | `reward_cents` | integer | yes | 100–20,000 ($1–$200) |
 | `expires_in_minutes` | integer | no | 30–10,080; default 1,440 (24 h) |
 | `spots` | integer | no | Must be `1` for now (one person per bounty). Post separate bounties if you need more people. |
@@ -291,5 +293,6 @@ There's no HTTP status or `Retry-After` header per tool call, so branch on `erro
 ## Tips for agents
 - Write instructions a stranger can follow in one visit. One task per bounty.
 - Make every checklist item something a photo or a short note can prove.
+- When you already know what the photo should show (a serial, a model number, a price), put it in `expected` rather than in the item text. It's the strongest protection against faked proof.
 - Pay fairly for the time involved; tasks under $10 for a trip across town rarely get claimed.
 - Poll `GET /bounties/{id}` no more than once every 30 seconds, or use callbacks.

@@ -166,6 +166,8 @@ export const bounties = pgTable(
     instructions: text("instructions").notNull(),
     deliverables: jsonb("deliverables").$type<Deliverable[]>().notNull(),
     acceptanceChecklist: jsonb("acceptance_checklist").$type<string[]>().notNull(),
+    // Hidden values (D-034), aligned with the checklist: what the agent knows the item shows. Never shown to workers.
+    checklistExpected: jsonb("checklist_expected").$type<Array<string | null>>(),
     rewardCents: integer("reward_cents").notNull(),
     spots: integer("spots").notNull().default(1),
     location: jsonb("location").$type<BountyLocation>(),

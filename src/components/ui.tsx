@@ -185,7 +185,8 @@ export function BalanceCard({ availableCents, heldCents, action }: { availableCe
 }
 
 // ---------- Checklist ----------
-export function Checklist({ items, results }: { items: string[]; results?: ChecklistResult[] }) {
+/** `expected`: hidden values, shown only on owner pages (D-034). */
+export function Checklist({ items, results, expected }: { items: string[]; results?: ChecklistResult[]; expected?: Array<string | null> | null }) {
   return (
     <ul className="checklist">
       {items.map((item, i) => {
@@ -198,6 +199,11 @@ export function Checklist({ items, results }: { items: string[]; results?: Check
             <Icon aria-hidden="true" className={state === "todo" ? "" : `check-${state}`} />
             <span>
               {item} <span className="visually-hidden">— {word}</span>
+              {expected?.[i] && (
+                <span className="check-reason">
+                  Expected, hidden from the worker: <span className="mono">{expected[i]}</span>
+                </span>
+              )}
               {r && (
                 <span className="check-reason">
                   <strong className={`check-${state}`}>{word}.</strong> {r.reason}

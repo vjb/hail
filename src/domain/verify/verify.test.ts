@@ -303,3 +303,43 @@ describe("doubts Hail sees without the model (D-033)", () => {
     expect(onSite.r?.result).toBe("pass");
   });
 });
+
+describe("hidden values (D-034)", () => {
+  it("reach the verifier, never the capture-time photo check", async () => {
+    const seen: { photoCheck: unknown[]; verify: unknown[] } = { photoCheck: [], verify: [] };
+    const base = fakeVerifier([true, true]);
+    setAIProvider({
+      ...base,
+      checkPhoto: async (input) => {
+        seen.photoCheck.push(input);
+        return base.checkPhoto(input);
+      },
+      verifyProof: async (input) => {
+        seen.verify.push(input);
+        return base.verifyProof(input);
+      },
+    });
+    const ownerId = await makeUser("owner");
+    await db().transaction((t) => creditTopup(t, ownerId, 10000, "CAP-" + ownerId));
+    const key = await createApiKey(db(), { ownerId, name: "t", dailyCapCents: 100000 });
+    const b = await createBounty(db(), { ownerId, apiKeyId: key.id, dailyCapCents: 100000, actor: "agent:t" }, {
+      title: "Inspect a used espresso machine",
+      instructions: "Photograph the serial plate.",
+      deliverables: [{ type: "photo", description: "Serial plate" }],
+      acceptanceChecklist: ["Machine powers on", "Serial matches the listing"],
+      checklistExpected: [null, "X1-009871"],
+      rewardCents: 900,
+      expiresInMinutes: 120,
+      spots: 1,
+    });
+    const worker = await makeUser("worker", { paypalEmail: "w@example.com" });
+    const { claimId } = await claimBounty(db(), worker, b.id);
+    await snapProof(db(), worker, claimId, 0, await uniquePhoto());
+    const { submissionId } = await submitProof(db(), worker, claimId, {});
+    await verifySubmission(db(), submissionId);
+    expect(JSON.stringify(seen.photoCheck)).not.toContain("X1-009871");
+    expect(JSON.stringify(seen.verify)).toContain("X1-009871");
+    const [row] = await db().select().from(bounties).where(eq(bounties.id, b.id));
+    expect(row.checklistExpected).toEqual([null, "X1-009871"]);
+  });
+});

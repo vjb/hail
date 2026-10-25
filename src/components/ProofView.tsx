@@ -13,6 +13,7 @@ export function ProofView({
   results,
   summary,
   proofChecks,
+  expected,
 }: {
   photoIds: string[];
   labels: string[];
@@ -23,6 +24,7 @@ export function ProofView({
   results?: ChecklistResult[];
   summary?: string | null;
   proofChecks?: ProofChecks | null;
+  expected?: Array<string | null> | null;
 }) {
   return (
     <div className="stack-sm">
@@ -69,7 +71,7 @@ export function ProofView({
           {summary}
         </p>
       )}
-      <Checklist items={checklist} results={results} />
+      <Checklist items={checklist} results={results} expected={expected} />
     </div>
   );
 }

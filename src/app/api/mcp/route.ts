@@ -51,7 +51,10 @@ function buildServer(auth: string) {
         title: str(L.title, 1).describe("Short task title, max 120 characters"),
         instructions: str(L.instructions, 1).describe("Plain, specific instructions a stranger can follow in one visit, max 2,000 characters"),
         deliverables: z.array(deliverable).meta({ minItems: L.deliverables.min, maxItems: L.deliverables.max }).describe("1-5 things to capture"),
-        acceptance_checklist: z.array(str(L.itemText, 1)).meta({ minItems: L.checklist.min, maxItems: L.checklist.max }).describe("1-8 observable conditions Hail checks the proof against, e.g. 'Serial number is legible'"),
+        acceptance_checklist: z
+          .array(z.union([str(L.itemText, 1), z.object({ item: str(L.itemText, 1), expected: str(L.expected, 1).optional().describe("A value you already know, e.g. the listing's serial. Hail checks the photo against it; the worker never sees it.") })]))
+          .meta({ minItems: L.checklist.min, maxItems: L.checklist.max })
+          .describe("1-8 observable conditions Hail checks the proof against, e.g. 'Serial number is legible'. Use { item, expected } to check against a hidden value the worker can't see, e.g. { item: 'Serial matches the listing', expected: 'X1-009871' }."),
         reward_cents: int(L.reward.min, L.reward.max).describe("Pay in US cents, 100-20000 ($1-$200)"),
         expires_in_minutes: int(L.expires.min, L.expires.max).meta({ default: L.expires.default }).optional().describe("30-10080, default 1440 (24 hours)"),
         spots: int(1, 1).optional().describe("Must be 1 for now"),

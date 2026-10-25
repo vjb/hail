@@ -12,6 +12,8 @@ export type CreateBountyInput = {
   instructions: string;
   deliverables: Deliverable[];
   acceptanceChecklist: string[];
+  /** Hidden values aligned with the checklist (D-034); null where an item has none. */
+  checklistExpected?: Array<string | null> | null;
   rewardCents: number;
   expiresInMinutes: number;
   spots: number;
@@ -98,6 +100,7 @@ export async function createBounty(database: DB, ctx: { ownerId: string; apiKeyI
     instructions: input.instructions,
     deliverables: input.deliverables,
     acceptanceChecklist: input.acceptanceChecklist,
+    checklistExpected: input.checklistExpected ?? null,
     rewardCents: input.rewardCents,
     spots: input.spots,
     location: input.location ?? null,
@@ -114,7 +117,9 @@ export async function createBounty(database: DB, ctx: { ownerId: string; apiKeyI
 
   let screen: ScreenResult;
   try {
-    screen = await screenBounty({ ...input, location: input.location ?? null, policy, bountyId: id });
+    // The screen sees hidden values too: they're agent-written text like everything else.
+    const checklistForScreen = input.acceptanceChecklist.map((c, i) => (input.checklistExpected?.[i] ? `${c} (expected: ${input.checklistExpected[i]})` : c));
+    screen = await screenBounty({ ...input, acceptanceChecklist: checklistForScreen, location: input.location ?? null, policy, bountyId: id });
   } catch {
     // Never fail open: if screening itself breaks, the owner decides.
     screen = { final: { decision: "needs_owner_approval", category: "unscreened", rationale: "Automatic screening was unavailable, so the owner must approve this task." }, layers: [] };

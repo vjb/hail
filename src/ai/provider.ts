@@ -78,7 +78,8 @@ export const VerifyOutput = z.object({
 export type VerifyOutput = z.infer<typeof VerifyOutput>;
 
 export type VerifyInput = {
-  bounty: Pick<BountyForAI, "title" | "instructions" | "acceptanceChecklist"> & { product?: { title?: string; attributes?: Record<string, string> } | null };
+  /** `checklistExpected`: hidden values aligned with the checklist (D-034). Only the verifier sees them. */
+  bounty: Pick<BountyForAI, "title" | "instructions" | "acceptanceChecklist"> & { product?: { title?: string; attributes?: Record<string, string> } | null; checklistExpected?: Array<string | null> | null };
   /** `challengeCode` is the code the worker was asked to include in that photo (null for photos taken without one). */
   photos: Array<{ label: string; base64: string; challengeCode?: string | null }>;
   notes: string | null;
