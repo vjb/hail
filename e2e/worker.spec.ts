@@ -1,5 +1,5 @@
 import { expect, test, type APIRequestContext, type Page } from "@playwright/test";
-import { makePhoto } from "./fixtures";
+import { samplePhoto } from "./fixtures";
 import { expectAccessible, signInAs } from "./helpers";
 
 // Day 6 gate: at 390px a seeded worker claims a task and submits two photos; it shows verifying.
@@ -72,10 +72,8 @@ test("a worker claims a task on a phone and submits two photos", async ({ page, 
   await expect(page.getByRole("timer")).toBeVisible();
   await expectAccessible(page);
 
-  const plate = await makePhoto("plate", ["SERIAL NO. X1-004512", "MODEL EXAMPLE X1", "230V 50Hz 1450W"]);
-  const panel = await makePhoto("panel", ["ESPRESSO X1", "[ POWER ON ]", "CUP 1   CUP 2   STEAM"], "#3b2f2a");
-  await page.getByLabel("Photo 1: Serial number plate, readable").setInputFiles(plate);
-  await page.getByLabel("Photo 2: Front panel of the machine").setInputFiles(panel);
+  await page.getByLabel("Photo 1: Serial number plate, readable").setInputFiles(samplePhoto("good-1"));
+  await page.getByLabel("Photo 2: Front panel of the machine").setInputFiles(samplePhoto("good-2"));
   // Each photo gets the quick check: either "Looks good" or a specific retake prompt.
   await expect(page.getByText(/Looks good|retake this photo/).first()).toBeVisible({ timeout: 90_000 });
   await expect(page.getByRole("button", { name: "Submit proof" })).toBeEnabled({ timeout: 90_000 });

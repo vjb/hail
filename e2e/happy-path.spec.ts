@@ -1,5 +1,5 @@
 import { expect, test } from "@playwright/test";
-import { makePhoto } from "./fixtures";
+import { samplePhoto } from "./fixtures";
 import { signInAs } from "./helpers";
 
 // Day 7 happy path (local): agent posts → worker claims and submits → verifier decides →
@@ -16,15 +16,18 @@ test("from agent post to PayPal payout", async ({ browser, request }) => {
   const key = await owner.getByLabel("Your new API key").inputValue();
   const auth = { Authorization: `Bearer ${key}` };
 
-  const title = `Photograph the bakery hours sign ${Date.now()}`;
+  const title = `Inspect a used espresso machine ${Date.now()}`;
   const created = await (
     await request.post("/api/v1/bounties", {
       headers: { ...auth, "Idempotency-Key": title },
       data: {
         title,
-        instructions: "Photograph the sign with the bakery's opening hours on the front door.",
-        deliverables: [{ type: "photo", description: "Opening hours sign" }],
-        acceptance_checklist: ["The opening hours are readable"],
+        instructions: "At the appliance store's used-equipment counter, photograph the serial number plate and the front panel of the Brevo EX-200 while it is powered on.",
+        deliverables: [
+          { type: "photo", description: "Serial number plate" },
+          { type: "photo", description: "Front panel with power light on" },
+        ],
+        acceptance_checklist: ["The serial number is legible", "The machine is visibly powered on"],
         reward_cents: 1100,
       },
     })
@@ -40,8 +43,8 @@ test("from agent post to PayPal payout", async ({ browser, request }) => {
   await worker.goto(`/work/tasks/${created.id}`);
   await worker.getByRole("button", { name: /^Claim and reserve/ }).click();
   await expect(worker).toHaveURL(/\/work\/my-task$/);
-  const sign = await makePhoto("hours", ["SUNRISE BAKERY", "MON-FRI  7AM - 6PM", "SAT-SUN  8AM - 2PM"], "#5a3b1e");
-  await worker.getByLabel("Photo 1: Opening hours sign").setInputFiles(sign);
+  await worker.getByLabel("Photo 1: Serial number plate").setInputFiles(samplePhoto("good-1"));
+  await worker.getByLabel("Photo 2: Front panel with power light on").setInputFiles(samplePhoto("good-2"));
   await expect(worker.getByRole("button", { name: "Submit proof" })).toBeEnabled({ timeout: 90_000 });
   await worker.getByRole("button", { name: "Submit proof" }).click();
 
@@ -52,7 +55,6 @@ test("from agent post to PayPal payout", async ({ browser, request }) => {
     status = (await (await request.get(`/api/v1/bounties/${created.id}`, { headers: auth })).json()).status;
   }
   test.info().annotations.push({ type: "verifier", description: status });
-  test.skip(status === "rejected", "The verifier rejected the generated test image (expected for a flat graphic). Re-run with a real photo.");
 
   if (status === "needs_owner_review") {
     await owner.goto(`/owner/tasks/${created.id}`);

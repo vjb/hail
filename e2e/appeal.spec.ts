@@ -1,9 +1,9 @@
 import { expect, test } from "@playwright/test";
-import { makePhoto } from "./fixtures";
+import { samplePhoto } from "./fixtures";
 import { expectAccessible, signInAs } from "./helpers";
 
 // Rejected proof → the worker appeals once → the owner accepts → real sandbox payout.
-// The real verifier rejects generated graphics, which makes this path reproducible.
+// The blurry sample photo (bad-1) is reliably rejected by the real verifier, which makes this path reproducible.
 
 test("worker appeals a rejection and the owner accepts it", async ({ browser, request }) => {
   test.setTimeout(300_000);
@@ -15,11 +15,11 @@ test("worker appeals a rejection and the owner accepts it", async ({ browser, re
   const key = await owner.getByLabel("Your new API key").inputValue();
   const auth = { Authorization: `Bearer ${key}` };
 
-  const title = `Photograph the menu board ${Date.now()}`;
+  const title = `Photograph an espresso machine serial plate ${Date.now()}`;
   const b = await (
     await request.post("/api/v1/bounties", {
       headers: auth,
-      data: { title, instructions: "Photograph the menu board inside the cafe window.", deliverables: [{ type: "photo", description: "Menu board" }], acceptance_checklist: ["Menu prices are readable"], reward_cents: 700 },
+      data: { title, instructions: "Photograph the serial number plate on the back of the espresso machine.", deliverables: [{ type: "photo", description: "Serial number plate" }], acceptance_checklist: ["The serial number is legible"], reward_cents: 700 },
     })
   ).json();
   expect(b.status).toBe("open");
@@ -31,15 +31,15 @@ test("worker appeals a rejection and the owner accepts it", async ({ browser, re
   if (await giveBack.isVisible().catch(() => false)) await giveBack.click();
   await worker.goto(`/work/tasks/${b.id}`);
   await worker.getByRole("button", { name: /^Claim and reserve/ }).click();
-  await worker.getByLabel("Photo 1: Menu board").setInputFiles(await makePhoto("menu", ["CAFE MENU", "LATTE  $4.50", "MOCHA  $5.00"]));
+  await worker.getByLabel("Photo 1: Serial number plate").setInputFiles(samplePhoto("bad-1"));
   await expect(worker.getByRole("button", { name: "Submit proof" })).toBeEnabled({ timeout: 90_000 });
   await worker.getByRole("button", { name: "Submit proof" }).click();
 
-  // The verifier rejects the generated image; the worker sees why and can appeal.
+  // The verifier rejects the blurry photo; the worker sees why and can appeal.
   await expect(worker.getByRole("heading", { name: /didn.t meet the checklist/ })).toBeVisible({ timeout: 120_000 });
-  test.skip((await (await request.get(`/api/v1/bounties/${b.id}`, { headers: auth })).json()).status !== "rejected", "Verifier didn't reject; appeal path not reachable this run");
+  expect((await (await request.get(`/api/v1/bounties/${b.id}`, { headers: auth })).json()).status).toBe("rejected");
   await expectAccessible(worker);
-  await worker.getByLabel(/Tell the owner why/).fill("This is the real menu board; the prices are clearly readable.");
+  await worker.getByLabel(/Tell the owner why/).fill("The plate reads S/N BX2041187; the seller confirmed it in person.");
   await worker.getByRole("button", { name: "Send appeal" }).click();
   await expect(worker.getByRole("heading", { name: "The owner is reviewing your proof" })).toBeVisible();
   await expect(worker.getByText("Appealed").first()).toBeVisible();
@@ -47,7 +47,7 @@ test("worker appeals a rejection and the owner accepts it", async ({ browser, re
   await owner.goto("/owner/approvals");
   await expect(owner.getByRole("heading", { name: "Appeals" })).toBeVisible();
   const item = owner.getByRole("listitem").filter({ hasText: title });
-  await expect(item.getByText("This is the real menu board")).toBeVisible();
+  await expect(item.getByText("The plate reads S/N BX2041187")).toBeVisible();
   await expectAccessible(owner);
   await owner.getByRole("button", { name: `Accept appeal and pay: ${title}` }).click();
   await expect(owner.getByText("Appeal accepted. The worker is being paid.")).toBeVisible();
