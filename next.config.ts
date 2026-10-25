@@ -3,6 +3,8 @@ import type { NextConfig } from "next";
 const nextConfig: NextConfig = {
   // Opaque to outsiders: no X-Powered-By header, no browser source maps in production.
   poweredByHeader: false,
+  // No floating dev-tools badge, even on the dev server used for demos and outside testing (DL-1-05).
+  devIndicators: false,
   productionBrowserSourceMaps: false,
   // Native module (reads Content Credentials): load it from node_modules at runtime, don't bundle it.
   serverExternalPackages: ["@contentauth/c2pa-node"],

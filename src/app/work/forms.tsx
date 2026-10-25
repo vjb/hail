@@ -33,6 +33,12 @@ export function PayPalEmailForm({ current }: { current: string }) {
   const [state, action, pending] = useActionState(paypalEmailAction, {});
   return (
     <form action={action} className="stack-sm">
+      {current && (
+        // The full address, so a long one is never cut off at the input's edge (DL-1-07).
+        <p style={{ margin: 0, overflowWrap: "anywhere" }}>
+          Paying to: <strong>{current}</strong>
+        </p>
+      )}
       <div className="field">
         <label htmlFor="paypalEmail">PayPal email</label>
         <input id="paypalEmail" name="paypalEmail" type="email" autoComplete="email" defaultValue={current} required />

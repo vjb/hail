@@ -22,7 +22,7 @@ export default async function OwnerOverview() {
         <section className="card spread" aria-labelledby="waiting-heading" style={{ borderColor: "var(--review)" }}>
           <div>
             <h2 id="waiting-heading" style={{ margin: 0 }}>
-              {waiting} {waiting === 1 ? "task needs" : "tasks need"} your decision
+              {`${waiting} ${waiting === 1 ? "task needs" : "tasks need"} your decision`}
             </h2>
             <p className="muted" style={{ margin: 0 }}>
               Review them so your agents and workers aren&apos;t kept waiting.

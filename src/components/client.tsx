@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { useEffect, useState, type ReactNode } from "react";
+import { useEffect, useState, useSyncExternalStore, type ReactNode } from "react";
 import { ClipboardCheck, ClipboardList, Gauge, Inbox, KeyRound, LayoutDashboard, ListTodo, SlidersHorizontal, Wallet } from "lucide-react";
 
 const NAV_ICONS = { ClipboardCheck, ClipboardList, Gauge, Inbox, KeyRound, LayoutDashboard, ListTodo, SlidersHorizontal, Wallet };
@@ -41,7 +41,7 @@ export function Countdown({ until, label, onDoneRefresh = true }: { until: strin
       setNow(r);
       if (r.ms === 0) {
         clearInterval(t);
-        if (onDoneRefresh) router.refresh();
+        if (onDoneRefresh && online()) router.refresh();
       }
     }, 1000);
     return () => clearInterval(t);
@@ -54,13 +54,43 @@ export function Countdown({ until, label, onDoneRefresh = true }: { until: strin
 }
 
 // ---------- Live refresh (polling) ----------
+// Refreshing while offline makes the router fall back to a full page load, which lands on the
+// browser's offline page (DL-1-02). So refreshes are skipped offline.
+const online = () => typeof navigator === "undefined" || navigator.onLine !== false;
+
 export function AutoRefresh({ everyMs = 4000 }: { everyMs?: number }) {
   const router = useRouter();
   useEffect(() => {
-    const t = setInterval(() => router.refresh(), everyMs);
+    const t = setInterval(() => online() && router.refresh(), everyMs);
     return () => clearInterval(t);
   }, [everyMs, router]);
   return null;
+}
+
+/** A calm notice while the device is offline; the page stays as it is and refreshes when back. */
+function subscribeOnline(cb: () => void) {
+  window.addEventListener("online", cb);
+  window.addEventListener("offline", cb);
+  return () => {
+    window.removeEventListener("online", cb);
+    window.removeEventListener("offline", cb);
+  };
+}
+
+export function OfflineNotice() {
+  const router = useRouter();
+  const offline = useSyncExternalStore(subscribeOnline, () => !online(), () => false);
+  useEffect(() => {
+    const back = () => router.refresh();
+    window.addEventListener("online", back);
+    return () => window.removeEventListener("online", back);
+  }, [router]);
+  if (!offline) return null;
+  return (
+    <p role="status" className="offline-notice">
+      You&apos;re offline. Your reservation and anything you&apos;ve entered are kept here; we&apos;ll update when you&apos;re back online.
+    </p>
+  );
 }
 
 // ---------- Toast ----------

@@ -8,8 +8,8 @@ export function ResetDemo() {
   const [state, setState] = useState<{ busy?: boolean; ok?: string; error?: string }>({});
   return (
     <div className="stack-sm">
-      <label className="row" style={{ gap: "var(--s-2)" }}>
-        <input type="checkbox" checked={sure} onChange={(e) => setSure(e.target.checked)} style={{ width: 20, height: 20 }} />
+      <label className="row" style={{ gap: "var(--s-2)", flexWrap: "nowrap", alignItems: "flex-start" }}>
+        <input type="checkbox" checked={sure} onChange={(e) => setSure(e.target.checked)} style={{ width: 20, height: 20, flex: "none", marginTop: 2 }} />
         I understand this deletes all tasks, balances, keys and payouts, and restores the demo story.
       </label>
       <div>

@@ -137,7 +137,7 @@ export function timeLeft(until: Date, now = new Date()) {
 export function TaskCard({ href, title, rewardCents, deliverables, expiresAt, place }: { href: string; title: string; rewardCents: number; deliverables: Array<{ type: string }>; expiresAt: Date; place?: string | null }) {
   return (
     <Link href={href} className="card card-tight task-card stack-sm">
-      <div className="spread" style={{ alignItems: "flex-start" }}>
+      <div className="task-card-top">
         <h2 style={{ fontSize: "var(--text-lg)", margin: 0 }}>{title}</h2>
         <span className="task-pay">
           <Money cents={rewardCents} />

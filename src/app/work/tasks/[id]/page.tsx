@@ -5,7 +5,8 @@ import { ArrowLeft, Camera, Clock, MapPin, NotebookPen } from "lucide-react";
 import { ButtonLink, Checklist, effortSummary, Money, ScreenedBadge, SetAsideBadge, StatusPill, timeLeft } from "@/components/ui";
 import { db } from "@/db/client";
 import { bounties } from "@/db/schema";
-import { activeClaimFor } from "@/domain/work/work";
+import { activeClaimFor, getWorker } from "@/domain/work/work";
+import { env } from "@/lib/env";
 import { requireRole } from "@/lib/auth";
 import { scaled, WINDOWS } from "@/lib/time";
 import { eq } from "drizzle-orm";
@@ -21,6 +22,7 @@ export default async function WorkerTaskDetail({ params }: PageProps<"/work/task
   const mine = await activeClaimFor(db(), w.id);
   if (!b || (b.status !== "open" && mine?.bounty.id !== b.id)) notFound();
   const claimMinutes = Math.round(scaled(WINDOWS.claim) / 60_000);
+  const connectNeeded = env().PAYPAL_LOGIN_ENABLED && !(await getWorker(db(), w.id)).paypalConnectedAt;
 
   return (
     <div className="stack">
@@ -100,10 +102,14 @@ export default async function WorkerTaskDetail({ params }: PageProps<"/work/task
         <Checklist items={b.acceptanceChecklist} />
       </section>
 
-      <div style={{ position: "sticky", bottom: 72, paddingBottom: "var(--s-2)" }}>
+      <div className="claim-bar">
         {mine?.bounty.id === b.id ? (
           <ButtonLink href="/work/my-task" className="btn-block btn-lg">
             Continue this task
+          </ButtonLink>
+        ) : connectNeeded ? (
+          <ButtonLink href="/work/settings" className="btn-block btn-lg">
+            Connect PayPal to claim
           </ButtonLink>
         ) : !w.paypalEmail ? (
           <ButtonLink href="/work/settings" className="btn-block btn-lg">

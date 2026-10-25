@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { NavLink } from "@/components/client";
+import { NavLink, OfflineNotice } from "@/components/client";
 import { HailLogo } from "@/components/HailLogo";
 import { requireRole } from "@/lib/auth";
 
@@ -16,6 +16,7 @@ export default async function WorkerLayout({ children }: LayoutProps<"/work">) {
         </Link>
       </header>
       <main id="main" className="worker-main">
+        <OfflineNotice />
         {children}
       </main>
       <nav className="worker-nav" aria-label="Worker">

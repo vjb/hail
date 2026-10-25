@@ -257,9 +257,12 @@ img {
 .btn:active {
   transform: translateY(1px);
 }
+/* Disabled buttons read as neutral, not as a faded version of their color (keeps AA contrast, DL-1-10). */
 .btn:disabled,
 .btn[aria-disabled="true"] {
-  opacity: 0.55;
+  background: var(--surface);
+  color: var(--ink-2);
+  border: 1px dashed var(--line);
   cursor: not-allowed;
 }
 .btn-primary {
@@ -425,6 +428,17 @@ img {
 .task-card:hover {
   border-color: var(--ink-2);
 }
+/* Pay is always top-right and the biggest thing on the card, however long the title (DL-1-08). */
+.task-card-top {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: var(--s-3);
+  align-items: start;
+}
+.task-card .task-pay {
+  font-size: var(--text-2xl);
+  line-height: 1.1;
+}
 .task-pay {
   font-family: var(--font-mono);
   font-variant-numeric: tabular-nums;
@@ -546,6 +560,7 @@ img {
 /* ---------- Tables ---------- */
 .table-wrap {
   overflow-x: auto;
+  max-width: 100%;
 }
 table.data {
   width: 100%;
@@ -575,6 +590,11 @@ table.data th.num {
   display: grid;
   grid-template-columns: 240px 1fr;
   min-height: 100vh;
+}
+/* Grid children default to min-width: auto, so a wide table stretched the whole page on phones
+   instead of scrolling inside its wrapper (DL-1-03). */
+.owner-shell > * {
+  min-width: 0;
 }
 .owner-nav {
   background: var(--surface);
@@ -906,4 +926,34 @@ table.data th.num {
   object-fit: cover;
   border-radius: var(--r-input);
   background: var(--ink);
+}
+
+/* Worker task detail: the claim action stays reachable above the bottom nav, on an opaque bar so
+   it never sits on top of the task text (DL-1-01). */
+.claim-bar {
+  position: sticky;
+  bottom: 72px;
+  z-index: 5;
+  background: var(--paper);
+  border-top: 1px solid var(--line);
+  margin: 0 calc(-1 * var(--s-4));
+  padding: var(--s-3) var(--s-4);
+}
+@media (max-height: 560px) {
+  /* Short screens (landscape, 200% zoom): don't pin it; it follows the content. */
+  .claim-bar {
+    position: static;
+    border-top: 0;
+    margin: 0;
+    padding: 0;
+  }
+}
+
+.offline-notice {
+  margin: 0 0 var(--s-3);
+  padding: var(--s-2) var(--s-3);
+  border-radius: var(--r-input);
+  background: var(--tint-review);
+  color: var(--review-text);
+  font-size: var(--text-sm);
 }
