@@ -241,7 +241,13 @@ export const verificationResultEnum = pgEnum("verification_result", ["pass", "fa
 export type ChecklistResult = { item: string; passed: boolean | null; reason: string; confidence?: number; cause?: "item" | "proof" | null };
 /** Proof checks from the verifier (verify-v2): per photo, plus whether the photos agree, plus doubts. */
 export type ProofChecks = {
-  photos: Array<{ code: "matches" | "missing" | "different" | "unreadable" | "not_requested"; screen: boolean; generatedOrEdited: boolean; source: "camera" | "file" | null }>;
+  photos: Array<{
+    code: "matches" | "missing" | "different" | "unreadable" | "not_requested";
+    screen: boolean;
+    generatedOrEdited: boolean;
+    source: "camera" | "file" | null;
+    credentials?: ContentCredentials | null;
+  }>;
   sameScene: boolean | null;
   concerns: string[];
 };
@@ -331,6 +337,8 @@ export const callbackDeliveries = pgTable(
   (t) => [index("callbacks_due_idx").on(t.deliveredAt, t.nextAttemptAt)],
 );
 
+export type ContentCredentials = { issuer: string | null; generator: string | null; signedAt: string | null; validation: string; aiGenerated: boolean };
+
 export type PhotoCheck = { usable: boolean; problems: string[]; retakeHint: string; model?: string };
 
 // A fresh code shown when the worker opens the camera for one photo slot. The photo must include it
@@ -362,6 +370,8 @@ export const photos = pgTable(
     // Proof photos carry the challenge they answered and how they were captured (null for seeded history).
     challengeId: text("challenge_id"),
     captureSource: captureSourceEnum("capture_source"),
+    // Content Credentials (C2PA) read from the original upload, if it carried any.
+    contentCredentials: jsonb("content_credentials").$type<ContentCredentials>(),
     check: jsonb("check").$type<PhotoCheck>(),
     mime: text("mime").notNull(),
     width: integer("width"),

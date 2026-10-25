@@ -88,6 +88,7 @@ function PhotoChecks({ check }: { check: ProofChecks["photos"][number] }) {
     check.screen ? "Looks like a photo of a screen" : "Not a photo of a screen",
     check.generatedOrEdited ? "Signs of generation or editing" : "No signs of editing",
     check.source === "camera" ? "Taken in Hail's camera" : check.source === "file" ? "Taken with the phone's camera app" : null,
+    credentialsText(check.credentials),
   ].filter(Boolean);
   return (
     <ul style={{ margin: "var(--s-1) 0 0", paddingLeft: "var(--s-4)" }}>
@@ -96,4 +97,12 @@ function PhotoChecks({ check }: { check: ProofChecks["photos"][number] }) {
       ))}
     </ul>
   );
+}
+
+/** Content Credentials in words. Only a valid signature that isn't AI-made reads as a positive. */
+export function credentialsText(c: ProofChecks["photos"][number]["credentials"]) {
+  if (!c) return null;
+  if (c.aiGenerated) return "Content Credentials: made with AI";
+  if (/invalid/i.test(c.validation)) return "Content Credentials: don't check out";
+  return `Content Credentials: signed${c.issuer ? ` by ${c.issuer}` : ""}${/trusted/i.test(c.validation) ? " (trusted)" : ""}`;
 }

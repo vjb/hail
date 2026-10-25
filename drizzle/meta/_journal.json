@@ -36,6 +36,13 @@
       "when": 1792897715468,
       "tag": "0004_paypal_connect",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1792898437705,
+      "tag": "0005_content_credentials",
+      "breakpoints": true
     }
   ]
 }

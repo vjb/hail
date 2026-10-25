@@ -1,3 +1,4 @@
+import { createHash } from "node:crypto";
 import { expect, test } from "@playwright/test";
 import { samplePhoto, takePhoto } from "./fixtures";
 import { signInAs } from "./helpers";
@@ -79,6 +80,13 @@ test("from agent post to PayPal payout", async ({ browser, request }) => {
   expect(final.result.deliverables[0].url).toMatch(/\/api\/v1\/photos\/ph_/);
   const photo = await request.get(final.result.deliverables[0].url.replace(/^https?:\/\/[^/]+/, ""), { headers: auth });
   expect(photo.headers()["content-type"]).toBe("image/jpeg");
+  // The shareable certificate fingerprints exactly the bytes the API served.
+  expect(final.result.checklist_met).toBeDefined();
+  const sha = createHash("sha256").update(await photo.body()).digest("hex");
+  await owner.goto(final.result.certificate_url.replace(/^https?:\/\/[^/]+/, ""));
+  await expect(owner.getByRole("heading", { name: title })).toBeVisible();
+  await expect(owner.getByText(`SHA-256 ${sha}`)).toBeVisible();
+  await expect(owner.getByText("Accepted by the task owner after review")).toBeVisible();
 
   await expect(worker.getByRole("heading", { name: "Paid" })).toBeVisible({ timeout: 30_000 });
   await worker.goto("/work/earnings");

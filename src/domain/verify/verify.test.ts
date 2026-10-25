@@ -4,7 +4,7 @@ import { afterAll, beforeEach, describe, expect, it } from "vitest";
 import { setAIProvider } from "@/ai";
 import type { AIProvider } from "@/ai/provider";
 import { closeDb, db } from "@/db/client";
-import { bounties, ledgerEntries, payouts, users } from "@/db/schema";
+import { bounties, ledgerEntries, payouts, photos as photosTable, submissions as submissionsTable, users } from "@/db/schema";
 import { createBounty, decideReview } from "@/domain/bounty/service";
 import { createApiKey } from "@/domain/keys/keys";
 import { creditTopup, getBalances, ownerLedgerSum } from "@/domain/ledger/ledger";
@@ -236,3 +236,23 @@ async function submittedOpen(ownerId: string) {
   });
   return b.id;
 }
+
+describe("proof certificate", () => {
+  it("links can't be guessed, and the certificate fingerprints the served photo bytes", async () => {
+    const { certificateId, parseCertificateId, loadCertificate, fingerprint } = await import("@/domain/proof/certificate");
+    setAIProvider(fakeVerifier([true, true]));
+    const { bountyId, submissionId } = await submitted();
+    expect(await loadCertificate(db(), bountyId)).toBeNull(); // not accepted yet
+    await verifySubmission(db(), submissionId);
+    const id = certificateId(bountyId);
+    expect(parseCertificateId(id)).toBe(bountyId);
+    expect(parseCertificateId(id.slice(0, -1) + (id.endsWith("A") ? "B" : "A"))).toBeNull();
+    expect(parseCertificateId(`bty_other.${id.split(".")[1]}`)).toBeNull();
+    const cert = await loadCertificate(db(), bountyId);
+    expect(cert?.checklistMet).toBe(true);
+    expect(cert?.acceptedBy).toBe("verifier");
+    const [p] = await db().select().from(photosTable).where(eq(photosTable.id, (await db().select().from(submissionsTable).where(eq(submissionsTable.id, submissionId)))[0].photoIds[0]));
+    expect(cert?.photos[0].sha256).toBe(fingerprint(p.bytes));
+    expect(cert?.photos[0].secondsAfterCode).not.toBeNull();
+  });
+});

@@ -171,3 +171,10 @@ Decision:
 - Unverified PayPal account → its proof always goes to owner review. We dropped "hold every new worker's first payout": verified PayPal plus a fresh code per photo already raises the cost of cheating, and the hold would slow every first demo task.
 - Owner "Report as not genuine" rejects and pauses the worker (can't claim). The worker can still appeal once; an accepted appeal on that task lifts the pause; an admin can lift it.
 Unverified: the userinfo field names (`payer_id`, `verified_account`, `emails`) come from PayPal's reference pages, not a live call. The parser accepts the likely variants and the callback logs which fields arrived.
+
+## D-026 — Proof certificate and Content Credentials (2026-10-24)
+Context: D-020 asks for a shareable proof certificate and a Content Credentials (C2PA) badge where present.
+Decision:
+- `/proof/{bounty_id}.{signature}`: HMAC-signed link (unguessable), only for accepted work, `noindex`. Shows the checklist results, how each photo was captured, its photo-code result, proof checks, Content Credentials, the verifier and prompt version, and a SHA-256 of each photo exactly as the API serves it. It never shows photos, the worker's identity or the exact place (rounded to ~1 km). The public result gains `certificate_url` (api.md updated).
+- Content Credentials are read from the original upload with `@contentauth/c2pa-node` 0.9.10 (native module, kept out of the bundle via `serverExternalPackages`) before re-encoding strips them. A valid signature shows as a badge; a manifest that declares the image AI-made, or a signature that doesn't check out, is a doubt (owner review). Never required. In-page camera captures carry none; the phone's camera app path can.
+- Verified with the c2pa-rs sample (signed, valid). The Gemini sample photos carry no manifest as downloaded.

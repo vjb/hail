@@ -1,7 +1,7 @@
 import { desc, eq, inArray } from "drizzle-orm";
 import { ai } from "@/ai";
 import type { DB } from "@/db/client";
-import { bounties, photos, proofChallenges, submissions, users, verifications, type ChecklistResult, type ProofChecks } from "@/db/schema";
+import { bounties, photos, proofChallenges, submissions, users, verifications, type ChecklistResult, type ContentCredentials, type ProofChecks } from "@/db/schema";
 import type { VerifyOutput } from "@/ai/provider";
 import { transition } from "@/domain/bounty/state";
 import { startPayout } from "@/domain/payouts/payouts";
@@ -45,6 +45,16 @@ export function proofDoubts(proof: ProofChecks | null, photoCount: number, codeI
   return out;
 }
 
+/** Content Credentials can only add doubt: AI-made by their own account, or changed after signing. */
+export function credentialDoubts(creds: Array<ContentCredentials | null>): string[] {
+  return creds.flatMap((c, i) => {
+    if (!c) return [];
+    if (c.aiGenerated) return [`Photo ${i + 1}'s Content Credentials say it was made with AI.`];
+    if (/invalid/i.test(c.validation)) return [`Photo ${i + 1}'s Content Credentials don't check out: it may have been changed after it was signed.`];
+    return [];
+  });
+}
+
 export function decide(items: ChecklistResult[], expected: string[], doubts: string[] = []): Outcome {
   if (items.length !== expected.length) return "uncertain";
   const confident = (x: ChecklistResult) => (x.confidence ?? 0) >= MIN_ITEM_CONFIDENCE;
@@ -56,7 +66,12 @@ export function decide(items: ChecklistResult[], expected: string[], doubts: str
 }
 
 /** Turns the verifier's answer into the decision: item results, proof checks, outcome and rationale. */
-export function interpret(value: VerifyOutput, checklist: string[], photos: Array<{ code: string | null; source: "camera" | "file" | null }>, accountDoubts: string[] = []) {
+export function interpret(
+  value: VerifyOutput,
+  checklist: string[],
+  photos: Array<{ code: string | null; source: "camera" | "file" | null; credentials?: ContentCredentials | null }>,
+  accountDoubts: string[] = [],
+) {
   // Align the model's answers to the bounty's checklist by position; text must match the item.
   const items: ChecklistResult[] = checklist.map((item, i) => {
     const x = value.checklist[i];
@@ -66,12 +81,14 @@ export function interpret(value: VerifyOutput, checklist: string[], photos: Arra
   });
   const proofChecks: ProofChecks | null = value.photos
     ? {
-        photos: value.photos.slice(0, photos.length).map((p, i) => ({ code: p.code, screen: p.screen, generatedOrEdited: p.generated_or_edited, source: photos[i]?.source ?? null })),
+        photos: value.photos
+          .slice(0, photos.length)
+          .map((p, i) => ({ code: p.code, screen: p.screen, generatedOrEdited: p.generated_or_edited, source: photos[i]?.source ?? null, credentials: photos[i]?.credentials ?? null })),
         sameScene: value.same_scene ?? null,
         concerns: (value.concerns ?? []).slice(0, 5),
       }
     : null;
-  const doubts = [...proofDoubts(proofChecks, photos.length, photos.map((p) => !!p.code)), ...accountDoubts];
+  const doubts = [...proofDoubts(proofChecks, photos.length, photos.map((p) => !!p.code)), ...credentialDoubts(photos.map((p) => p.credentials ?? null)), ...accountDoubts];
   const result = decide(items, checklist, doubts);
   const rationale = result === "uncertain" && doubts.length ? `${value.summary} Sent to the owner because: ${doubts.join(" ")}` : value.summary;
   return { items, proofChecks, result, rationale, doubts };
@@ -118,7 +135,7 @@ export async function verifySubmission(database: DB, submissionId: string) {
   if (r.ok) {
     const [w] = await database.select({ verified: users.paypalVerified }).from(users).where(eq(users.id, s.workerId));
     const accountDoubts = w?.verified === false ? ["The worker's PayPal account isn't verified yet, so their pay waits for your review."] : [];
-    ({ items, proofChecks, result, rationale } = interpret(r.value, b.acceptanceChecklist, ordered.map((p) => ({ code: codeFor(p), source: p.captureSource ?? null })), accountDoubts));
+    ({ items, proofChecks, result, rationale } = interpret(r.value, b.acceptanceChecklist, ordered.map((p) => ({ code: codeFor(p), source: p.captureSource ?? null, credentials: p.contentCredentials ?? null })), accountDoubts));
   } else {
     items = b.acceptanceChecklist.map((item) => ({ item, passed: null, reason: "Automatic check unavailable.", confidence: 0 }));
     result = "uncertain";

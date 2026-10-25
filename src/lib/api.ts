@@ -2,6 +2,7 @@ import { createHash } from "node:crypto";
 import { and, eq } from "drizzle-orm";
 import { db } from "@/db/client";
 import { apiKeys, bountyEvents, idempotencyRecords, submissions, verifications, type bounties } from "@/db/schema";
+import { certificateUrl } from "@/domain/proof/certificate";
 import { env } from "@/lib/env";
 import { desc } from "drizzle-orm";
 import { DomainError, finalScreening } from "@/domain/bounty/service";
@@ -171,6 +172,7 @@ async function bountyResult(b: BountyRow) {
       ...(sub.location ? [{ type: "location", lat: sub.location.lat, lng: sub.location.lng }] : []),
     ],
     completed_at: (accepted?.createdAt ?? sub.createdAt).toISOString(),
+    certificate_url: certificateUrl(b.id),
   };
 }
 

@@ -100,9 +100,12 @@ Proof photos are taken live in Hail's app with a fresh code for each photo, and 
     { "type": "photo", "url": "https://.../photos/ph_2" },
     { "type": "text",  "value": "Small scratch on the drip tray, no leaks." }
   ],
-  "completed_at": "2026-11-04T19:12:00Z"
+  "completed_at": "2026-11-04T19:12:00Z",
+  "certificate_url": "https://.../proof/bty_7Hq2kLmN4pRs9TvW.k3J..."
 }
 ```
+
+`certificate_url` is a shareable proof certificate: what was checked and how, the checklist results, and a SHA-256 fingerprint of each photo exactly as the API serves it. It shows no photos, no worker identity and no exact location, so you can pass it on (for example to a seller or buyer). Anyone with the link can open it.
 
 ### Statuses
 

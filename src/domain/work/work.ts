@@ -7,6 +7,7 @@ import { bounties, claims, photos, proofChallenges, submissions, users, verifica
 import { DomainError } from "@/domain/bounty/service";
 import { transition } from "@/domain/bounty/state";
 import { newId } from "@/lib/ids";
+import { readContentCredentials } from "@/integrations/c2pa";
 import { env } from "@/lib/env";
 import { CHALLENGE, fromNow, scaled, WINDOWS } from "@/lib/time";
 
@@ -174,12 +175,13 @@ export async function addProofPhoto(
   const { claim, bounty } = await ownActiveClaim(database, workerId, claimId);
   const deliverable = bounty.deliverables[slot];
   if (!deliverable || deliverable.type !== "photo") throw new DomainError("invalid_request", "That photo slot doesn't exist for this task.");
+  const contentCredentials = await readContentCredentials(file);
   const norm = await normalizePhoto(file);
   const challenge = await consumeChallenge(database, claimId, slot, capture.challengeId);
   const id = newId("ph");
   await database
     .insert(photos)
-    .values({ id, ownerUserId: workerId, claimId, slot, challengeId: challenge.id, captureSource: capture.source, mime: "image/jpeg", width: norm.width, height: norm.height, bytes: norm.bytes });
+    .values({ id, ownerUserId: workerId, claimId, slot, challengeId: challenge.id, captureSource: capture.source, contentCredentials, mime: "image/jpeg", width: norm.width, height: norm.height, bytes: norm.bytes });
 
   const r = await ai().checkPhoto(
     {

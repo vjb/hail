@@ -157,6 +157,9 @@ Rules:
 - `proof_challenges` — id, claim_id, slot, code, issued_at, expires_at, used_at (D-023)
 - `users` (workers, D-025) — `paypal_payer_id` (unique: one PayPal account per worker), `paypal_verified`, `paypal_connected_at`; `suspended_at`, `suspended_reason`, `suspended_bounty_id`
 
+### Proof certificate and Content Credentials (D-026)
+`/proof/{bounty_id}.{hmac}` (HMAC of the bounty ID with `SESSION_SECRET`): accepted work only; checklist, capture method, code result, proof checks, Content Credentials, verifier model and prompt version, SHA-256 per photo of the served bytes; no photos, identity or exact place. `photos.content_credentials` is read from the original upload (`@contentauth/c2pa-node`, native, `serverExternalPackages`) before re-encoding.
+
 ### Connect PayPal (D-025)
 Behind `PAYPAL_LOGIN_ENABLED`. `GET /work/paypal/connect` sets a one-time state cookie (10 min, path `/work/paypal`) and redirects to `https://www.sandbox.paypal.com/connect` with scopes `openid email https://uri.paypal.com/services/paypalattributes` and `redirect_uri = APP_BASE_URL/work/paypal/callback` (must match the app's Return URL). The callback checks the state, exchanges the code (`/v1/oauth2/token`, `grant_type=authorization_code`), reads `/v1/identity/oauth2/userinfo?schema=paypalv1.1` (payer ID, primary email, `verified_account`), saves them and discards the token. The profile's field names are logged (names only) on first use to confirm the shape. With the flag on, claiming needs a connected account and the manual email form is gone. Proof from an unverified account always goes to owner review. Owner "Report as not genuine" rejects and pauses the worker; an accepted appeal on that task or an admin lifts it.
 

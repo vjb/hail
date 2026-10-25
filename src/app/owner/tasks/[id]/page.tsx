@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 import { ArrowLeft, MapPin } from "lucide-react";
 import { Checklist, formatDateTime, Money, ScreenedBadge, SetAsideBadge, StatusPill, Timeline, type TimelineItem } from "@/components/ui";
 import { db } from "@/db/client";
+import { certificateUrl } from "@/domain/proof/certificate";
 import { HOLDS_FUNDS } from "@/domain/bounty/state";
 import { ProofView } from "@/components/ProofView";
 import { bountyDetail, categoryLabel, latestProof } from "@/domain/owner/queries";
@@ -107,6 +108,14 @@ export default async function TaskDetail({ params }: PageProps<"/owner/tasks/[id
           {proof.payout && (
             <p className="muted" style={{ margin: 0 }}>
               Payout <Money cents={proof.payout.amountCents} /> to the worker&apos;s PayPal: {proof.payout.status === "succeeded" ? "delivered" : proof.payout.status === "sent" ? "sent, waiting for PayPal" : proof.payout.status}.
+            </p>
+          )}
+          {["approved", "paying", "paid"].includes(b.status) && (
+            <p style={{ margin: 0 }}>
+              <a href={certificateUrl(b.id)} target="_blank" rel="noreferrer">
+                Open the proof certificate
+              </a>{" "}
+              <span className="muted">(shareable: fingerprints and checks, no photos)</span>
             </p>
           )}
           {b.status === "needs_owner_review" && <ReviewButtons bountyId={b.id} title={b.title} />}
