@@ -9,6 +9,7 @@ import {
   Clock,
   Hourglass,
   Inbox,
+  LoaderCircle,
   Lock,
   Scale,
   ShieldCheck,
@@ -242,6 +243,15 @@ export function EmptyState({ title, children, action, icon: Icon = Inbox }: { ti
       <h2>{title}</h2>
       {children && <p className="muted">{children}</p>}
       {action}
+    </div>
+  );
+}
+
+export function LoadingState({ label = "Loading…" }: { label?: string }) {
+  return (
+    <div className="state" role="status" aria-live="polite">
+      <LoaderCircle aria-hidden="true" className="spin" />
+      <p className="muted">{label}</p>
     </div>
   );
 }

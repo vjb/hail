@@ -290,8 +290,10 @@ Gate evidence:
 ## Resume here (next session)
 1. Day 8 gate recorded (passed). **Live at https://hail-g9h8.onrender.com** on Render free plans (D-017): health OK, webhook `0UX03626T43587307` registered and set, GitHub sweep workflow ran successfully. Sample photos (HH-010) are in `C:\Users\vjbel\Downloads\hail-photos` and checked against the real verifier (good x3 pass, bad x3 fail); next, copy them into the repo, wire them into e2e (un-skip the happy path) and seed.
 2. Waiting on the human: HH-009 (phone test at the Render URL), a card on Render before ~Nov 20 so it can go paid (free DB expires ~Nov 23), the Discord join, and AG Studio activation on Nov 1 (Day 9 control room).
-3. Next work that doesn't need the human:
-   - Days 13–14 hardening: review rate limits and auth; error/loading states everywhere.
-   - Refresh the screenshot manifest and take a run.
-   - Run `npm run db:seed -- --demo` on dev once nothing else is using the DB.
+3. Done since the deploy (2026-10-24 evening):
+   - Real sample photos in e2e (`e2e/photos`): happy path un-skipped and passing, appeal gets a real rejection. **17/17 e2e pass locally and against Render** (top-ups run first as a `funding` project).
+   - Demo story shows real proof photos (`src/db/demo-photos`); live demo reset works (4.4 s).
+   - Rate limits (D-018), documented in `api.md`. Live checks: forged webhook → 401, bad key → documented error, sweep without secret → 404.
+   - Loading, error and not-found boundaries for owner, worker and admin areas (`LoadingState` core component).
+   Next without the human: refresh the screenshot manifest and take a run; README pass (setup, env, seeded accounts, how judges run it, license); review per-screen empty states.
 4. The local dev server (port 3000) and the ngrok tunnel run in the background. Restart them if the machine rebooted: `npx next dev -p 3000` and `ngrok http 3000`.
