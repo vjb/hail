@@ -28,6 +28,14 @@ export const users = pgTable("users", {
   email: text("email").notNull().unique(),
   passwordHash: text("password_hash").notNull(),
   paypalEmail: text("paypal_email"),
+  // Set by Connect PayPal (Log in with PayPal): one PayPal account per worker; payouts go to it.
+  paypalPayerId: text("paypal_payer_id").unique(),
+  paypalVerified: boolean("paypal_verified"),
+  paypalConnectedAt: ts("paypal_connected_at"),
+  // A worker whose proof was found fake can't claim tasks until the suspension is lifted.
+  suspendedAt: ts("suspended_at"),
+  suspendedReason: text("suspended_reason"),
+  suspendedBountyId: text("suspended_bounty_id"),
   createdAt: createdAt(),
 });
 

@@ -4,11 +4,12 @@ import { afterAll, beforeEach, describe, expect, it } from "vitest";
 import { setAIProvider } from "@/ai";
 import type { AIProvider } from "@/ai/provider";
 import { closeDb, db } from "@/db/client";
-import { bounties, ledgerEntries, payouts } from "@/db/schema";
+import { bounties, ledgerEntries, payouts, users } from "@/db/schema";
 import { createBounty, decideReview } from "@/domain/bounty/service";
 import { createApiKey } from "@/domain/keys/keys";
 import { creditTopup, getBalances, ownerLedgerSum } from "@/domain/ledger/ledger";
 import { pollPayouts, recordPayoutStatus } from "@/domain/payouts/payouts";
+import { decideAppeal, fileAppeal } from "@/domain/timers/timers";
 import { claimBounty, submitProof } from "@/domain/work/work";
 import { setPayPalFetch } from "@/integrations/paypal/client";
 import { makeUser, snapProof } from "../../../tests/helpers";
@@ -63,7 +64,7 @@ async function submitted() {
   const { claimId } = await claimBounty(db(), worker, b.id);
   await snapProof(db(), worker, claimId, 0, await sharp({ create: { width: 800, height: 600, channels: 3, background: "#777" } }).jpeg().toBuffer());
   const { submissionId } = await submitProof(db(), worker, claimId, {});
-  return { ownerId, bountyId: b.id, submissionId };
+  return { ownerId, bountyId: b.id, submissionId, worker };
 }
 
 const status = async (id: string) => (await db().select().from(bounties).where(eq(bounties.id, id)))[0].status;
@@ -190,3 +191,48 @@ describe("verify → pay", () => {
     expect((await getBalances(db(), ownerId)).heldCents).toBe(2000);
   });
 });
+
+describe("accountability", () => {
+  it("proof from an unverified PayPal account waits for the owner, never auto-pay", async () => {
+    setAIProvider(fakeVerifier([true, true]));
+    const { bountyId, submissionId, worker } = await submitted();
+    await db().update(users).set({ paypalVerified: false }).where(eq(users.id, worker));
+    const r = await verifySubmission(db(), submissionId);
+    expect(r?.result).toBe("uncertain");
+    expect(r?.rationale).toMatch(/PayPal account isn't verified/);
+    expect(await status(bountyId)).toBe("needs_owner_review");
+    expect(sent).toEqual([]);
+  });
+
+  it("proof reported as not genuine pauses the worker; an accepted appeal on that task lifts it", async () => {
+    setAIProvider(fakeVerifier([true, null]));
+    const { ownerId, bountyId, submissionId, worker } = await submitted();
+    await verifySubmission(db(), submissionId);
+    await decideReview(db(), ownerId, bountyId, false, undefined, { reportFake: true });
+    expect(await status(bountyId)).toBe("rejected");
+    const [paused] = await db().select().from(users).where(eq(users.id, worker));
+    expect(paused.suspendedAt).not.toBeNull();
+    expect(paused.suspendedBountyId).toBe(bountyId);
+    // A paused worker can't claim anything else.
+    const other = await submittedOpen(ownerId);
+    await expect(claimBounty(db(), worker, other)).rejects.toMatchObject({ code: "forbidden" });
+    await fileAppeal(db(), worker, bountyId, "This is the real machine; the code is on the paper.");
+    await decideAppeal(db(), ownerId, bountyId, true);
+    const [lifted] = await db().select().from(users).where(eq(users.id, worker));
+    expect(lifted.suspendedAt).toBeNull();
+  });
+});
+
+async function submittedOpen(ownerId: string) {
+  const key = await createApiKey(db(), { ownerId, name: "t2", dailyCapCents: 100000 });
+  const b = await createBounty(db(), { ownerId, apiKeyId: key.id, dailyCapCents: 100000, actor: "agent:t" }, {
+    title: "Photograph another sign",
+    instructions: "Photograph the sign.",
+    deliverables: [{ type: "photo", description: "Sign" }],
+    acceptanceChecklist: ["Sign readable"],
+    rewardCents: 500,
+    expiresInMinutes: 120,
+    spots: 1,
+  });
+  return b.id;
+}

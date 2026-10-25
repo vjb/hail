@@ -264,3 +264,45 @@ export async function verifyWebhookSignature(headers: Headers, rawBody: string, 
   );
   return res.verification_status === "SUCCESS";
 }
+
+// ---------- Log in with PayPal (Connect PayPal) ----------
+// Docs checked 2026-10-24: developer.paypal.com/docs/log-in-with-paypal/integrate and /log-in/references.
+// Authorize at www.sandbox.paypal.com/connect; exchange the code at /v1/oauth2/token
+// (grant_type=authorization_code); read the profile at /v1/identity/oauth2/userinfo. The scope
+// https://uri.paypal.com/services/paypalattributes adds account verification status and payer ID.
+
+export const PAYPAL_CONNECT_SCOPES = ["openid", "email", "https://uri.paypal.com/services/paypalattributes"];
+
+export function connectUrl(state: string, redirectUri: string) {
+  const q = new URLSearchParams({ flowEntry: "static", client_id: env().PAYPAL_CLIENT_ID, response_type: "code", scope: PAYPAL_CONNECT_SCOPES.join(" "), redirect_uri: redirectUri, state });
+  return `https://www.sandbox.paypal.com/connect?${q.toString()}`;
+}
+
+/** Exchanges an authorization code for the worker's access token (used once, then discarded). */
+export async function exchangeConnectCode(code: string) {
+  const { PAYPAL_CLIENT_ID, PAYPAL_CLIENT_SECRET } = env();
+  const res = await fetchImpl(`${PAYPAL_API_BASE}/v1/oauth2/token`, {
+    method: "POST",
+    headers: { Authorization: "Basic " + Buffer.from(`${PAYPAL_CLIENT_ID}:${PAYPAL_CLIENT_SECRET}`).toString("base64"), "Content-Type": "application/x-www-form-urlencoded" },
+    body: new URLSearchParams({ grant_type: "authorization_code", code }).toString(),
+  });
+  const body = (await res.json().catch(() => ({}))) as { access_token?: string };
+  if (!res.ok || !body.access_token) throw new PayPalError("PayPal connect code exchange failed", res.status, body);
+  return body.access_token;
+}
+
+export type PayPalProfile = { payerId: string | null; email: string | null; verified: boolean | null; fields: string[] };
+
+/** Reads the connected account's profile. Parsed defensively: field names are confirmed on first real use. */
+export async function getConnectedProfile(accessToken: string): Promise<PayPalProfile> {
+  const res = await fetchImpl(`${PAYPAL_API_BASE}/v1/identity/oauth2/userinfo?schema=paypalv1.1`, { headers: { Authorization: `Bearer ${accessToken}`, "Content-Type": "application/json" } });
+  const body = (await res.json().catch(() => ({}))) as Record<string, unknown>;
+  if (!res.ok) throw new PayPalError("PayPal profile read failed", res.status, body);
+  const emails = Array.isArray(body.emails) ? (body.emails as Array<{ value?: string; primary?: boolean }>) : [];
+  const email = emails.find((e) => e.primary)?.value ?? emails[0]?.value ?? (typeof body.email === "string" ? body.email : null);
+  const v = body.verified_account ?? body.verified;
+  const verified = v === true || v === "true" ? true : v === false || v === "false" ? false : null;
+  // payer_id is the account ID; user_id (the OpenID subject) is a stable fallback for "one account per worker".
+  const payerId = typeof body.payer_id === "string" ? body.payer_id : typeof body.user_id === "string" ? body.user_id : null;
+  return { payerId, email: email ?? null, verified, fields: Object.keys(body) };
+}

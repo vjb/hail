@@ -8,7 +8,9 @@ import { createBounty } from "@/domain/bounty/service";
 import { createApiKey } from "@/domain/keys/keys";
 import { creditTopup } from "@/domain/ledger/ledger";
 import { makeUser, snapProof } from "../../../tests/helpers";
-import { addProofPhoto, claimBounty, expireOverdueClaims, issueChallenge, newChallengeCode, releaseClaim, submitProof } from "./work";
+import { getConnectedProfile, setPayPalFetch } from "@/integrations/paypal/client";
+import { users } from "@/db/schema";
+import { addProofPhoto, claimBounty, connectPayPal, expireOverdueClaims, issueChallenge, newChallengeCode, releaseClaim, submitProof } from "./work";
 
 afterAll(() => closeDb());
 
@@ -159,5 +161,39 @@ describe("worker flow", () => {
     const { claimId } = await claimBounty(db(), w, id);
     await expect(issueChallenge(db(), other, claimId, 0)).rejects.toMatchObject({ code: "not_found" });
     await expect(issueChallenge(db(), w, claimId, 2)).rejects.toMatchObject({ code: "invalid_request" });
+  });
+});
+
+describe("Connect PayPal", () => {
+  it("saves the connected account and pays to its email", async () => {
+    const w = await worker(null);
+    const payerId = `PAYER${Date.now()}${Math.random().toString(36).slice(2, 6)}`;
+    await connectPayPal(db(), w, { payerId, email: "real@example.com", verified: true });
+    const [u] = await db().select().from(users).where(eq(users.id, w));
+    expect(u).toMatchObject({ paypalPayerId: payerId, paypalEmail: "real@example.com", paypalVerified: true });
+    expect(u.paypalConnectedAt).not.toBeNull();
+  });
+
+  it("one PayPal account per worker", async () => {
+    const [a, b] = [await worker(null), await worker(null)];
+    const payerId = `PAYER${Date.now()}${Math.random().toString(36).slice(2, 6)}`;
+    await connectPayPal(db(), a, { payerId, email: "a@example.com", verified: true });
+    await expect(connectPayPal(db(), b, { payerId, email: "a@example.com", verified: true })).rejects.toThrow(/already connected to another Hail worker/);
+    // Reconnecting the same account to the same worker is fine.
+    await connectPayPal(db(), a, { payerId, email: "a2@example.com", verified: true });
+  });
+
+  it("refuses a profile without an account ID or email", async () => {
+    const w = await worker(null);
+    await expect(connectPayPal(db(), w, { payerId: null, email: "x@example.com", verified: true })).rejects.toMatchObject({ code: "invalid_request" });
+  });
+
+  it("reads the PayPal profile defensively", async () => {
+    setPayPalFetch(async () => Response.json({ user_id: "https://www.paypal.com/webapps/auth/identity/user/abc", payer_id: "Q8N2", verified_account: "true", emails: [{ value: "old@example.com" }, { value: "me@example.com", primary: true }] }));
+    expect(await getConnectedProfile("tok")).toMatchObject({ payerId: "Q8N2", email: "me@example.com", verified: true });
+    setPayPalFetch(async () => Response.json({ user_id: "uid-1", email: "solo@example.com", verified_account: false }));
+    expect(await getConnectedProfile("tok")).toMatchObject({ payerId: "uid-1", email: "solo@example.com", verified: false });
+    setPayPalFetch(async () => Response.json({ name: "INVALID_TOKEN" }, { status: 401 }));
+    await expect(getConnectedProfile("tok")).rejects.toThrow(/profile read failed/);
   });
 });

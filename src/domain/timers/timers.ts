@@ -1,6 +1,6 @@
 import { and, desc, eq, gt, inArray, isNull, lt, lte } from "drizzle-orm";
 import type { DB } from "@/db/client";
-import { appeals, bounties, claims, submissions } from "@/db/schema";
+import { appeals, bounties, claims, submissions, users } from "@/db/schema";
 import { DomainError, transitionWithMoney } from "@/domain/bounty/service";
 import { transition } from "@/domain/bounty/state";
 import { startPayout } from "@/domain/payouts/payouts";
@@ -114,7 +114,11 @@ export async function decideAppeal(database: DB, ownerId: string, bountyId: stri
     if (row.status !== "appealed") throw new DomainError("invalid_state", "This appeal was already decided.");
     await tx.update(appeals).set({ decision: accept ? "approved" : "declined", decidedBy: `owner:${ownerId}`, decidedAt: new Date() }).where(eq(appeals.bountyId, bountyId));
     const why = note ? { note, rationale: note } : {};
-    if (accept) return transition(tx, bountyId, "appeal_approve", `owner:${ownerId}`, why);
+    if (accept) {
+      // An accepted appeal clears a suspension that this task caused.
+      await tx.update(users).set({ suspendedAt: null, suspendedReason: null, suspendedBountyId: null }).where(eq(users.suspendedBountyId, bountyId));
+      return transition(tx, bountyId, "appeal_approve", `owner:${ownerId}`, why);
+    }
     if (row.expiresAt <= new Date()) {
       await transition(tx, bountyId, "appeal_reject", `owner:${ownerId}`, why);
       return transitionWithMoney(tx, bountyId, "expire", "system", { rationale: "The appeal was declined after the task expired, so its pay went back to the owner." });

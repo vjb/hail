@@ -1,7 +1,7 @@
 import { desc, eq, inArray } from "drizzle-orm";
 import { ai } from "@/ai";
 import type { DB } from "@/db/client";
-import { bounties, photos, proofChallenges, submissions, verifications, type ChecklistResult, type ProofChecks } from "@/db/schema";
+import { bounties, photos, proofChallenges, submissions, users, verifications, type ChecklistResult, type ProofChecks } from "@/db/schema";
 import type { VerifyOutput } from "@/ai/provider";
 import { transition } from "@/domain/bounty/state";
 import { startPayout } from "@/domain/payouts/payouts";
@@ -56,7 +56,7 @@ export function decide(items: ChecklistResult[], expected: string[], doubts: str
 }
 
 /** Turns the verifier's answer into the decision: item results, proof checks, outcome and rationale. */
-export function interpret(value: VerifyOutput, checklist: string[], photos: Array<{ code: string | null; source: "camera" | "file" | null }>) {
+export function interpret(value: VerifyOutput, checklist: string[], photos: Array<{ code: string | null; source: "camera" | "file" | null }>, accountDoubts: string[] = []) {
   // Align the model's answers to the bounty's checklist by position; text must match the item.
   const items: ChecklistResult[] = checklist.map((item, i) => {
     const x = value.checklist[i];
@@ -71,7 +71,7 @@ export function interpret(value: VerifyOutput, checklist: string[], photos: Arra
         concerns: (value.concerns ?? []).slice(0, 5),
       }
     : null;
-  const doubts = proofDoubts(proofChecks, photos.length, photos.map((p) => !!p.code));
+  const doubts = [...proofDoubts(proofChecks, photos.length, photos.map((p) => !!p.code)), ...accountDoubts];
   const result = decide(items, checklist, doubts);
   const rationale = result === "uncertain" && doubts.length ? `${value.summary} Sent to the owner because: ${doubts.join(" ")}` : value.summary;
   return { items, proofChecks, result, rationale, doubts };
@@ -116,7 +116,9 @@ export async function verifySubmission(database: DB, submissionId: string) {
   let result: Outcome;
   let proofChecks: ProofChecks | null = null;
   if (r.ok) {
-    ({ items, proofChecks, result, rationale } = interpret(r.value, b.acceptanceChecklist, ordered.map((p) => ({ code: codeFor(p), source: p.captureSource ?? null }))));
+    const [w] = await database.select({ verified: users.paypalVerified }).from(users).where(eq(users.id, s.workerId));
+    const accountDoubts = w?.verified === false ? ["The worker's PayPal account isn't verified yet, so their pay waits for your review."] : [];
+    ({ items, proofChecks, result, rationale } = interpret(r.value, b.acceptanceChecklist, ordered.map((p) => ({ code: codeFor(p), source: p.captureSource ?? null })), accountDoubts));
   } else {
     items = b.acceptanceChecklist.map((item) => ({ item, passed: null, reason: "Automatic check unavailable.", confidence: 0 }));
     result = "uncertain";

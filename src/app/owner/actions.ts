@@ -31,14 +31,16 @@ export async function approveAction(_: FormState, form: FormData): Promise<FormS
 
 export async function reviewAction(_: FormState, form: FormData): Promise<FormState> {
   const owner = await requireRole("owner");
-  const approve = form.get("decision") === "approve";
+  const decision = form.get("decision");
+  const approve = decision === "approve";
+  const reportFake = decision === "fake";
   const note = String(form.get("note") ?? "").trim().slice(0, 500) || undefined;
   try {
-    await decideReview(db(), owner.id, String(form.get("bountyId")), approve, note);
+    await decideReview(db(), owner.id, String(form.get("bountyId")), approve, note, { reportFake });
   } catch (e) {
     return { error: friendly(e) };
   }
-  return { ok: approve ? "Accepted. The worker is being paid." : "Rejected. The worker can appeal once." };
+  return { ok: approve ? "Accepted. The worker is being paid." : reportFake ? "Reported as not genuine. The worker's account is paused; they can appeal once." : "Rejected. The worker can appeal once." };
 }
 
 export async function cancelAction(_: FormState, form: FormData): Promise<FormState> {

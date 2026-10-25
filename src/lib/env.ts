@@ -12,6 +12,8 @@ const schema = z.object({
   PAYPAL_CLIENT_ID: z.string().min(1),
   PAYPAL_CLIENT_SECRET: z.string().min(1),
   PAYPAL_WEBHOOK_ID: z.string().optional().default(""),
+  // Connect PayPal (Log in with PayPal). Off until the feature is enabled on the sandbox app.
+  PAYPAL_LOGIN_ENABLED: z.enum(["true", "false"]).default("false").transform((v) => v === "true"),
   AI_PROVIDER: z.enum(["claude"]).default("claude"),
   ANTHROPIC_API_KEY: z.string().optional().default(""),
   AI_MODEL_SCREEN: z.string().min(1),

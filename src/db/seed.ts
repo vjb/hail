@@ -55,12 +55,15 @@ export async function seedBase(database: DB, envVars: NodeJS.ProcessEnv = proces
     if (!email || !password) throw new Error(`${a.emailVar} and ${a.passwordVar} must be set`);
     const hash = await bcrypt.hash(password, 10);
     const paypalEmail = a.paypalVar ? envVars[a.paypalVar]?.trim() || null : null;
+    // Demo workers arrive with PayPal already connected and verified (their sandbox account), and
+    // never paused, so the demo works whether or not Connect PayPal is switched on.
+    const connected = paypalEmail ? { paypalVerified: true, paypalConnectedAt: new Date(), suspendedAt: null, suspendedReason: null, suspendedBountyId: null } : {};
     const [existing] = await database.select({ id: users.id }).from(users).where(eq(users.email, email));
     const id = existing?.id ?? newId("usr");
     if (existing) {
-      await database.update(users).set({ name: a.name, role: a.role, passwordHash: hash, paypalEmail }).where(eq(users.id, id));
+      await database.update(users).set({ name: a.name, role: a.role, passwordHash: hash, paypalEmail, ...connected }).where(eq(users.id, id));
     } else {
-      await database.insert(users).values({ id, role: a.role, name: a.name, email, passwordHash: hash, paypalEmail });
+      await database.insert(users).values({ id, role: a.role, name: a.name, email, passwordHash: hash, paypalEmail, ...connected });
     }
     ids[a.emailVar] = id;
   }

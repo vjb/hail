@@ -1,6 +1,6 @@
 import { and, desc, eq, gte, inArray, lt, or, sql } from "drizzle-orm";
 import type { DB, Tx } from "@/db/client";
-import { bounties, ledgerEntries, ownerPolicies, screenings, type BountyLocation, type Deliverable } from "@/db/schema";
+import { bounties, ledgerEntries, ownerPolicies, screenings, submissions, users, type BountyLocation, type Deliverable } from "@/db/schema";
 import { getBalances, holdForBounty, InsufficientFundsError, lockOwner, releaseBounty } from "@/domain/ledger/ledger";
 import { screenBounty, type ScreenResult } from "@/domain/screening/screen";
 import { findProduct } from "@/integrations/channel3/client";
@@ -204,12 +204,27 @@ export async function decideApproval(database: DB, ownerId: string, bountyId: st
 }
 
 /** Owner decision on proof the verifier couldn't confirm. Approve → payout; reject → rejected (worker may appeal). */
-export async function decideReview(database: DB, ownerId: string, bountyId: string, approve: boolean, note?: string) {
+/**
+ * The owner's decision on proof Hail sent for review. `reportFake` rejects it as not genuine and
+ * pauses the worker's account until an accepted appeal on this task or an admin lifts it.
+ */
+export async function decideReview(database: DB, ownerId: string, bountyId: string, approve: boolean, note?: string, opts: { reportFake?: boolean } = {}) {
   const b = await database.transaction(async (tx) => {
     const [row] = await tx.select().from(bounties).where(eq(bounties.id, bountyId)).for("update");
     if (!row) throw new DomainError("not_found", "No such task.");
     if (row.ownerId !== ownerId) throw new DomainError("forbidden", "This task belongs to another owner.");
     if (row.status !== "needs_owner_review") throw new DomainError("invalid_state", "This task no longer needs your review.");
+    if (!approve && opts.reportFake) {
+      const [sub] = await tx.select({ workerId: submissions.workerId }).from(submissions).where(eq(submissions.bountyId, bountyId)).orderBy(desc(submissions.createdAt)).limit(1);
+      if (sub) {
+        await tx
+          .update(users)
+          .set({ suspendedAt: new Date(), suspendedReason: "The task owner reported this proof as not genuine.", suspendedBountyId: bountyId })
+          .where(eq(users.id, sub.workerId));
+      }
+      const why = note ? `Reported as not genuine: ${note}` : "The owner reported this proof as not genuine. The worker's account is paused.";
+      return transition(tx, bountyId, "review_reject", `owner:${ownerId}`, { note: why, rationale: why, reportedFake: true });
+    }
     return transition(tx, bountyId, approve ? "review_approve" : "review_reject", `owner:${ownerId}`, note ? { note, rationale: note } : {});
   });
   if (b.status === "approved") {

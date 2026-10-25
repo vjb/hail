@@ -66,6 +66,9 @@ export function ReviewButtons({ bountyId, title }: { bountyId: string; title: st
         <button type="submit" name="decision" value="reject" className="btn btn-danger" disabled={pending} aria-label={`Reject proof: ${title}`}>
           Reject proof
         </button>
+        <button type="submit" name="decision" value="fake" className="btn btn-quiet" disabled={pending} aria-label={`Report proof as not genuine: ${title}`}>
+          Report as not genuine
+        </button>
       </div>
     </form>
   );

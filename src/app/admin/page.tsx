@@ -1,7 +1,12 @@
 import type { Metadata } from "next";
 import { LogOut } from "lucide-react";
 import { HailLogo } from "@/components/HailLogo";
+import { and, eq, isNotNull } from "drizzle-orm";
+import { db } from "@/db/client";
+import { users } from "@/db/schema";
+import { formatDateTime } from "@/components/ui";
 import { requireRole } from "@/lib/auth";
+import { liftSuspensionAction } from "./actions";
 import { signOutAction } from "../sign-in/actions";
 import { ResetDemo } from "./ResetDemo";
 
@@ -9,6 +14,10 @@ export const metadata: Metadata = { title: "Admin" };
 
 export default async function AdminPage() {
   const user = await requireRole("admin");
+  const paused = await db()
+    .select({ id: users.id, name: users.name, at: users.suspendedAt, reason: users.suspendedReason })
+    .from(users)
+    .where(and(eq(users.role, "worker"), isNotNull(users.suspendedAt)));
   return (
     <div className="public-wrap">
       <header className="spread">
@@ -31,6 +40,30 @@ export default async function AdminPage() {
             Restores the demo story: a funded owner, three paid tasks, one blocked attempt, one waiting for approval, one proof to review, and two open tasks, including the espresso machine inspection.
           </p>
           <ResetDemo />
+        </section>
+        <section className="card stack" aria-labelledby="paused-heading">
+          <h2 id="paused-heading">Paused workers</h2>
+          {paused.length === 0 ? (
+            <p className="muted" style={{ margin: 0 }}>
+              No worker accounts are paused.
+            </p>
+          ) : (
+            <ul className="stack-sm" style={{ listStyle: "none", padding: 0, margin: 0 }}>
+              {paused.map((p) => (
+                <li key={p.id} className="spread">
+                  <span>
+                    <strong>{p.name}</strong> — paused {p.at ? formatDateTime(p.at) : ""}. {p.reason}
+                  </span>
+                  <form action={liftSuspensionAction}>
+                    <input type="hidden" name="workerId" value={p.id} />
+                    <button type="submit" className="btn btn-secondary" aria-label={`Lift the pause on ${p.name}`}>
+                      Lift pause
+                    </button>
+                  </form>
+                </li>
+              ))}
+            </ul>
+          )}
         </section>
       </main>
     </div>

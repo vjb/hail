@@ -162,3 +162,12 @@ Decision:
 - Any doubt → owner review, never auto-pay. A confident proof failure still fails. A photo taken without a code is a doubt.
 - Public result gains `checklist_met` and per-item `reason`; `passed` can be `null`, and an owner approval no longer marks items as met. `api.md` says to act on money only when `checklist_met` is true.
 Finding (proof eval, 6 cases from generated and synthetic photos): Claude didn't flag the Gemini-generated photos as generated, nor our synthetic monitor shot as a screen. Without a code, generated photos were auto-passed (G2). With the code rule, 6/6 correct and zero auto-paid fakes. The fresh code carries the weight; image forensics are a bonus. Real-photo cases (R1–R6) wait for the human's photos.
+
+## D-025 — Connect PayPal, unverified accounts, pausing faked proof (2026-10-24)
+Context: D-020 accountability: payouts only to the worker's own PayPal account; fakes have consequences.
+Decision:
+- Connect PayPal via Log in with PayPal (scope `paypalattributes` for verification status and payer ID). One PayPal account per worker, enforced by a unique column. Payouts go to the connected account's email.
+- Behind `PAYPAL_LOGIN_ENABLED` (default off) until the human enables Log in with PayPal on the sandbox app, so nothing breaks before then. Seeded demo workers are connected and verified.
+- Unverified PayPal account → its proof always goes to owner review. We dropped "hold every new worker's first payout": verified PayPal plus a fresh code per photo already raises the cost of cheating, and the hold would slow every first demo task.
+- Owner "Report as not genuine" rejects and pauses the worker (can't claim). The worker can still appeal once; an accepted appeal on that task lifts the pause; an admin can lift it.
+Unverified: the userinfo field names (`payer_id`, `verified_account`, `emails`) come from PayPal's reference pages, not a live call. The parser accepts the likely variants and the callback logs which fields arrived.

@@ -7,6 +7,7 @@ import { bounties, claims, photos, proofChallenges, submissions, users, verifica
 import { DomainError } from "@/domain/bounty/service";
 import { transition } from "@/domain/bounty/state";
 import { newId } from "@/lib/ids";
+import { env } from "@/lib/env";
 import { CHALLENGE, fromNow, scaled, WINDOWS } from "@/lib/time";
 
 // The worker side: browse, claim (with a countdown), capture proof (per-photo quick check with
@@ -69,6 +70,8 @@ export async function activeClaimFor(database: DB, workerId: string) {
 /** Reserves an open bounty for one worker. A worker holds at most one active claim. */
 export async function claimBounty(database: DB, workerId: string, bountyId: string) {
   const worker = await getWorker(database, workerId);
+  if (worker.suspendedAt) throw new DomainError("forbidden", SUSPENDED_MESSAGE);
+  if (env().PAYPAL_LOGIN_ENABLED && !worker.paypalConnectedAt) throw new DomainError("invalid_state", "Connect your PayPal account before claiming a task, so we know where to pay you.");
   if (!worker.paypalEmail) throw new DomainError("invalid_state", "Add your PayPal email before claiming a task, so we know where to pay you.");
   await expireOverdueClaims(database);
   return database.transaction(async (tx) => {
@@ -245,9 +248,35 @@ export async function workerHistory(database: DB, workerId: string) {
   return subs.map((s) => ({ submission: s, bounty: bs.find((b) => b.id === s.bountyId)!, verification: vs.find((v) => v.submissionId === s.id) ?? null }));
 }
 
+export const SUSPENDED_MESSAGE = "Your account is paused because proof you sent was reported as not genuine. You can't claim tasks while it's paused. If you think this is a mistake, appeal that task's decision.";
+
 export async function setPayPalEmail(database: DB, workerId: string, email: string) {
   await getWorker(database, workerId);
+  if (env().PAYPAL_LOGIN_ENABLED) throw new DomainError("invalid_state", "Connect your PayPal account instead, so payouts go to an account that's yours.");
   await database.update(users).set({ paypalEmail: email }).where(eq(users.id, workerId));
+}
+
+/**
+ * Saves the PayPal account the worker just connected (Log in with PayPal). One PayPal account per
+ * worker: connecting an account that's already on another worker is refused. Payouts go to its email.
+ */
+export async function connectPayPal(database: DB, workerId: string, profile: { payerId: string | null; email: string | null; verified: boolean | null }) {
+  await getWorker(database, workerId);
+  if (!profile.payerId || !profile.email) throw new DomainError("invalid_request", "PayPal didn't share your account details. Try connecting again and allow access.");
+  const [other] = await database.select({ id: users.id }).from(users).where(eq(users.paypalPayerId, profile.payerId));
+  if (other && other.id !== workerId) throw new DomainError("invalid_state", "This PayPal account is already connected to another Hail worker. Each worker needs their own PayPal account.");
+  try {
+    await database
+      .update(users)
+      .set({ paypalPayerId: profile.payerId, paypalEmail: profile.email, paypalVerified: profile.verified, paypalConnectedAt: new Date() })
+      .where(eq(users.id, workerId));
+  } catch (e) {
+    if ((e as { code?: string }).code === "23505" || /unique/i.test(String((e as Error).message))) {
+      throw new DomainError("invalid_state", "This PayPal account is already connected to another Hail worker. Each worker needs their own PayPal account.");
+    }
+    throw e;
+  }
+  return { verified: profile.verified };
 }
 
 export async function readPhoto(database: DB, photoId: string) {
