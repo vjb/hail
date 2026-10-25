@@ -142,7 +142,7 @@ export async function issueChallenge(database: DB, workerId: string, claimId: st
 }
 
 /** Marks the challenge used, once. Throws a worker-facing error if it's wrong, used or too old. */
-async function useChallenge(database: DB, claimId: string, slot: number, challengeId: string, now = new Date()) {
+async function consumeChallenge(database: DB, claimId: string, slot: number, challengeId: string, now = new Date()) {
   const [c] = await database.select().from(proofChallenges).where(eq(proofChallenges.id, challengeId));
   if (!c || c.claimId !== claimId || c.slot !== slot) throw new DomainError("invalid_request", "That photo code isn't for this photo. Get a new code and take the photo again.");
   if (c.usedAt) throw new DomainError("invalid_request", "That photo code was already used. Get a new code and take the photo again.");
@@ -172,7 +172,7 @@ export async function addProofPhoto(
   const deliverable = bounty.deliverables[slot];
   if (!deliverable || deliverable.type !== "photo") throw new DomainError("invalid_request", "That photo slot doesn't exist for this task.");
   const norm = await normalizePhoto(file);
-  const challenge = await useChallenge(database, claimId, slot, capture.challengeId);
+  const challenge = await consumeChallenge(database, claimId, slot, capture.challengeId);
   const id = newId("ph");
   await database
     .insert(photos)
