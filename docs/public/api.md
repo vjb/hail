@@ -103,14 +103,32 @@ For any `POST`, send a unique `Idempotency-Key` header (any string up to 64 char
 | `claimed` | A worker has reserved it and is working on it. |
 | `verifying` | Proof submitted; Hail is checking it. |
 | `needs_owner_review` | Hail couldn't confidently verify the proof; the owner will decide. |
-| `rejected` | Proof didn't meet the checklist. The bounty may reopen for another worker. |
-| `appealed` | The worker appealed a rejection; the owner will decide. |
+| `rejected` | Proof didn't meet the checklist. The worker has 24 hours to appeal, and nobody else can claim it meanwhile. With no appeal, it goes back to `open` for other workers, or to `expired` if its time has run out. |
+| `appealed` | The worker appealed a rejection; the owner will decide. Accepted → `approved` and then `paid`. Declined → `open` again (or `expired`). If the owner doesn't answer in time, the worker is paid. |
 | `approved` / `paying` | Work accepted; the worker's payout is in progress. |
 | `paid` | Done. `result` is available. |
 | `expired` | Nobody completed it in time. Funds returned to the balance. |
 | `cancelled` | You cancelled it before it was claimed. Funds returned. |
 
 Terminal statuses: `paid`, `blocked`, `rejected_by_owner`, `expired`, `cancelled`.
+
+### Screening
+
+Every bounty has a `screening` object: `decision`, `category` and a plain-language `rationale`.
+
+| `decision` | Resulting status |
+|---|---|
+| `allow` | `open` |
+| `needs_owner_approval` | `pending_approval` |
+| `block` | `blocked` (nothing is set aside) |
+
+`category` says what kind of task Hail judged it to be:
+
+- **Usually allowed:** `item_inspection`, `place_photo`, `business_check`, `stock_or_price_check`, `public_information`, `simple_errand`, `other_allowed`
+- **Usually need approval:** `private_property`, `money_or_valuables`, `third_party_call`, `over_threshold` (reward at or above the owner's approval threshold), `unclear`
+- **Always blocked:** `credential_account_fraud`, `identity_proxying`, `otp_solicitation`, `social_media_manipulation`, `referral_promo_fraud`, `private_individual_recon`, `illegal_dangerous`
+
+An owner can also require approval for categories they haven't allowed, so branch on `decision`, not `category`. New categories may be added; treat unknown values as informational. `no_rule_matched` can appear when the screen found nothing to flag.
 
 ### Create a bounty
 
@@ -120,13 +138,13 @@ Terminal statuses: `paid`, `blocked`, `rejected_by_owner`, `expired`, `cancelled
 |---|---|---|---|
 | `title` | string | yes | ≤ 120 chars |
 | `instructions` | string | yes | ≤ 2,000 chars. Plain, specific instructions for a person. |
-| `deliverables` | array | yes | 1–5 items; `type` is `photo`, `text` or `location` |
-| `acceptance_checklist` | array of strings | yes | 1–8 items. Hail verifies proof against these. Make them observable. |
+| `deliverables` | array of objects | yes | 1–5 items, each `{ "type": "photo" \| "text" \| "location", "description": "..." }`. Both fields are required; `description` is 1–300 chars and tells the person what to capture. |
+| `acceptance_checklist` | array of strings | yes | 1–8 items, each 1–300 chars. Hail verifies proof against these. Make them observable. |
 | `reward_cents` | integer | yes | 100–20,000 ($1–$200) |
 | `expires_in_minutes` | integer | no | 30–10,080; default 1,440 (24 h) |
 | `spots` | integer | no | Must be `1` for now (one person per bounty). Post separate bounties if you need more people. |
-| `location` | object | no | `address` and/or `lat`/`lng`, optional `radius_m` |
-| `product_query` | string | no | e.g. "Example Espresso Machine X1". Hail attaches matching product details so the worker knows what to look for. |
+| `location` | object | no | `address` (≤ 300 chars) and/or both `lat` (−90 to 90) and `lng` (−180 to 180). Optional `radius_m`: 1–50,000 meters, no default. Hail doesn't geocode the address; the bounty returns only the location fields you sent. |
+| `product_query` | string | no | ≤ 200 chars, e.g. "Example Espresso Machine X1". Hail attaches matching product details so the worker knows what to look for. |
 | `callback_url` | string | no | HTTPS URL to receive status events |
 
 Response `201` with the bounty object. The bounty's status will be `open`, `pending_approval` or `blocked`.
@@ -173,6 +191,9 @@ Only possible while `open` or `pending_approval`. Once a worker has claimed it, 
 ```json
 { "available_cents": 17500, "held_cents": 2500, "daily_cap_cents": 10000, "spent_today_cents": 2500 }
 ```
+
+- `available_cents` and `held_cents` are your owner's whole balance, shared by all their keys.
+- `daily_cap_cents` and `spent_today_cents` are for **this key**. `spent_today_cents` is money this key has committed today (bounties set aside or paid), not money paid out. A bounty that is cancelled, expires or is declined by the owner stops counting. Blocked bounties never count. The day resets at midnight UTC.
 
 Only the owner can add funds, in the dashboard.
 
@@ -233,7 +254,15 @@ Connect any MCP client to `https://<host>/api/mcp` (Streamable HTTP) with the sa
 | `cancel_bounty` | `{ id }` |
 | `get_balance` | no input |
 
-Tool results are the same JSON as the REST API.
+Tool results are the same JSON as the REST API. Each tool's input schema includes the same limits as the REST fields (for example `reward_cents` 100–20,000).
+
+**Errors over MCP.** A failed call still returns a normal MCP result, with `isError: true` and the REST error JSON as its text content:
+
+```json
+{ "isError": true, "content": [{ "type": "text", "text": "{\"error\":{\"code\":\"rate_limited\",\"message\":\"Too many requests. ... Try again in 42 seconds.\"}}" }] }
+```
+
+There's no HTTP status or `Retry-After` header per tool call, so branch on `error.code`. For `rate_limited`, the `message` says which limit applied and, for the per-minute limit, how many seconds to wait. Owner limits (daily cap, bounties per hour, open bounties) won't clear in seconds; stop posting and check `get_balance`.
 
 ## Tips for agents
 - Write instructions a stranger can follow in one visit. One task per bounty.

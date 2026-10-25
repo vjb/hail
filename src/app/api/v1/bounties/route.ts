@@ -1,8 +1,7 @@
 import { db } from "@/db/client";
-import { bountyStatusEnum } from "@/db/schema";
 import { createBounty, getBountyForOwner, listBountiesForOwner } from "@/domain/bounty/service";
 import type { BountyStatus } from "@/domain/bounty/state";
-import { createBountySchema, firstIssue, toCreateInput } from "@/domain/bounty/validation";
+import { createBountySchema, firstIssue, LIMITS, PUBLIC_STATUSES, toCreateInput } from "@/domain/bounty/validation";
 import { isSafeCallbackUrl } from "@/domain/callbacks/callbacks";
 import { ApiError, apiJson, authenticate, decodeCursor, encodeCursor, handler, readJson, serializeBounty, withIdempotency } from "@/lib/api";
 
@@ -21,16 +20,14 @@ export const POST = handler(async (req: Request) => {
   });
 });
 
-const PUBLIC_STATUSES = bountyStatusEnum.enumValues.filter((s) => s !== "created" && s !== "screening");
-
 export const GET = handler(async (req: Request) => {
   const key = await authenticate(req);
   const url = new URL(req.url);
   const status = url.searchParams.get("status") ?? undefined;
   if (status && !(PUBLIC_STATUSES as string[]).includes(status)) throw new ApiError("invalid_request", `status must be one of: ${PUBLIC_STATUSES.join(", ")}`);
   const limitRaw = url.searchParams.get("limit");
-  const limit = limitRaw === null ? 20 : Number(limitRaw);
-  if (!Number.isInteger(limit) || limit < 1 || limit > 100) throw new ApiError("invalid_request", "limit must be an integer from 1 to 100");
+  const limit = limitRaw === null ? LIMITS.list.default : Number(limitRaw);
+  if (!Number.isInteger(limit) || limit < LIMITS.list.min || limit > LIMITS.list.max) throw new ApiError("invalid_request", "limit must be an integer from 1 to 100");
   const cursorRaw = url.searchParams.get("cursor");
   const cursor = cursorRaw ? decodeCursor(cursorRaw) : undefined;
   const { rows, more } = await listBountiesForOwner(db(), key.ownerId, { status: status as BountyStatus | undefined, limit, cursor });
