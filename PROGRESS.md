@@ -306,4 +306,4 @@ Gate evidence:
 
 **Next without the human:** next Gemini rounds when the human starts them; Day 9 control room from Nov 1. Before judging, undo test-period changes (build plan "Undo test-period changes").
 
-**Local:** dev server `npx next dev -p 3000` (restart after schema or native-module changes; never `next build` while it runs). Automation Chrome: port 9333, profile `C:/Users/vjbel/AppData/Local/hail-setup-chrome` (PayPal, Render, Gemini signed in).
+**Local:** dev server `npx next dev -p 3000` (restart after schema or native-module changes; never `next build` while it runs). Automation Chrome: port 9333, a separate local Chrome profile (PayPal, Render, Gemini signed in).

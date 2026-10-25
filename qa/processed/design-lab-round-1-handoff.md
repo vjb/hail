@@ -1,7 +1,7 @@
 # Hail Design Lab — Master AI Engineering Handoff & Action Plan
 
 > **For Master AI / Engineering Agents:**  
-> This directory contains the complete Round 1 visual design, mobile responsiveness, and resilience audit for **Hail** ([DESIGN_LAB_ROUND1.md](file:///c:/Users/vjbel/hacks/agents-hire-humans/hail-gemini/5-design-lab/DESIGN_LAB_ROUND1.md)), along with 10 visual evidence screenshots (`DL-1-01.png` through `DL-1-10.png`).  
+> This directory contains the complete Round 1 visual design, mobile responsiveness, and resilience audit for **Hail** ([DESIGN_LAB_ROUND1.md](DESIGN_LAB_ROUND1.md)), along with 10 visual evidence screenshots (`DL-1-01.png` through `DL-1-10.png`).  
 > 
 > Use this document as your primary implementation specification. After executing these changes, the Design Lab will re-verify the live site and produce `DESIGN_LAB_ROUND2.md`.
 
@@ -28,7 +28,7 @@
 
 ### Priority 1: Resilient Offline & Network Drop Handling [DL-1-02]
 * **Severity:** Critical
-* **Visual Evidence:** [DL-1-02.png](file:///c:/Users/vjbel/hacks/agents-hire-humans/hail-gemini/5-design-lab/DL-1-02.png)
+* **Visual Evidence:** [DL-1-02.png](DL-1-02.png)
 * **Affected Routes:** `/work/tasks/:id`, `/work`, and all worker auto-polling routes.
 * **Problem:** When an operator loses cell connectivity in the field (subways, basements, elevators), background auto-polling triggers unhandled fetch errors, causing Next.js to navigate to Chrome's `ERR_INTERNET_DISCONNECTED` dinosaur screen and destroying active worker state.
 * **Required Implementation:**
@@ -42,7 +42,7 @@
 
 ### Priority 2: Fix Mobile Sticky Action Bar Occlusion [DL-1-01]
 * **Severity:** Critical
-* **Visual Evidence:** [DL-1-01.png](file:///c:/Users/vjbel/hacks/agents-hire-humans/hail-gemini/5-design-lab/DL-1-01.png)
+* **Visual Evidence:** [DL-1-01.png](DL-1-01.png)
 * **Affected Routes:** `/work/tasks/:id`
 * **Problem:** On mobile viewports ($360\text{px}$ and $390\text{px}$) and mobile landscape ($844 \times 390\text{px}$), the floating "Claim and reserve" action bar and bottom navigation overlap each other, masking the final task instructions, address/location, and checklist criteria at the bottom of the scroll area.
 * **Required Implementation:**
@@ -54,7 +54,7 @@
 
 ### Priority 3: Responsive Owner Portal Tables [DL-1-03]
 * **Severity:** High
-* **Visual Evidence:** [DL-1-03.png](file:///c:/Users/vjbel/hacks/agents-hire-humans/hail-gemini/5-design-lab/DL-1-03.png)
+* **Visual Evidence:** [DL-1-03.png](DL-1-03.png)
 * **Affected Routes:** `/owner/tasks`, `/owner/keys`, `/owner/balance`
 * **Problem:** Rigid 5–6 column HTML tables fail to adapt to mobile screens, blowing container width out to $408\text{px}$ – $627\text{px}$. This pushes table columns, account balances, and the `Sign out` button completely off-screen on $360\text{px}$ and $390\text{px}$ devices.
 * **Required Implementation:**
@@ -66,7 +66,7 @@
 
 ### Priority 4: Brand Vocabulary Sweep in Public Docs [DL-1-06]
 * **Severity:** Medium
-* **Visual Evidence:** [DL-1-06.png](file:///c:/Users/vjbel/hacks/agents-hire-humans/hail-gemini/5-design-lab/DL-1-06.png)
+* **Visual Evidence:** [DL-1-06.png](DL-1-06.png)
 * **Affected Routes:** `/docs/api`, `/docs/*`
 * **Problem:** The API documentation repeatedly refers to tasks as `"bounty"` and `"bounties"`, contradicting core brand rules.
 * **Required Implementation:**
@@ -78,7 +78,7 @@
 
 ### Priority 5: Hide Next.js DevTools Overlay in Mobile Layout [DL-1-05]
 * **Severity:** High
-* **Visual Evidence:** [DL-1-05.png](file:///c:/Users/vjbel/hacks/agents-hire-humans/hail-gemini/5-design-lab/DL-1-05.png)
+* **Visual Evidence:** [DL-1-05.png](DL-1-05.png)
 * **Affected Routes:** Global mobile navigation layout.
 * **Problem:** A floating Next.js `"N"` development indicator rests in the bottom-left corner, physically overlapping the `"Tasks"` tab on the mobile navigation bar and impeding touch targets.
 * **Required Implementation:**
@@ -89,7 +89,7 @@
 
 ### Priority 6: 1-Click Demo Credentials & README Alignment [DL-1-09]
 * **Severity:** Medium
-* **Visual Evidence:** [DL-1-09.png](file:///c:/Users/vjbel/hacks/agents-hire-humans/hail-gemini/5-design-lab/DL-1-09.png)
+* **Visual Evidence:** [DL-1-09.png](DL-1-09.png)
 * **Affected Routes:** `/auth/signin`, root `README.md`
 * **Problem:** The helper text directs evaluators to demo credentials in the repository `README.md`, but the current README has a placeholder saying credentials will be added prior to submission.
 * **Required Implementation:**
@@ -104,7 +104,7 @@
 
 ### Priority 7: Task Card Payout Hierarchy & Alignment [DL-1-08]
 * **Severity:** Medium
-* **Visual Evidence:** [DL-1-08.png](file:///c:/Users/vjbel/hacks/agents-hire-humans/hail-gemini/5-design-lab/DL-1-08.png)
+* **Visual Evidence:** [DL-1-08.png](DL-1-08.png)
 * **Affected Routes:** `/work` (Task Feed)
 * **Problem:** Payout badges render inconsistently across cards (some inline right, some wrapping left). On compact screens, the reward amount lacks primary visual dominance over task title text.
 * **Required Implementation:**
@@ -116,7 +116,7 @@
 
 ### Priority 8: Payout Email Input Truncation [DL-1-07]
 * **Severity:** Medium
-* **Visual Evidence:** [DL-1-07.png](file:///c:/Users/vjbel/hacks/agents-hire-humans/hail-gemini/5-design-lab/DL-1-07.png)
+* **Visual Evidence:** [DL-1-07.png](DL-1-07.png)
 * **Affected Routes:** `/work/settings`
 * **Problem:** The PayPal payout email input field visually truncates standard $35+$ character email addresses on $390\text{px}$ screens without horizontal text scroll or elastic expansion.
 * **Required Implementation:**
@@ -127,7 +127,7 @@
 
 ### Priority 9: Accessibility & String Interpolation Fixes [DL-1-10]
 * **Severity:** Low / Accessibility
-* **Visual Evidence:** [DL-1-10.png](file:///c:/Users/vjbel/hacks/agents-hire-humans/hail-gemini/5-design-lab/DL-1-10.png)
+* **Visual Evidence:** [DL-1-10.png](DL-1-10.png)
 * **Affected Routes:** `/owner` (Overview), `/admin`
 * **Required Implementation:**
   1. Fix string interpolation in `/owner` so screen readers parse `"2 tasks need your decision"` instead of `"2tasks need your decision"`.
