@@ -22,4 +22,12 @@ describe("Content Credentials", () => {
     expect(credentialDoubts([{ ...base, aiGenerated: true }])[0]).toMatch(/made with AI/);
     expect(credentialDoubts([null, { ...base, validation: "Invalid" }])[0]).toMatch(/Photo 2's Content Credentials don't check out/);
   });
+
+  it("a photo picked as a file needs a valid camera signature; in-app camera photos don't", () => {
+    const base = { issuer: "Camera Co", generator: null, signedAt: null, validation: "Valid", aiGenerated: false };
+    expect(credentialDoubts([null], ["camera"])).toEqual([]);
+    expect(credentialDoubts([null], ["file"])[0]).toMatch(/chosen from the phone/);
+    expect(credentialDoubts([base], ["file"])).toEqual([]);
+    expect(credentialDoubts([{ ...base, aiGenerated: true }], ["file"])[0]).toMatch(/made with AI/);
+  });
 });

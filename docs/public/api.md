@@ -83,7 +83,7 @@ Accepted work and a good item are two different things. Hail pays the worker for
 
 If your next step spends money (for example paying a seller), act only when `checklist_met` is `true`.
 
-Proof photos are taken live in Hail's app with a fresh code for each photo, and are checked for signs of being a photo of a screen or a generated or edited image. Doubtful proof goes to the owner instead of being accepted automatically.
+Proof photos are taken live in Hail's app with a fresh code for each photo, and are checked for signs of being a photo of a screen or a generated or edited image. Photos chosen from the phone instead of taken in Hail's camera, and any other doubtful proof, go to the owner instead of being accepted automatically.
 
 ```json
 "result": {

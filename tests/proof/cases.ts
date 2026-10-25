@@ -9,11 +9,14 @@
 // Photo sources:
 //   e2e:<name>        e2e/photos (AI-generated sample photos, HH-010) — all of them are fakes here
 //   real:<name>       tests/proof/photos/<name>.jpg — real phone photos, kept out of the public repo
+//   gen:<file>        tests/proof/generated/<file> — Nano Banana (Gemini) images made to look like
+//                     real proof, photo code included (D-029). "-c2pa.png" keeps Google's Content
+//                     Credentials; the .jpg copies are re-saved, as a cheater would, so they carry none.
 //   synth:<kind>:<e2e name>  built at run time from a sample photo (screen = shown on a monitor;
 //                     overlay = the code pasted on digitally)
 
 export type Expect = "pay" | "pay_unmet" | "reject" | "no_autopay";
-export type ProofPhoto = { src: string; label: string; code: string | null };
+export type ProofPhoto = { src: string; label: string; code: string | null; /** How it reached Hail; default "camera" (in-app). Generated files can only arrive as "file". */ source?: "camera" | "file" };
 export type ProofCase = { id: string; note: string; title: string; instructions: string; checklist: string[]; photos: ProofPhoto[]; expect: Expect };
 
 const espresso = {
@@ -26,6 +29,13 @@ const appliance = {
   title: "Check an appliance before purchase",
   instructions: "Photograph the appliance's model and serial label, and the appliance from the front while it's switched on.",
   checklist: ["The model and serial label is legible", "The appliance is visibly switched on"],
+};
+
+
+const usedBike = {
+  title: "Check a used road bike before purchase",
+  instructions: "Meet the seller on the sidewalk. Photograph the frame serial number under the bottom bracket, and the whole bike.",
+  checklist: ["The frame serial number is legible", "The whole bike is visible"],
 };
 
 export const CASES: ProofCase[] = [
@@ -139,6 +149,35 @@ export const CASES: ProofCase[] = [
     ...espresso,
     checklist: [espresso.checklist[0]],
     photos: [{ src: "synth:overlay:good-1", label: "Serial number plate", code: "KTR-482" }],
+    expect: "no_autopay",
+  },
+
+  // --- Nano Banana fakes made to pass: realistic photos with the right code on paper ---
+  {
+    id: "N1",
+    note: "Generated bike serial + whole bike, correct codes, re-saved (no Content Credentials)",
+    ...usedBike,
+    photos: [
+      { source: "file", src: "gen:bike-serial-code.jpg", label: "Frame serial number", code: "KTR-482" },
+      { source: "file", src: "gen:bike-whole-code.jpg", label: "The whole bike", code: "MVD-736" },
+    ],
+    expect: "no_autopay",
+  },
+  {
+    id: "N2",
+    note: "Generated Times Square scout, correct code, re-saved",
+    title: "How busy is Times Square right now?",
+    instructions: "From the red steps at Father Duffy Square, take one wide photo showing the crowd.",
+    checklist: ["The square and its crowd are visible"],
+    photos: [{ source: "file", src: "gen:times-square-code.jpg", label: "Wide photo of the square", code: "HXP-947" }],
+    expect: "no_autopay",
+  },
+  {
+    id: "N3",
+    note: "Generated bike serial straight from Gemini, Content Credentials intact",
+    ...usedBike,
+    checklist: [usedBike.checklist[0]],
+    photos: [{ source: "file", src: "gen:bike-serial-code-c2pa.png", label: "Frame serial number", code: "KTR-482" }],
     expect: "no_autopay",
   },
 ];

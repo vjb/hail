@@ -199,3 +199,8 @@ Not done: distances on the task list (a link card can't hold the check button); 
 - Placeholders: Nano Banana images (used item serial and whole item with a code on paper, Times Square with a code) for development only, labeled as fakes in tests, never in the video.
 - Parallel outside testers: extra demo workers Jordan (design lab) and Riley (proof-fraud red team, after D-028).
 - Considered and dropped for now: short text answers, visible verification stages.
+
+## D-030 — Photos picked as files go to the owner unless camera-signed (2026-10-25)
+Finding (proof eval N1–N3): Nano Banana made realistic proof photos with the right code handwritten "on paper" in about 45 s each, inside the 2-minute code window. Re-saved (no Content Credentials), they were auto-passed by the verifier (codes matched, no screen or editing detected). Straight from Gemini, Google's Content Credentials marked them as AI-made and they went to review.
+Decision: a photo that reaches Hail through the phone's file/camera-app fallback is a doubt (owner review) unless it carries valid, non-AI Content Credentials. Photos taken in Hail's in-page camera are unaffected. The worker is told this on the fallback path. Proof eval: 9/9, zero auto-paid fakes (R1–R6 still wait for real photos).
+Remaining known gap: pointing Hail's camera at a second screen showing a fresh fake. Mitigated by screen detection (weak in our tests), verified PayPal accounts, pausing reported workers, and on-site location for tasks with coordinates. Say so honestly in the pitch: "We red-teamed our own proof with Nano Banana."

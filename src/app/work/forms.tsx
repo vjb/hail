@@ -235,7 +235,7 @@ function PhotoSlot({ claimId, index, label, initial, onChecked }: { claimId: str
           )}
           {camera === "unavailable" && (
             <p role="status" style={{ margin: 0 }}>
-              We couldn&apos;t open the camera here. Use your phone&apos;s camera instead; the same code and time limit apply.
+              We couldn&apos;t open the camera here. Use your phone&apos;s camera instead; the same code and time limit apply, and the task owner checks photos taken this way before you&apos;re paid.
             </p>
           )}
           {camera === "live" && (

@@ -46,12 +46,17 @@ export function proofDoubts(proof: ProofChecks | null, photoCount: number, codeI
   return out;
 }
 
-/** Content Credentials can only add doubt: AI-made by their own account, or changed after signing. */
-export function credentialDoubts(creds: Array<ContentCredentials | null>): string[] {
+/**
+ * Content Credentials and capture path. Credentials add doubt when AI-made or broken. A photo picked as
+ * a file (not taken in Hail's camera) is a doubt unless a valid, non-AI camera signature vouches for it:
+ * the proof eval showed generated photos with the right code on "paper" pass the vision checks (D-030).
+ */
+export function credentialDoubts(creds: Array<ContentCredentials | null>, sources: Array<"camera" | "file" | null> = []): string[] {
   return creds.flatMap((c, i) => {
-    if (!c) return [];
-    if (c.aiGenerated) return [`Photo ${i + 1}'s Content Credentials say it was made with AI.`];
-    if (/invalid/i.test(c.validation)) return [`Photo ${i + 1}'s Content Credentials don't check out: it may have been changed after it was signed.`];
+    const n = `Photo ${i + 1}`;
+    if (c?.aiGenerated) return [`${n}'s Content Credentials say it was made with AI.`];
+    if (c && /invalid/i.test(c.validation)) return [`${n}'s Content Credentials don't check out: it may have been changed after it was signed.`];
+    if (sources[i] === "file" && !c) return [`${n} was chosen from the phone rather than taken in Hail's camera.`];
     return [];
   });
 }
@@ -89,7 +94,7 @@ export function interpret(
         concerns: (value.concerns ?? []).slice(0, 5),
       }
     : null;
-  const doubts = [...proofDoubts(proofChecks, photos.length, photos.map((p) => !!p.code)), ...credentialDoubts(photos.map((p) => p.credentials ?? null)), ...accountDoubts];
+  const doubts = [...proofDoubts(proofChecks, photos.length, photos.map((p) => !!p.code)), ...credentialDoubts(photos.map((p) => p.credentials ?? null), photos.map((p) => p.source)), ...accountDoubts];
   const result = decide(items, checklist, doubts);
   const rationale = result === "uncertain" && doubts.length ? `${value.summary} Sent to the owner because: ${doubts.join(" ")}` : value.summary;
   return { items, proofChecks, result, rationale, doubts };

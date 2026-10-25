@@ -8,5 +8,6 @@ For: the outside developer. A fresh `api.md` is in this folder; these sections c
 | Proof certificate | `result.certificate_url`: a shareable page with the checks and a SHA-256 fingerprint of each photo as the API serves it. | The bounty object → result |
 | Proof photos | Photos are taken live in Hail's app with a fresh code per photo; doubtful proof goes to the owner instead of being accepted automatically. | The bounty object → result |
 | Statuses | `rejected` and `needs_owner_review` descriptions updated. | Statuses |
+| On-site tasks (new) | A bounty with `lat` and `lng` can only be completed by someone who shares their location within its radius (default 150 m, minimum 100 m). The result has `distance_m`. | Bounties → On-site tasks; The bounty object → result |
 
 Then follow `BRIEF_ROUND3.md`.

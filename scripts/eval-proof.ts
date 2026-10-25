@@ -11,6 +11,7 @@ import { ai } from "../src/ai";
 import { VERIFY_PROMPT_VERSION } from "../src/ai/prompts/verification";
 import { interpret } from "../src/domain/verify/verify";
 import { normalizePhoto } from "../src/domain/work/work";
+import { readContentCredentials } from "../src/integrations/c2pa";
 import { CASES, type ProofCase } from "../tests/proof/cases";
 
 const only = process.argv.includes("--only") ? process.argv[process.argv.indexOf("--only") + 1] : null;
@@ -43,6 +44,7 @@ async function overlay(src: Buffer, code: string) {
 async function load(src: string, code: string | null): Promise<Buffer | null> {
   const [kind, a, b] = src.split(":");
   if (kind === "e2e") return e2ePhoto(a);
+  if (kind === "gen") return readFileSync(path.resolve("tests/proof/generated", a));
   if (kind === "real") return existsSync(realPath(a)) ? readFileSync(realPath(a)) : null;
   if (kind === "synth" && a === "screen") return onScreen(e2ePhoto(b));
   if (kind === "synth" && a === "overlay") return overlay(e2ePhoto(b), code ?? "KTR-482");
@@ -54,6 +56,8 @@ type Row = { c: ProofCase; got: string; met: boolean | null; ok: boolean; autoPa
 async function run(c: ProofCase): Promise<Row | "waiting"> {
   const buffers = await Promise.all(c.photos.map((p) => load(p.src, p.code)));
   if (buffers.some((x) => !x)) return "waiting";
+  // As in production: read Content Credentials from the original upload, then re-encode.
+  const creds = await Promise.all(buffers.map((x, i) => readContentCredentials(x!, c.photos[i].src.endsWith(".png") ? "image/png" : "image/jpeg")));
   const norm = await Promise.all(buffers.map((x) => normalizePhoto(x!)));
   const r = await ai().verifyProof({
     bounty: { title: c.title, instructions: c.instructions, acceptanceChecklist: c.checklist, product: null },
@@ -62,12 +66,12 @@ async function run(c: ProofCase): Promise<Row | "waiting"> {
     distanceMeters: null,
   });
   if (!r.ok) return { c, got: "uncertain", met: null, ok: c.expect === "no_autopay", autoPaidFake: false, detail: `AI error: ${r.error}` };
-  const v = interpret(r.value, c.checklist, c.photos.map((p) => ({ code: p.code, source: "camera" })));
+  const v = interpret(r.value, c.checklist, c.photos.map((p, i) => ({ code: p.code, source: p.source ?? "camera", credentials: creds[i] })));
   const met = v.items.every((x) => x.passed === true);
   const ok =
     c.expect === "pay" ? v.result === "pass" && met : c.expect === "pay_unmet" ? v.result === "pass" && !met : c.expect === "reject" ? v.result === "fail" : v.result !== "pass";
   const autoPaidFake = (c.expect === "no_autopay" || c.expect === "reject") && v.result === "pass";
-  const checks = (v.proofChecks?.photos ?? []).map((p) => `code=${p.code}${p.screen ? " SCREEN" : ""}${p.generatedOrEdited ? " GEN/EDIT" : ""}`).join(" | ");
+  const checks = (v.proofChecks?.photos ?? []).map((p) => `code=${p.code}${p.screen ? " SCREEN" : ""}${p.generatedOrEdited ? " GEN/EDIT" : ""}${p.credentials?.aiGenerated ? " C2PA:AI" : ""}`).join(" | ");
   const items = v.items.map((x) => (x.passed === true ? "P" : x.passed === false ? (x.cause === "item" ? "I" : "F") : "?")).join("");
   return { c, got: v.result, met, ok, autoPaidFake, detail: `items=${items} ${checks}${v.doubts.length ? `\n            doubts: ${v.doubts.join(" ")}` : ""}` };
 }
