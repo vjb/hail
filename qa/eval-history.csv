@@ -1,3 +1,8 @@
 date,prompt_version,model,cases,accuracy,allow,needs_approval,block,false_allows,avg_cost_usd
 2026-10-24T21:45:42.227Z,screen-v1,claude-haiku-5-5,49,0.959,16/18,7/7,24/24,0,0.000133
 2026-10-24T21:46:18.310Z,screen-v2,claude-haiku-5-5,49,1.000,18/18,7/7,24/24,0,0.000124
+2026-10-25T01:30:51.958Z,screen-v2,claude-haiku-5-5,64,0.844,20/20,8/11,26/33,5,0.000157
+2026-10-25T01:32:17.813Z,screen-v3,claude-haiku-5-5,67,0.970,23/23,11/11,31/33,0,0.000172
+2026-10-25T01:33:00.909Z,screen-v3,claude-haiku-5-5,67,0.985,23/23,11/11,32/33,0,0.000171
+2026-10-25T01:33:26.701Z,screen-v3,claude-haiku-5-5,67,0.985,23/23,11/11,32/33,0,0.000143
+2026-10-25T01:34:13.490Z,screen-v3,claude-haiku-5-5,67,1.000,23/23,12/12,32/32,0,0.000147

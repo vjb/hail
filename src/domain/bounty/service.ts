@@ -1,7 +1,7 @@
 import { and, desc, eq, gte, inArray, lt, or, sql } from "drizzle-orm";
 import type { DB, Tx } from "@/db/client";
 import { bounties, ledgerEntries, ownerPolicies, screenings, type BountyLocation, type Deliverable } from "@/db/schema";
-import { getBalances, holdForBounty, InsufficientFundsError, releaseBounty } from "@/domain/ledger/ledger";
+import { getBalances, holdForBounty, InsufficientFundsError, lockOwner, releaseBounty } from "@/domain/ledger/ledger";
 import { screenBounty, type ScreenResult } from "@/domain/screening/screen";
 import { findProduct } from "@/integrations/channel3/client";
 import { newId } from "@/lib/ids";
@@ -134,10 +134,22 @@ export async function createBounty(database: DB, ctx: { ownerId: string; apiKeyI
       if (screen.final.decision === "block") {
         return transition(tx, id, "screen_block", "screening", why);
       }
+      // Re-check the key's daily cap under the owner lock: parallel posts all pass the check at the top
+      // while their screening runs, so this is the check that counts (RT-087). This bounty is still
+      // 'screening', so it isn't in spentTodayCents yet.
+      await lockOwner(tx, ctx.ownerId);
+      const spentNow = await spentTodayCents(tx, ctx.apiKeyId);
+      if (spentNow + totalCents > ctx.dailyCapCents) {
+        throw new DomainError("rate_limited", `This key's daily cap is ${fmt(ctx.dailyCapCents)} and ${fmt(spentNow)} has been set aside today.`);
+      }
       await holdForBounty(tx, ctx.ownerId, id, totalCents);
       return transition(tx, id, screen.final.decision === "allow" ? "screen_allow" : "screen_needs_approval", "screening", why);
     });
   } catch (e) {
+    if (e instanceof DomainError && e.code === "rate_limited") {
+      await discardDraft(database, id);
+      throw e;
+    }
     if (e instanceof InsufficientFundsError) {
       await discardDraft(database, id);
       throw new DomainError("insufficient_funds", `Your available balance (${fmt(e.availableCents)}) is less than the reward (${fmt(e.requiredCents)}).`);

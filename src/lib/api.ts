@@ -99,6 +99,8 @@ export async function readJson(req: Request): Promise<unknown> {
   }
 }
 
+const RETRYABLE = new Set<ErrorCode>(["internal_error", "rate_limited", "insufficient_funds"]);
+
 const hashBody = (method: string, path: string, body: unknown) => createHash("sha256").update(`${method} ${path} ${JSON.stringify(body ?? null)}`).digest("hex");
 
 /**
@@ -126,13 +128,14 @@ export async function withIdempotency(req: Request, key: ApiKeyRecord, path: str
   try {
     res = await fn();
   } catch (e) {
-    // Errors other than 5xx are final; 5xx (or a crash) frees the key so a retry can run again.
+    // Errors that can clear on their own (5xx, rate limits, low balance) free the key so a retry with it
+    // runs again (RT-051). Other errors are final and replayed.
     const code = e instanceof ApiError || e instanceof DomainError ? e.code : "internal_error";
-    if (code === "internal_error") await db().delete(idempotencyRecords).where(eq(idempotencyRecords.id, id));
+    if (RETRYABLE.has(code)) await db().delete(idempotencyRecords).where(eq(idempotencyRecords.id, id));
     else await db().update(idempotencyRecords).set({ responseStatus: STATUS[code], responseBody: { error: { code, message: (e as Error).message } } }).where(eq(idempotencyRecords.id, id));
     throw e;
   }
-  if (res.status >= 500) {
+  if (res.status >= 500 || res.status === STATUS.rate_limited || res.status === STATUS.insufficient_funds) {
     await db().delete(idempotencyRecords).where(eq(idempotencyRecords.id, id));
     return res;
   }

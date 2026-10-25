@@ -95,4 +95,24 @@ describe("bounty service", () => {
     expect(await getBalances(db(), ownerId)).toEqual({ availableCents: 7500, heldCents: 2500 });
     spy.mockRestore();
   });
+
+  it("RT-087: parallel posts during screening can't overspend the key's daily cap", async () => {
+    const { ownerId, ctx } = await ownerWith(50_000, 10_000);
+    // Slow screening widens the window between the up-front checks and the hold.
+    const spy = vi.spyOn(screening, "screenBounty").mockImplementation(async () => {
+      await new Promise((r) => setTimeout(r, 300));
+      return { final: { decision: "allow", category: "place_photo", rationale: "Public photo." }, layers: [] };
+    });
+    const results = await Promise.allSettled([1, 2, 3].map(() => createBounty(db(), ctx, input({ rewardCents: 4500 }))));
+    spy.mockRestore();
+    const ok = results.filter((r) => r.status === "fulfilled");
+    const refused = results.filter((r) => r.status === "rejected");
+    expect(ok).toHaveLength(2);
+    expect(refused).toHaveLength(1);
+    expect((refused[0] as PromiseRejectedResult).reason).toMatchObject({ code: "rate_limited" });
+    expect(await getBalances(db(), ownerId)).toEqual({ availableCents: 41_000, heldCents: 9000 });
+    // The refused draft leaves nothing behind.
+    const rows = await db().select().from(bounties).where(eq(bounties.ownerId, ownerId));
+    expect(rows.map((r) => r.status).sort()).toEqual(["open", "open"]);
+  });
 });
