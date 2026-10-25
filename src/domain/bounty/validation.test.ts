@@ -72,6 +72,8 @@ describe("hidden values (D-034)", () => {
     expect(ok({ acceptance_checklist: [{ item: "Serial", expected: "x".repeat(LIMITS.expected + 1) }] })).toBe(false);
     expect(ok({ acceptance_checklist: [{ item: "", expected: "X1" }] })).toBe(false);
     expect(ok({ acceptance_checklist: [{ expected: "X1" }] })).toBe(false);
+    expect(ok({ acceptance_checklist: [{ item: "Serial", expected: "---" }] })).toBe(false);
+    expect(ok({ acceptance_checklist: [{ item: "Serial", expected: "- -" }] })).toBe(false);
   });
 
   it("splits items from hidden values for storage", () => {

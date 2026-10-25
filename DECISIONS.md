@@ -244,3 +244,8 @@ Goal: tester results that can be cited to judges as independent evidence, not ju
 
 ## D-036 — A photo faster than a person can take it is a doubt (2026-10-25)
 From the mock judge's pre-review: a proof certificate showed a photo "2 s after its photo code appeared", which no person can do (write the code on paper, frame the shot, upload). A photo that arrives less than 8 s after its code was issued is now a doubt (owner review), never a block. Also: checklist objects must carry `expected` (FL-13), and `result.deliverables` documents the `location` entry (FL-14).
+
+## D-037 — Red team round 3: screen-v5 (2026-10-25)
+Findings (63 attempts): 20 of 21 round 2 fixes held; hidden values held (harmful text in `expected` blocked or held, nothing leaked). Six new bypasses reached `open`, three by using the public-sign carve-out from screen-v4 (a 6-digit screen called a departure board, a price sign or a "now serving" board).
+Decisions (screen-v5): a task that hinges on a set number of digits being readable on any display is blocked, whatever the display is called; public signs stay allowed when the task asks what they say. Door hinges and pins join locks. A home's house number with its driveway or door is recon. Making a business's screen or device open the poster's content is blocked. Any label on a used router for sale needs approval. `expected` needs a letter or digit (RT-204). Eval 87/87 twice, zero false allows.
+Not code: the three seeded demo certificates still show proof after acceptance (seeded before D-031); a demo reset fixes them (#75).

@@ -162,7 +162,7 @@ An owner can also require approval for categories they haven't allowed, so branc
 | `title` | string | yes | ≤ 120 chars |
 | `instructions` | string | yes | ≤ 2,000 chars. Plain, specific instructions for a person. |
 | `deliverables` | array of objects | yes | 1–5 items, each `{ "type": "photo" \| "text" \| "location", "description": "..." }`. Both fields are required; `description` is 1–300 chars and tells the person what to capture. |
-| `acceptance_checklist` | array | yes | 1–8 items. Each is a string (1–300 chars) or an object `{ "item": "...", "expected": "..." }` with a **hidden value** (`expected`, 1–120 chars). An object needs both fields; one without `expected` is refused rather than treated as a plain item. Hail verifies proof against these. Make them observable. See *Hidden values* under The bounty object. |
+| `acceptance_checklist` | array | yes | 1–8 items. Each is a string (1–300 chars) or an object `{ "item": "...", "expected": "..." }` with a **hidden value** (`expected`, 1–120 chars, at least one letter or digit). An object needs both fields; one without `expected` is refused rather than treated as a plain item. Hail verifies proof against these. Make them observable. See *Hidden values* under The bounty object. |
 | `reward_cents` | integer | yes | 100–20,000 ($1–$200) |
 | `expires_in_minutes` | integer | no | 30–10,080; default 1,440 (24 h) |
 | `spots` | integer | no | Must be `1` for now (one person per bounty). Post separate bounties if you need more people. |

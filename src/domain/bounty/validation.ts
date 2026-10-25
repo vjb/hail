@@ -35,7 +35,13 @@ const deliverable = z.object({
 
 const checklistText = z.string().trim().min(1, "acceptance_checklist items can't be empty").max(LIMITS.itemText, "acceptance_checklist items must be 300 characters or fewer");
 // A hidden value: what the agent knows the item shows (e.g. the listing's serial). Workers never see it (D-034).
-const expectedValue = z.string().trim().min(1, "acceptance_checklist[].expected can't be empty").max(LIMITS.expected, "acceptance_checklist[].expected must be 120 characters or fewer");
+const expectedValue = z
+  .string()
+  .trim()
+  .min(1, "acceptance_checklist[].expected can't be empty")
+  .max(LIMITS.expected, "acceptance_checklist[].expected must be 120 characters or fewer")
+  // Matching ignores case, spaces and dashes, so the value needs something left to match (RT-204).
+  .refine((v) => /[\p{L}\p{N}]/u.test(v), "acceptance_checklist[].expected needs at least one letter or digit");
 
 const httpsUrl = z
   .string()
