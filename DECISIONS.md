@@ -232,3 +232,12 @@ Decision: a checklist item can be `{ item, expected }`. `expected` (≤ 120 char
 Chosen: on a mismatch the owner reviews (D-033); the worker photographs only and never types the value.
 Evidence: proof eval N4. The Nano Banana bike-serial fake, labeled as a camera photo with the right code, would have auto-paid; with a hidden serial it goes to the owner. verify-v3, 10/10, 0 auto-paid fakes.
 Not covered: tasks with no known truth (scouting). Second opinions and random audits are recorded in issue #64 (agents pay for second opinions they request; Hail pays for random audits).
+
+## D-035 — Independent testing protocol (2026-10-25) [HH: chosen by the human]
+Goal: tester results that can be cited to judges as independent evidence, not just bug-finding.
+- Each round = verbatim reruns of earlier findings (objective regression) + targeted retests of release notes + **free exploration** (about 40% of the round) where the tester picks what to attack, with no hints about what changed and no "don't spend time on X".
+- Release notes go only to the retest part.
+- Any "by design" or "won't fix" call stays open with label `needs-signoff` and a one-line reason until the human approves it. Reopened under this rule: #39, #40, #41, #48.
+- Briefs describe goals and success criteria, never internals; each go.md gets a leak check before a round.
+- Known bias to remember: Claude writes the briefs and triages, and the repo is public, so "blind" means "told not to look".
+- agy (Antigravity CLI headless runs): later, after the control room; it saves the human's relay, not independence.
