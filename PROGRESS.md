@@ -301,5 +301,6 @@ Gate evidence:
    - Gemini briefs 3 (UAT) and 5 (design lab) updated for a shared live site: no resets, no admin login, real-length timers marked Blocked, control room Blocked until it exists, design lab gives tasks back instead of submitting. Persona "Sam" renamed "Kai" (the app already shows worker 1 as Sam). Role 6 master synced from the ws6 workspace.
    - HH-009: the human first tested on the local dev server over the LAN (http://192.168…), where JS buttons don't work; redirected to the live URL.
    - **Approved (D-020):** positioning "pay guaranteed, task screened, proof real"; proof you can trust; verify, then pay; Venmo. Spec and build plan updated: work runs Oct 25–31 (build plan "Ahead of schedule"), control room still from Nov 1.
+   - **Venmo spike (Oct 24):** PayPal sandbox rejects `recipient_wallet: Venmo` ("not supported in sandbox"). Venmo is cut (D-021). Next on the D-020 plan: in-app camera capture with a challenge code and a ~2-min window.
    Next without the human: refresh the screenshot manifest and take a run; README pass (setup, env, seeded accounts, how judges run it, license); review per-screen empty states.
 4. The local dev server (port 3000) and the ngrok tunnel run in the background. Restart them if the machine rebooted: `npx next dev -p 3000` and `ngrok http 3000`.

@@ -135,3 +135,8 @@ Decision:
 - Not now: Virtuals ACP on Base (PYUSD isn't confirmed on Base, it needs a testnet and real crypto plumbing, and there's no matching prize). Roadmap slide only.
 Consequences: The spec's non-goal changes from "identity verification" to "our own identity verification": Hail relies on PayPal's. The "Ahead of schedule" section of the build plan holds the work and its gate.
 
+
+## D-021 — Venmo payouts cut: not supported in sandbox (2026-10-24)
+Context: D-020 added Venmo payouts only if a sandbox spike showed they settle.
+Finding: `npm run spike:venmo` sent $1.00 payouts with `recipient_wallet: "Venmo"` to a phone and to a handle. PayPal sandbox rejected both with 400 `VALIDATION_ERROR`, `items[0].recipient_wallet`: "Recipient wallet not supported in sandbox." We never call live endpoints, so Venmo can't be built or demoed.
+Decision: Venmo is cut (first on the cut list anyway). Payouts stay PayPal-only. `createPayout` keeps an optional recipient so the spike stays reproducible; nothing in the product uses it.

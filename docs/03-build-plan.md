@@ -34,15 +34,15 @@ Days 1–8 were finished by Oct 24, so the week the table above gave them is fre
 
 | Date | Work | Human |
 |---|---|---|
-| Sat Oct 25 | Venmo payouts sandbox spike (does it settle?). In-app camera capture with a challenge code and time window. | HH-009 phone test on the live URL |
+| Sat Oct 25 | ~~Venmo payouts sandbox spike~~ done Oct 24: not supported in sandbox, cut (D-021). In-app camera capture with a challenge code and time window. | HH-009 phone test on the live URL |
 | Sun Oct 26 | Verifier integrity checks (challenge code, photographed screen, generated or edited image, same item across photos). Proof eval set: real photos, generated photos, photos of a screen, missing or wrong codes. | Take a few real phone photos for the proof eval set |
 | Mon Oct 27 | Connect PayPal (Log in with PayPal) with account verification status; one PayPal account per worker; suspension; first-payout hold for new workers. | Enable "Log in with PayPal" and the account-verification attribute on the sandbox app (H1) |
-| Tue Oct 28 | Proof certificate page; Content Credentials badge if present. Venmo payout option if the spike passed. | — |
+| Tue Oct 28 | Proof certificate page; Content Credentials badge if present. | — |
 | Wed Oct 29 | Verify, then pay: brief the outside developer (round 3) to pay the seller from the requester agent via PayPal after a verified pass. Hail side: whatever the result needs (certificate link). | Create a sandbox PayPal app for the requester agent (H1) |
 | Thu Oct 30 | Fixes from UAT round 1, red team round 2 and outsider round 2. | — |
 | Fri Oct 31 | Buffer. Pull Day 13–14 polish forward if clear. | — |
 
-**Gate (Oct 31):** on the live URL, a generated photo, a photo of a screen and a photo without the challenge code each end in owner review or rejection, never auto-pay; a real photo with the code passes; a verified PayPal worker gets paid (and via Venmo, if it shipped); the requester agent pays the seller only after a verified pass. Proof eval ≥ 90% with zero auto-paid fakes.
+**Gate (Oct 31):** on the live URL, a generated photo, a photo of a screen and a photo without the challenge code each end in owner review or rejection, never auto-pay; a real photo with the code passes; a verified PayPal worker gets paid; the requester agent pays the seller only after a verified pass. Proof eval ≥ 90% with zero auto-paid fakes.
 
 ## Day 1 — Sandbox spike + scaffold (the go/no-go day)
 Everything depends on PayPal sandbox behaving as the architecture assumes. Prove it before building.

@@ -50,7 +50,7 @@ Hail is the trustworthy version, built on PayPal:
 ### Worker web app (mobile-first)
 - Sign in (seeded demo workers), set PayPal payout email. **A worker can't claim until a payout email is set.**
 - **Connect PayPal** (Log in with PayPal) to confirm the payout account is a verified PayPal account. One PayPal account per worker. Verified accounts get a badge; see "Proof you can trust" for what unverified accounts can do.
-- **Payout method**: PayPal or Venmo (US). Venmo is added only if a sandbox spike shows it settles.
+- **Payout method**: PayPal. (Venmo was considered; PayPal sandbox doesn't support Venmo payouts, so it's out — D-021.)
 - **Open bounties** list: title, reward, location/distance (if any), expiry.
 - **Bounty detail**: instructions, "what to capture" checklist, product context (image/specs) when the bounty references a product, and a visible **"Pay set aside"** badge showing the reward is already funded.
 - **Claim** (a claim reserves the bounty for a limited time with a visible countdown, then it reopens and the worker is told). Other workers no longer see it as available.

@@ -179,6 +179,11 @@ export type PayoutBatch = {
   }>;
 };
 
+/** Where a payout lands. PayPal by email (default), or a Venmo phone (+1…) or @handle. */
+export type PayoutRecipient =
+  | { wallet: "PAYPAL"; email: string }
+  | { wallet: "VENMO"; type: "PHONE" | "USER_HANDLE"; receiver: string };
+
 /** POST /v1/payments/payouts — one item. `senderBatchId` is the idempotency key (PayPal rejects reuse for 30 days). */
 export function createPayout(input: {
   senderBatchId: string;
@@ -187,15 +192,20 @@ export function createPayout(input: {
   amountCents: number;
   note: string;
   subject: string;
+  recipient?: PayoutRecipient;
 }) {
+  const r = input.recipient ?? { wallet: "PAYPAL", email: input.receiverEmail };
+  const recipient =
+    r.wallet === "VENMO"
+      ? { recipient_type: r.type, recipient_wallet: "Venmo", receiver: r.receiver }
+      : { recipient_type: "EMAIL", receiver: r.email };
   return call<PayoutBatch>("POST", "/v1/payments/payouts", {
     requestId: input.senderBatchId,
     body: {
-      sender_batch_header: { sender_batch_id: input.senderBatchId, email_subject: input.subject, recipient_type: "EMAIL" },
+      sender_batch_header: { sender_batch_id: input.senderBatchId, email_subject: input.subject },
       items: [
         {
-          recipient_type: "EMAIL",
-          receiver: input.receiverEmail,
+          ...recipient,
           amount: { currency: "USD", value: centsToValue(input.amountCents) },
           note: input.note,
           sender_item_id: input.senderItemId,
