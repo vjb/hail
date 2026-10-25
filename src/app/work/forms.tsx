@@ -37,7 +37,7 @@ export function PayPalEmailForm({ current }: { current: string }) {
       {current && (
         // The full address, so a long one is never cut off at the input's edge (DL-1-07).
         <p style={{ margin: 0, overflowWrap: "anywhere" }}>
-          Paying to: <strong>{current}</strong>
+          Paying to: <strong className="wrap-anywhere">{current}</strong>
         </p>
       )}
       <div className="field">
@@ -84,7 +84,7 @@ function PhotoSlot({ claimId, index, label, initial, onChecked }: { claimId: str
   const [challenge, setChallenge] = useState<Challenge | null>(null);
   const [left, setLeft] = useState(0);
   const [starting, setStarting] = useState(false);
-  const [camera, setCamera] = useState<"off" | "starting" | "live" | "unavailable">("off");
+  const [camera, setCamera] = useState<"off" | "starting" | "waiting" | "live" | "unavailable">("off");
   const [problem, setProblem] = useState<string | null>(null);
   const input = useRef<HTMLInputElement>(null);
   const video = useRef<HTMLVideoElement>(null);
@@ -124,11 +124,15 @@ function PhotoSlot({ claimId, index, label, initial, onChecked }: { claimId: str
   async function openCamera() {
     if (!navigator.mediaDevices?.getUserMedia) return setCamera("unavailable");
     setCamera("starting");
+    // A permission prompt nobody answers never resolves: stop spinning and point at the fallback (DL-2-07).
+    const slow = setTimeout(() => setCamera((c) => (c === "starting" ? "waiting" : c)), 3000);
     try {
       stream.current = await navigator.mediaDevices.getUserMedia({ video: { facingMode: { ideal: "environment" }, width: { ideal: 1920 }, height: { ideal: 1440 } }, audio: false });
       setCamera("live");
     } catch {
       setCamera("unavailable");
+    } finally {
+      clearTimeout(slow);
     }
   }
 
@@ -232,6 +236,11 @@ function PhotoSlot({ claimId, index, label, initial, onChecked }: { claimId: str
             <div role="status" className="row muted">
               <LoaderCircle aria-hidden="true" width={18} className="spin" /> Opening the camera…
             </div>
+          )}
+          {camera === "waiting" && (
+            <p role="status" style={{ margin: 0 }}>
+              Allow camera access if your phone asks. If nothing happens, use your phone&apos;s camera below; the same code and time limit apply.
+            </p>
           )}
           {camera === "unavailable" && (
             <p role="status" style={{ margin: 0 }}>

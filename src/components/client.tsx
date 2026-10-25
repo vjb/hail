@@ -4,7 +4,7 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState, useSyncExternalStore, type ReactNode } from "react";
 import { distanceMeters } from "@/lib/geo";
-import { ClipboardCheck, ClipboardList, Gauge, Inbox, KeyRound, LayoutDashboard, ListTodo, SlidersHorizontal, Wallet } from "lucide-react";
+import { ClipboardCheck, ClipboardList, Copy, Gauge, Inbox, KeyRound, LayoutDashboard, ListTodo, SlidersHorizontal, Wallet } from "lucide-react";
 
 const NAV_ICONS = { ClipboardCheck, ClipboardList, Gauge, Inbox, KeyRound, LayoutDashboard, ListTodo, SlidersHorizontal, Wallet };
 export type NavIcon = keyof typeof NAV_ICONS;
@@ -83,12 +83,23 @@ export function OfflineNotice() {
   const offline = useSyncExternalStore(subscribeOnline, () => !online(), () => false);
   useEffect(() => {
     const back = () => router.refresh();
+    // Sending a form offline would land on the browser's error page (DL-2-06): stop it and point at the notice.
+    const hold = (e: SubmitEvent) => {
+      if (online()) return;
+      e.preventDefault();
+      e.stopPropagation();
+      document.getElementById("offline-notice")?.focus();
+    };
     window.addEventListener("online", back);
-    return () => window.removeEventListener("online", back);
+    document.addEventListener("submit", hold, true);
+    return () => {
+      window.removeEventListener("online", back);
+      document.removeEventListener("submit", hold, true);
+    };
   }, [router]);
   if (!offline) return null;
   return (
-    <p role="status" className="offline-notice">
+    <p role="status" id="offline-notice" tabIndex={-1} className="offline-notice">
       You&apos;re offline. Your reservation and anything you&apos;ve entered are kept here; we&apos;ll update when you&apos;re back online.
     </p>
   );
@@ -134,6 +145,28 @@ export function DistanceToTask({ lat, lng }: { lat: number; lng: number }) {
       }}
     >
       {state.busy ? "Checking…" : "How far am I?"}
+    </button>
+  );
+}
+
+// ---------- Copy this page's link ----------
+export function CopyPageLink({ label = "Copy link" }: { label?: string }) {
+  const [copied, setCopied] = useState(false);
+  return (
+    <button
+      type="button"
+      className="btn btn-secondary"
+      onClick={async () => {
+        try {
+          await navigator.clipboard.writeText(window.location.href);
+          setCopied(true);
+          setTimeout(() => setCopied(false), 2500);
+        } catch {
+          // Clipboard blocked: the address bar still has the link.
+        }
+      }}
+    >
+      <Copy aria-hidden="true" width={16} /> <span aria-live="polite">{copied ? "Link copied" : label}</span>
     </button>
   );
 }

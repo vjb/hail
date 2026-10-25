@@ -88,11 +88,15 @@ export default async function TaskDetail({ params }: PageProps<"/owner/tasks/[id
             <h2 id="proof" style={{ margin: 0 }}>
               {b.status === "needs_owner_review" ? "Proof to review" : "Proof"}
             </h2>
-            {proof.verification && (
-              <span className={`pill pill-${proof.verification.result === "pass" ? "paid" : proof.verification.result === "fail" ? "blocked" : "review"}`}>
-                {proof.verification.result === "pass" ? "Verified" : proof.verification.result === "fail" ? "Not met" : "Unclear"}
-              </span>
-            )}
+            {proof.verification &&
+              (proof.verification.result !== "pass" && ["approved", "paying", "paid"].includes(b.status) ? (
+                // Accepted after review or appeal: the verifier's doubt is history, not the outcome (DL-2-02).
+                <span className="pill pill-paid">Accepted after review</span>
+              ) : (
+                <span className={`pill pill-${proof.verification.result === "pass" ? "paid" : proof.verification.result === "fail" ? "blocked" : "review"}`}>
+                  {proof.verification.result === "pass" ? "Verified" : proof.verification.result === "fail" ? "Not met" : "Unclear"}
+                </span>
+              ))}
           </div>
           <ProofView
             photoIds={proof.submission.photoIds}

@@ -44,6 +44,7 @@ export function ApproveButtons({ bountyId, title }: { bountyId: string; title: s
 
 export function ReviewButtons({ bountyId, title }: { bountyId: string; title: string }) {
   const [state, action, pending] = useActionState(reviewAction, {});
+  const [confirmFake, setConfirmFake] = useState(false);
   const router = useRouter();
   useEffect(() => {
     if (!state.ok) return;
@@ -66,10 +67,28 @@ export function ReviewButtons({ bountyId, title }: { bountyId: string; title: st
         <button type="submit" name="decision" value="reject" className="btn btn-danger" disabled={pending} aria-label={`Reject proof: ${title}`}>
           Reject proof
         </button>
-        <button type="submit" name="decision" value="fake" className="btn btn-quiet" disabled={pending} aria-label={`Report proof as not genuine: ${title}`}>
-          Report as not genuine
-        </button>
+        {!confirmFake && (
+          <button type="button" className="btn btn-secondary" disabled={pending} aria-label={`Report proof as not genuine: ${title}`} onClick={() => setConfirmFake(true)}>
+            Report as not genuine…
+          </button>
+        )}
       </div>
+      {confirmFake && (
+        // A report pauses the worker's account, so it takes a second, explained step (DL-2-04).
+        <div className="card card-tight stack-sm" role="group" aria-labelledby={`fake-${bountyId}`} style={{ borderColor: "var(--blocked)" }}>
+          <p id={`fake-${bountyId}`} style={{ margin: 0 }}>
+            <strong>Report this proof as not genuine?</strong> Use this only if you believe the photos were faked, not because they&apos;re unclear. The proof is rejected and the worker&apos;s account is paused until they appeal this task.
+          </p>
+          <div className="row">
+            <button type="submit" name="decision" value="fake" className="btn btn-danger" disabled={pending}>
+              Report and pause this worker
+            </button>
+            <button type="button" className="btn btn-quiet" disabled={pending} onClick={() => setConfirmFake(false)}>
+              Keep reviewing
+            </button>
+          </div>
+        </div>
+      )}
     </form>
   );
 }

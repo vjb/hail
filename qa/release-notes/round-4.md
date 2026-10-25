@@ -1,6 +1,6 @@
 # Hail release notes — round 4
 
-These notes cover findings from red team round 2, outside developer round 3 and UAT round 1. They describe what you should now see on the live site, not how it was done.
+These notes cover findings from red team round 2, outside developer round 3, UAT round 1 and design lab round 2. They describe what you should now see on the live site, not how it was done.
 
 ## Red team (next round)
 
@@ -36,3 +36,16 @@ These notes cover findings from red team round 2, outside developer round 3 and 
 | UAT-1-03 | By design: the live site runs real-length timers. Mark AC-22 and AC-28 as "Blocked: timer" again. |
 | UAT-1-04 | The camera and report-as-not-genuine checks are done by a person on a real phone. Skip them. |
 | Give-back | After "Give this task back", the task list shows "You gave the task back. It's open for others again." |
+
+## Design lab (round 3)
+
+| Finding | What you'll see now |
+|---|---|
+| DL-2-01 | On the worker account page, a long PayPal email wraps inside the card at 360px and 390px. |
+| DL-2-02 | Per-photo checks on the owner's task page and the certificate show an icon and a word (OK, Check, Flagged), like the checklist. A task accepted after review or appeal shows "Accepted after review", not "Not met". |
+| DL-2-03 | The certificate names no model or prompt version, its photo list lines up with the headings, and it has a "Copy certificate link" button. |
+| DL-2-04 | "Report as not genuine…" opens an explained confirmation ("Report and pause this worker" or "Keep reviewing") before anything happens. |
+| DL-2-05 | The claim bar sits flush on the bottom navigation, with no gap. |
+| DL-2-06 | Sending a form while offline keeps you on the page and moves focus to the offline notice. |
+| DL-2-07 | If the camera doesn't open within a few seconds, the spinner is replaced by a note pointing to "Open my phone's camera". |
+| DL-2-08 | Tables that scroll sideways on a phone show a soft shadow at the edge with more columns. |

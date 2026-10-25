@@ -212,3 +212,6 @@ Decisions:
 - By design, unchanged: wide photos of public streets and public parking bays (RT-119, RT-120); used routers for sale, QR scans and community-board notices go to the owner, not block; override text in a checklist goes to the owner (and the verifier treats checklist text as data).
 - `lat`/`lng` must come together; `radius_m` needs both and is 100–50,000 (api.md updated).
 - Certificates no longer name the verifier; demo history backdates claims, photos, submissions, verifications and payouts with their bounty.
+
+## D-032 — Design lab round 2 fixes (2026-10-25)
+All eight findings fixed; nothing deferred. Notable choices: per-photo checks reuse the checklist's icon + word pattern (OK / Check / Flagged) and are shared by the owner page and the certificate; "Report as not genuine" became a two-step, explained confirmation because it pauses a worker; forms sent offline are held on the page app-wide (one capture-phase submit guard in the offline notice); the camera stops spinning after 3 s without an answer and points to the phone-camera fallback; scrollable tables get CSS-only edge shadows. The certificate gains a copy-link button (small, in scope: it exists to be shared).

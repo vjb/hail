@@ -21,6 +21,14 @@ test("owner pages fit a phone screen; wide tables scroll inside their card", asy
   }
 });
 
+test("worker account fits a small phone, long PayPal email included (DL-2-01)", async ({ browser }) => {
+  const page = await (await browser.newContext({ viewport: { width: 360, height: 640 } })).newPage();
+  await signInAs(page, "worker1");
+  await page.goto("/work/settings");
+  await page.getByRole("heading", { level: 1 }).first().waitFor();
+  await noSidewaysScroll(page);
+});
+
 test("on a phone, the claim button never sits on top of the task details", async ({ browser }) => {
   const page = await (await browser.newContext({ viewport: phone })).newPage();
   await signInAs(page, "worker1");
@@ -63,6 +71,17 @@ test("going offline keeps the worker on the page with a notice", async ({ browse
   await page.waitForTimeout(16_000); // longer than the page's 15 s background refresh
   await expect(page.getByRole("heading", { level: 1 }).first()).toBeVisible();
   expect(new URL(page.url()).pathname).toBe("/work");
+  // DL-2-06: a form sent while offline is held on the page instead of opening the browser's error page.
+  await page.evaluate(() => {
+    const f = document.createElement("form");
+    f.method = "post";
+    f.action = "/work";
+    document.body.appendChild(f);
+    f.requestSubmit();
+  });
+  await page.waitForTimeout(1000);
+  expect(new URL(page.url()).pathname).toBe("/work");
+  await expect(page.getByText("You're offline.")).toBeFocused();
   await context.setOffline(false);
   await expect(page.getByText("You're offline.")).toBeHidden();
 });

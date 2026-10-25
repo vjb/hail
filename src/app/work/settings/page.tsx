@@ -48,7 +48,7 @@ export default async function WorkerSettings({ searchParams }: { searchParams: P
             {w.paypalConnectedAt ? (
               <div className="stack-sm">
                 <p style={{ margin: 0 }}>
-                  Connected: <strong>{w.paypalEmail}</strong>
+                  Connected: <strong className="wrap-anywhere">{w.paypalEmail}</strong>
                 </p>
                 {w.paypalVerified ? (
                   <span className="pill pill-paid">

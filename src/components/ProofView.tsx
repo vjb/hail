@@ -1,3 +1,4 @@
+import { CheckCircle2, CircleHelp, Info, XCircle } from "lucide-react";
 import type { ChecklistResult, ProofChecks } from "@/db/schema";
 import { Checklist, formatDateTime } from "./ui";
 
@@ -73,28 +74,51 @@ export function ProofView({
   );
 }
 
-const CODE_TEXT: Record<ProofChecks["photos"][number]["code"], string> = {
-  matches: "Photo code: matches",
-  missing: "Photo code: not visible",
-  different: "Photo code: wrong code",
-  unreadable: "Photo code: can't be read",
-  not_requested: "Photo code: none issued",
-};
+type Check = ProofChecks["photos"][number];
+type Line = { text: string; state: "pass" | "fail" | "unknown" | "info" };
 
-/** Per-photo proof checks as words, not colors: code, screen, editing, how it was captured. */
-function PhotoChecks({ check }: { check: ProofChecks["photos"][number] }) {
-  const lines = [
-    CODE_TEXT[check.code],
-    check.screen ? "Looks like a photo of a screen" : "Not a photo of a screen",
-    check.generatedOrEdited ? "Signs of generation or editing" : "No signs of editing",
-    check.source === "camera" ? "Taken in Hail's camera" : check.source === "file" ? "Taken with the phone's camera app" : null,
-    credentialsText(check.credentials),
-  ].filter(Boolean);
+const CODE_LINE: Record<Check["code"], Line> = {
+  matches: { text: "Photo code matches", state: "pass" },
+  missing: { text: "Photo code not visible", state: "unknown" },
+  different: { text: "A different photo code is visible", state: "fail" },
+  unreadable: { text: "Photo code can't be read", state: "unknown" },
+  not_requested: { text: "No photo code issued", state: "info" },
+};
+const WORD = { pass: "OK", fail: "Flagged", unknown: "Check", info: "Note" } as const;
+const ICON = { pass: CheckCircle2, fail: XCircle, unknown: CircleHelp, info: Info } as const;
+
+/**
+ * Per-photo proof checks with the checklist's icon and status word, so a red flag never looks like
+ * a passing check: code, screen, editing, how it was captured, Content Credentials.
+ */
+export function PhotoChecks({ check, source, credentials, extra }: { check: Check | null; source?: Check["source"] | null; credentials?: Check["credentials"] | null; extra?: string }) {
+  const src = source ?? check?.source ?? null;
+  const creds = credentials ?? check?.credentials ?? null;
+  const lines: Line[] = [];
+  if (extra) lines.push({ text: extra, state: "info" });
+  if (check) {
+    lines.push(CODE_LINE[check.code]);
+    lines.push(check.screen ? { text: "Looks like a photo of a screen", state: "fail" } : { text: "Not a photo of a screen", state: "pass" });
+    lines.push(check.generatedOrEdited ? { text: "Signs of generation or editing", state: "fail" } : { text: "No signs of generation or editing", state: "pass" });
+  }
+  if (src === "camera") lines.push({ text: "Taken in Hail's in-app camera", state: "pass" });
+  if (src === "file") lines.push({ text: "Taken with the phone's camera app, so the owner checks it", state: "unknown" });
+  const ct = credentialsText(creds);
+  if (ct && creds) lines.push({ text: ct, state: creds.aiGenerated || /invalid/i.test(creds.validation) ? "fail" : "pass" });
   return (
-    <ul style={{ margin: "var(--s-1) 0 0", paddingLeft: "var(--s-4)" }}>
-      {lines.map((l) => (
-        <li key={l}>{l}</li>
-      ))}
+    <ul className="checklist photo-checks">
+      {lines.map((l) => {
+        const Icon = ICON[l.state];
+        return (
+          <li key={l.text}>
+            <Icon aria-hidden="true" className={`check-${l.state}`} />
+            <span>
+              {l.state !== "info" && <strong className={`check-${l.state}`}>{WORD[l.state]}: </strong>}
+              {l.text}
+            </span>
+          </li>
+        );
+      })}
     </ul>
   );
 }

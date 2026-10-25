@@ -561,6 +561,12 @@ img {
 .table-wrap {
   overflow-x: auto;
   max-width: 100%;
+  /* Edge shadows appear only where there's more to scroll to (DL-2-08). */
+  background:
+    linear-gradient(to right, var(--surface) 30%, transparent) left / 32px 100% no-repeat local,
+    linear-gradient(to left, var(--surface) 30%, transparent) right / 32px 100% no-repeat local,
+    linear-gradient(to right, var(--line), transparent) left / 12px 100% no-repeat scroll,
+    linear-gradient(to left, var(--line), transparent) right / 12px 100% no-repeat scroll;
 }
 table.data {
   width: 100%;
@@ -932,7 +938,7 @@ table.data th.num {
    it never sits on top of the task text (DL-1-01). */
 .claim-bar {
   position: sticky;
-  bottom: 72px;
+  bottom: 65px; /* flush with the worker nav: 64px links + 1px border */
   z-index: 5;
   background: var(--paper);
   border-top: 1px solid var(--line);
@@ -956,4 +962,26 @@ table.data th.num {
   background: var(--tint-review);
   color: var(--review-text);
   font-size: var(--text-sm);
+}
+
+/* ---------- Per-photo proof checks ---------- */
+.plain-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.photo-checks {
+  margin-top: var(--s-1);
+  font-size: var(--text-sm);
+  gap: var(--s-1);
+}
+.photo-checks svg {
+  width: 16px;
+  height: 16px;
+}
+.check-info {
+  color: var(--ink-2);
+}
+.wrap-anywhere {
+  overflow-wrap: anywhere;
 }

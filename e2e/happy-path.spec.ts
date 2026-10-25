@@ -63,7 +63,12 @@ test("from agent post to PayPal payout", async ({ browser, request }) => {
   {
     await owner.goto(`/owner/tasks/${created.id}`);
     await expect(owner.getByRole("heading", { name: "Proof to review" })).toBeVisible();
-    await expect(owner.getByText("Photo code: not visible").first()).toBeVisible();
+    await expect(owner.getByText("Photo code not visible").first()).toBeVisible();
+    // DL-2-04: reporting proof as fake takes an explained second step, and can be backed out of.
+    await owner.getByRole("button", { name: `Report proof as not genuine: ${title}` }).click();
+    await expect(owner.getByText("Report this proof as not genuine?")).toBeVisible();
+    await owner.getByRole("button", { name: "Keep reviewing" }).click();
+    await expect(owner.getByText("Report this proof as not genuine?")).toBeHidden();
     await owner.getByRole("button", { name: `Accept proof and pay: ${title}` }).click();
     await expect(owner.getByText("Accepted. The worker is being paid.")).toBeVisible();
   }
@@ -87,6 +92,10 @@ test("from agent post to PayPal payout", async ({ browser, request }) => {
   await expect(owner.getByRole("heading", { name: title })).toBeVisible();
   await expect(owner.getByText(`SHA-256 ${sha}`)).toBeVisible();
   await expect(owner.getByText("Accepted by the task owner after review")).toBeVisible();
+  await expect(owner.getByRole("button", { name: "Copy certificate link" })).toBeVisible();
+  // DL-2-02: once accepted, the owner's task page doesn't contradict the payout.
+  await owner.goto(`/owner/tasks/${created.id}`);
+  await expect(owner.getByText("Accepted after review")).toBeVisible();
 
   await expect(worker.getByRole("heading", { name: "Paid" })).toBeVisible({ timeout: 30_000 });
   await worker.goto("/work/earnings");
