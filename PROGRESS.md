@@ -294,6 +294,7 @@ Gate evidence:
 - **Triaged (59668dd, D-031, issues #31–#50, `qa/release-notes/round-4.md`):** role 1 outside developer round 3, role 2 red team round 2, role 3 UAT round 1. Screen-v4 eval 76/77 with zero false allows; location validation tightened; certificate cleanup; give-back confirmation. Open: #49 (real-phone camera test, human). Release notes still need copying into workspaces 1–3 after the next deploy.
 - **Design lab round 2 triaged** (54600c2, D-032, issues #51–#58, all fixed).
 - **Proof-fraud round 1 triaged** (66d0f89, D-033, issues #59–#63). Open: #63, a fresh AI photo labeled as camera still auto-pays; the recommended trust ramp needs the human's decision.
+- **Hidden values built and deployed** (90f8e24, D-034): checklist `{ item, expected }`; proof eval 10/10, N4 shows a camera-labeled fake caught. Sampling/second-opinion idea is issue #64 (later).
 - **Deployed 2026-10-25** (all commits through 66d0f89 pushed). Release notes and a fresh api.md are in workspaces 1, 2, 3, 5 and 7. No roles running. **Hold deploys until they finish** (deploys restart the site and pollute results); batch fixes. 
 - Later: 4 mock judge and 6 first impressions after the video (~Nov 9–10); full design-lab matrix once more ~Nov 6.
 
