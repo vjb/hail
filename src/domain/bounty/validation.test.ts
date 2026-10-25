@@ -45,9 +45,20 @@ describe("bounty limits match validation", () => {
   });
 
   it("radius", () => {
-    const loc = (radius_m: number) => ({ location: { address: "1 Example Lane", radius_m } });
+    const loc = (radius_m: number) => ({ location: { address: "1 Example Lane", lat: 40.7587, lng: -73.9851, radius_m } });
     expect(ok(loc(LIMITS.radius.min))).toBe(true);
     expect(ok(loc(LIMITS.radius.max))).toBe(true);
     expect(ok(loc(LIMITS.radius.max + 1))).toBe(false);
+    // RT-2-147: the documented 100 m floor is enforced, not silently stored lower.
+    expect(ok(loc(1))).toBe(false);
+    expect(ok(loc(99))).toBe(false);
+  });
+
+  it("location shape (RT-2-149, RT-2-150)", () => {
+    expect(ok({ location: { address: "210 Market St", lat: 39.78 } })).toBe(false);
+    expect(ok({ location: { address: "210 Market St", lng: -89.65 } })).toBe(false);
+    expect(ok({ location: { address: "210 Market St", radius_m: 200 } })).toBe(false);
+    expect(ok({ location: { address: "210 Market St" } })).toBe(true);
+    expect(ok({ location: { lat: 39.78, lng: -89.65 } })).toBe(true);
   });
 });

@@ -83,7 +83,7 @@ export default async function WorkerTaskDetail({ params }: PageProps<"/work/task
         <section className="card card-tight row" aria-labelledby="product" style={{ alignItems: "flex-start" }}>
           {b.product.image_url && (
             // eslint-disable-next-line @next/next/no-img-element
-            <img src={b.product.image_url} alt="" width={88} height={88} style={{ borderRadius: 8, objectFit: "cover", background: "var(--paper)" }} />
+            <img src={b.product.image_url} alt={`Product photo: ${b.product.title}`} width={88} height={88} style={{ borderRadius: 8, objectFit: "cover", background: "var(--paper)" }} />
           )}
           <div className="stack-sm" style={{ flex: 1 }}>
             <h2 id="product" style={{ fontSize: "var(--text-md)", margin: 0 }}>

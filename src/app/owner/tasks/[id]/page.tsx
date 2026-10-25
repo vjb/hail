@@ -145,7 +145,7 @@ export default async function TaskDetail({ params }: PageProps<"/owner/tasks/[id
             <div className="row" style={{ alignItems: "flex-start", background: "var(--paper)", borderRadius: 8, padding: "var(--s-3)" }}>
               {b.product.image_url && (
                 // eslint-disable-next-line @next/next/no-img-element
-                <img src={b.product.image_url} alt="" width={72} height={72} style={{ borderRadius: 8, objectFit: "cover", background: "var(--surface)" }} />
+                <img src={b.product.image_url} alt={`Product photo: ${b.product.title}`} width={72} height={72} style={{ borderRadius: 8, objectFit: "cover", background: "var(--surface)" }} />
               )}
               <div className="stack-sm" style={{ flex: 1 }}>
                 <span className="balance-label">Product reference (from Channel3)</span>

@@ -8,7 +8,8 @@ import { requireRole } from "@/lib/auth";
 
 export const metadata: Metadata = { title: "Tasks near you" };
 
-export default async function WorkerTasks() {
+export default async function WorkerTasks({ searchParams }: { searchParams: Promise<{ returned?: string }> }) {
+  const { returned } = await searchParams;
   const w = await requireRole("worker");
   const [mine, open] = await Promise.all([activeClaimFor(db(), w.id), listOpenBounties(db())]);
   return (
@@ -19,6 +20,11 @@ export default async function WorkerTasks() {
         <h1>Tasks near you</h1>
         <p className="muted">Every task&apos;s pay is set aside before you see it. Claim one, take the photos, and get paid when your proof checks out.</p>
       </div>
+      {returned && !mine && (
+        <p className="badge" role="status">
+          You gave the task back. It&apos;s open for others again.
+        </p>
+      )}
       {!w.paypalEmail && (
         <div className="card card-tight spread" style={{ borderColor: "var(--signal)" }}>
           <span>Add your PayPal email so we can pay you.</span>

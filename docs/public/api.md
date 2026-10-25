@@ -74,14 +74,14 @@ Results that can change on a retry aren't saved: `rate_limited`, `insufficient_f
 }
 ```
 
-`result` is filled in once the work is accepted (status `approved`, `paying` or `paid`). Photo URLs need the same `Authorization` header as the rest of the API.
+`result` is filled in once the work is accepted (status `approved`, `paying` or `paid`). Photo URLs need the same `Authorization` header as the rest of the API. `certificate_url` doesn't (see below).
 
 Accepted work and a good item are two different things. Hail pays the worker for honest, complete proof, including proof that the item **doesn't** match what you hoped. So read the result in two steps:
 
 1. **Was the work accepted?** `verification` is `pass` when Hail verified the proof, or `owner_approved` when the owner accepted it after review. Either way the worker is paid.
 2. **What did the proof show?** `checklist_met` is `true` only when every checklist item was met. Each `checklist` entry has `passed` (`true`, `false`, or `null` when it couldn't be determined, for example after an owner approval of proof Hail couldn't check) and a short `reason`.
 
-If your next step spends money (for example paying a seller), act only when `checklist_met` is `true`.
+If your next step spends money (for example paying a seller), act only when `checklist_met` is `true`. Branch on `checklist_met` itself, not on looking for `passed: false`: an item Hail couldn't confirm (`null`) is not a met item.
 
 Proof photos are taken live in Hail's app with a fresh code for each photo, and are checked for signs of being a photo of a screen or a generated or edited image. Photos chosen from the phone instead of taken in Hail's camera, and any other doubtful proof, go to the owner instead of being accepted automatically.
 
@@ -110,7 +110,7 @@ Proof photos are taken live in Hail's app with a fresh code for each photo, and 
 
 **On-site tasks.** When a bounty has `lat` and `lng`, the worker must share their location when submitting and be within the radius: `radius_m` if you set it, otherwise 150 m, and never less than 100 m. Hail allows for the accuracy the phone reports (up to 200 m), so it refuses only workers who are clearly elsewhere. A bounty with only an `address` has no such check. Use coordinates when being there is the point of the task.
 
-`certificate_url` is a shareable proof certificate: what was checked and how, the checklist results, and a SHA-256 fingerprint of each photo exactly as the API serves it. It shows no photos, no worker identity and no exact location, so you can pass it on (for example to a seller or buyer). Anyone with the link can open it.
+`certificate_url` is a shareable proof certificate: what was checked and how, the checklist results, and a SHA-256 fingerprint of each photo exactly as the API serves it. It shows no photos, no worker identity and no exact location, so you can pass it on (for example to a seller or buyer). Anyone with the link can open it: it's a public page that needs no `Authorization` header.
 
 ### Statuses
 
@@ -163,7 +163,7 @@ An owner can also require approval for categories they haven't allowed, so branc
 | `reward_cents` | integer | yes | 100–20,000 ($1–$200) |
 | `expires_in_minutes` | integer | no | 30–10,080; default 1,440 (24 h) |
 | `spots` | integer | no | Must be `1` for now (one person per bounty). Post separate bounties if you need more people. |
-| `location` | object | no | `address` (≤ 300 chars) and/or both `lat` (−90 to 90) and `lng` (−180 to 180). Optional `radius_m`: 1–50,000 meters. Hail doesn't geocode the address; the bounty returns only the location fields you sent. **With `lat` and `lng`, the task is on-site only** (see below). |
+| `location` | object | no | `address` (≤ 300 chars) and/or both `lat` (−90 to 90) and `lng` (−180 to 180); `lat` and `lng` are always sent together. Optional `radius_m`: 100–50,000 meters, only with `lat` and `lng`. Hail doesn't geocode the address; the bounty returns only the location fields you sent. **With `lat` and `lng`, the task is on-site only** (see below). |
 | `product_query` | string | no | ≤ 200 chars, e.g. "Example Espresso Machine X1". Hail attaches matching product details so the worker knows what to look for. |
 | `callback_url` | string | no | HTTPS URL to receive status events |
 

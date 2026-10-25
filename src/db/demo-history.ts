@@ -46,6 +46,12 @@ async function backdate(tx: Tx, bountyId: string, hoursAgo: number) {
   await tx.execute(sql`update screenings set created_at = created_at - ${shift} where bounty_id = ${bountyId}`);
   await tx.execute(sql`update ledger_entries set created_at = created_at - ${shift} where bounty_id = ${bountyId}`);
   await tx.execute(sql`update bounties set created_at = created_at - ${shift}, updated_at = updated_at - ${shift} where id = ${bountyId}`);
+  // The work itself moves too, so certificates and timelines never show proof after its acceptance.
+  await tx.execute(sql`update claims set claimed_at = claimed_at - ${shift}, expires_at = expires_at - ${shift} where bounty_id = ${bountyId}`);
+  await tx.execute(sql`update photos set created_at = created_at - ${shift} where claim_id in (select id from claims where bounty_id = ${bountyId})`);
+  await tx.execute(sql`update verifications set created_at = created_at - ${shift} where submission_id in (select id from submissions where bounty_id = ${bountyId})`);
+  await tx.execute(sql`update submissions set created_at = created_at - ${shift} where bounty_id = ${bountyId}`);
+  await tx.execute(sql`update payouts set created_at = created_at - ${shift}, updated_at = updated_at - ${shift} where bounty_id = ${bountyId}`);
 }
 
 /** Adds the demo story to a freshly seeded database. */

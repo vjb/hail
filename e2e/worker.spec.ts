@@ -50,6 +50,8 @@ test("a worker claims a task on a phone and submits two photos", async ({ page, 
   if (await giveBack.isVisible().catch(() => false)) {
     await giveBack.click();
     await expect(giveBack).toBeHidden({ timeout: 15_000 });
+    // UAT-1: the confirmation stays visible on the task list.
+    await expect(page.getByText("You gave the task back.")).toBeVisible();
   }
 
   await page.goto("/work");

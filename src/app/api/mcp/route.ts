@@ -58,7 +58,7 @@ function buildServer(auth: string) {
         location: z
           .object({ address: str(L.address).optional(), lat: z.number().meta({ minimum: -90, maximum: 90 }).optional(), lng: z.number().meta({ minimum: -180, maximum: 180 }).optional(), radius_m: int(L.radius.min, L.radius.max).optional() })
           .optional()
-          .describe("Where the task happens: an address and/or both lat and lng. radius_m is optional, with no default."),
+          .describe("Where the task happens: an address and/or both lat and lng (always together). radius_m (100-50000) applies only with lat and lng; default 150."),
         product_query: str(L.productQuery, 1).optional().describe("Product name to attach reference details, e.g. 'Example Espresso Machine X1'"),
         callback_url: str(L.url).meta({ format: "uri", pattern: "^https://" }).optional().describe("HTTPS URL that receives status-change events"),
         idempotency_key: str(L.idempotencyKey).optional().describe("Any unique string (max 64 chars); repeating it returns the original bounty instead of creating a duplicate"),

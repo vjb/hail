@@ -57,8 +57,6 @@ export async function loadCertificate(database: DB, bountyId: string) {
     checklistMet: items.length > 0 && items.every((x) => x.passed === true),
     items,
     summary: v?.rationale ?? null,
-    model: v?.model ?? null,
-    promptVersion: v?.promptVersion ?? null,
     photos: ordered.map((p, i) => {
       const ch = challenges.find((c) => c.id === p.challengeId);
       return {

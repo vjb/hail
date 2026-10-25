@@ -15,7 +15,7 @@ export const LIMITS = {
   reward: { min: 100, max: 20000 },
   expires: { min: 30, max: 10080, default: 1440 },
   address: 300,
-  radius: { min: 1, max: 50_000 },
+  radius: { min: 100, max: 50_000 },
   productQuery: 200,
   url: 2000,
   list: { min: 1, max: 100, default: 20 },
@@ -59,9 +59,16 @@ export const createBountySchema = z.object({
       address: z.string().trim().max(LIMITS.address).optional(),
       lat: z.number().min(-90).max(90).optional(),
       lng: z.number().min(-180).max(180).optional(),
-      radius_m: z.number().int().min(LIMITS.radius.min).max(LIMITS.radius.max).optional(),
+      radius_m: z
+        .number()
+        .int("location.radius_m must be a whole number of meters")
+        .min(LIMITS.radius.min, "location.radius_m must be between 100 and 50000")
+        .max(LIMITS.radius.max, "location.radius_m must be between 100 and 50000")
+        .optional(),
     })
+    .refine((l) => (l.lat === undefined) === (l.lng === undefined), "location.lat and location.lng must be sent together")
     .refine((l) => l.address || (l.lat !== undefined && l.lng !== undefined), "location needs an address or both lat and lng")
+    .refine((l) => l.radius_m === undefined || l.lat !== undefined, "location.radius_m only applies with lat and lng")
     .optional(),
   product_query: z.string().trim().min(1).max(LIMITS.productQuery, "product_query must be 200 characters or fewer").optional(),
   callback_url: httpsUrl.optional(),

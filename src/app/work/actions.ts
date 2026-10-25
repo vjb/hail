@@ -38,7 +38,7 @@ export async function releaseAction(_: WorkState, form: FormData): Promise<WorkS
     return { error: friendly(e) };
   }
   revalidatePath("/work", "layout");
-  return { ok: "You gave the task back. It's open for others again." };
+  redirect("/work?returned=1");
 }
 
 const loc = z.object({ lat: z.number(), lng: z.number(), accuracy_m: z.number().optional() }).nullable();
