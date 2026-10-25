@@ -43,6 +43,7 @@ const fakeVerifier = (passed: Array<boolean | null>, confidence = 0.95): AIProvi
   name: "v",
   screenBounty: async () => ({ ok: true, model: "f", promptVersion: "f", value: { decision: "allow", category: "place_photo", rationale: "ok", confidence: 0.95 } }),
   checkPhoto: async () => ({ ok: true, model: "f", promptVersion: "f", value: { usable: true, problems: [], retake_hint: "" } }),
+  comparePhotos: async () => ({ ok: true, model: "f", promptVersion: "f", value: { matches: [] } }),
   verifyProof: async (input) => ({ ok: true, model: "f", promptVersion: "f", value: { summary: "Checked.", photos: input.photos.map(() => ({ code: "matches" as const, screen: false, generated_or_edited: false })), same_scene: null, concerns: [], checklist: input.bounty.acceptanceChecklist.map((item, i) => ({ item, passed: passed[i] ?? null, reason: "r", confidence })) } }),
 });
 
@@ -257,7 +258,7 @@ describe("proof certificate", () => {
 });
 
 describe("doubts Hail sees without the model (D-033)", () => {
-  async function postAndSubmit(photo: Buffer, opts: { location?: { lat: number; lng: number; radius_m?: number }; at?: { lat: number; lng: number; accuracy_m?: number } } = {}) {
+  async function postAndSubmit(photo: Buffer, opts: { location?: { lat: number; lng: number; radius_m?: number }; at?: { lat: number; lng: number; accuracy_m?: number }; worker?: string; provider?: AIProvider } = {}) {
     const ownerId = await makeUser("owner");
     await db().transaction((t) => creditTopup(t, ownerId, 10000, "CAP-" + ownerId));
     const key = await createApiKey(db(), { ownerId, name: "t", dailyCapCents: 100000 });
@@ -271,13 +272,13 @@ describe("doubts Hail sees without the model (D-033)", () => {
       spots: 1,
       location: opts.location ? { address: "Example Square", ...opts.location } : null,
     });
-    const worker = await makeUser("worker", { paypalEmail: "w@example.com" });
+    const worker = opts.worker ?? (await makeUser("worker", { paypalEmail: "w@example.com" }));
     const { claimId } = await claimBounty(db(), worker, b.id);
     await snapProof(db(), worker, claimId, 0, photo);
     const { submissionId } = await submitProof(db(), worker, claimId, { location: opts.at ?? null });
-    setAIProvider(fakeVerifier([true, true]));
+    setAIProvider(opts.provider ?? fakeVerifier([true, true]));
     const r = await verifySubmission(db(), submissionId);
-    return { bountyId: b.id, r };
+    return { bountyId: b.id, r, worker };
   }
 
   it("one base photo reused for another task, with a new code stamped on it, goes to the owner (PF-005)", async () => {
@@ -291,6 +292,32 @@ describe("doubts Hail sees without the model (D-033)", () => {
     expect(second.r?.result).toBe("uncertain");
     expect(second.r?.rationale).toMatch(/same as a photo sent for another task/);
     expect(await status(second.bountyId)).toBe("needs_owner_review");
+  });
+
+  it("a turned or relabeled copy of the worker's own earlier photo goes to the owner (PF-037, D-038)", async () => {
+    let seen: { photos: number; earlier: number } | null = null;
+    const matching: AIProvider = {
+      ...fakeVerifier([true, true]),
+      comparePhotos: async (input) => {
+        seen = { photos: input.photos.length, earlier: input.earlier.length };
+        return { ok: true, model: "f", promptVersion: "f", value: { matches: [{ photo: 1, earlier: 1, shared_details: "same torn paper and casing" }] } };
+      },
+    };
+    const first = await postAndSubmit(await uniquePhoto());
+    expect(first.r?.result).toBe("pass");
+    const second = await postAndSubmit(await uniquePhoto(), { worker: first.worker, provider: matching });
+    expect(seen).toEqual({ photos: 1, earlier: 1 });
+    expect(second.r?.result).toBe("uncertain");
+    expect(second.r?.rationale).toMatch(/made from a photo this worker sent for another task/);
+    expect(await status(second.bountyId)).toBe("needs_owner_review");
+  });
+
+  it("if the reuse check can't run, the proof goes to the owner", async () => {
+    const first = await postAndSubmit(await uniquePhoto());
+    const down: AIProvider = { ...fakeVerifier([true, true]), comparePhotos: async () => ({ ok: false, error: "down", model: "f", promptVersion: "f" }) };
+    const second = await postAndSubmit(await uniquePhoto(), { worker: first.worker, provider: down });
+    expect(second.r?.result).toBe("uncertain");
+    expect(second.r?.rationale).toMatch(/couldn't check whether these photos were reused/);
   });
 
   it("inside the area only thanks to poor GPS accuracy goes to the owner (PF-007)", async () => {

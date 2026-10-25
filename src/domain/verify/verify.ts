@@ -111,12 +111,14 @@ type BountyRow = typeof bounties.$inferSelect;
 type PhotoRow = typeof photos.$inferSelect;
 
 /**
- * Doubts Hail can see without the model (D-033): a photo that matches one sent for another task,
- * a photo flagged as unusable when it was taken, and a location inside the task area only thanks
- * to the phone's own accuracy estimate.
+ * Doubts outside the main verdict (D-033, D-038): a photo that matches one sent for another task (by
+ * fingerprint, or by the model comparing it with the worker's latest photos), a photo flagged as
+ * unusable when it was taken, and a location inside the task area only thanks to the phone's own
+ * accuracy estimate.
  */
 export async function submissionDoubts(database: DB, s: SubmissionRow, b: BountyRow, ordered: PhotoRow[]) {
   const doubts: string[] = [];
+  const flagged = new Set<number>();
   const chIds = ordered.map((p) => p.challengeId).filter((x): x is string => !!x);
   const issued = chIds.length ? await database.select({ id: proofChallenges.id, issuedAt: proofChallenges.issuedAt }).from(proofChallenges).where(inArray(proofChallenges.id, chIds)) : [];
   for (const [i, p] of ordered.entries()) {
@@ -138,13 +140,34 @@ export async function submissionDoubts(database: DB, s: SubmissionRow, b: Bounty
         ),
       )
       .limit(1);
-    if (same.length) doubts.push(`Photo ${i + 1} looks the same as a photo sent for another task.`);
+    if (same.length) {
+      flagged.add(i);
+      doubts.push(`Photo ${i + 1} looks the same as a photo sent for another task.`);
+    }
+  }
+  // Turned, cropped or relabeled copies slip past the fingerprint (proof-fraud round 2), so the model
+  // compares these photos with the worker's own latest photos for other tasks.
+  const earlier = await database
+    .select({ bytes: photos.bytes })
+    .from(photos)
+    .where(and(eq(photos.ownerUserId, s.workerId), isNotNull(photos.claimId), ne(photos.claimId, s.claimId)))
+    .orderBy(desc(photos.createdAt))
+    .limit(EARLIER_PHOTOS_COMPARED);
+  if (earlier.length && ordered.length) {
+    const r = await ai().comparePhotos({ photos: ordered.map((p) => p.bytes.toString("base64")), earlier: earlier.map((e) => e.bytes.toString("base64")) }, { bountyId: b.id, submissionId: s.id });
+    if (!r.ok) doubts.push("Hail couldn't check whether these photos were reused from the worker's other tasks.");
+    else
+      for (const i of [...new Set(r.value.matches.map((m) => m.photo - 1))].filter((i) => i >= 0 && i < ordered.length && !flagged.has(i)).sort((x, y) => x - y))
+        doubts.push(`Photo ${i + 1} looks made from a photo this worker sent for another task (turned, cropped or edited).`);
   }
   const loc = checkLocation(b.location, s.location);
   if (loc.required && loc.shared && loc.ok && loc.distanceM > loc.radiusM)
     doubts.push(`The phone placed the worker ${loc.distanceM} m away, inside the ${loc.radiusM} m area only after allowing for poor location accuracy.`);
   return doubts;
 }
+
+/** How many of the worker's latest photos for other tasks the reuse check compares against. */
+export const EARLIER_PHOTOS_COMPARED = 6;
 
 /** Less time than this between a photo code appearing and the photo arriving is a doubt (judge pre-review). */
 export const MIN_HUMAN_CAPTURE_MS = 8_000;

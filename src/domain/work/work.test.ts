@@ -97,6 +97,7 @@ describe("worker flow", () => {
       screenBounty: async () => ({ ok: true, model: "f", promptVersion: "f", value: { decision: "allow", category: "place_photo", rationale: "ok", confidence: 0.95 } }),
       checkPhoto: async () => ({ ok: true, model: "f", promptVersion: "f", value: { usable: false, problems: ["sign is blurry"], retake_hint: "Hold still and tap to focus." } }),
       verifyProof: async () => ({ ok: false, error: "n/a", model: "f", promptVersion: "f" }),
+      comparePhotos: async () => ({ ok: false, error: "n/a", model: "f", promptVersion: "f" }),
     });
     const r = await snapProof(db(), w, claimId, 0, await jpeg());
     expect(r.check.usable).toBe(false);

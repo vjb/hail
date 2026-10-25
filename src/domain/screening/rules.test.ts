@@ -4,7 +4,7 @@ import { CASES } from "../../../tests/screening/cases";
 import { applyRules } from "./rules";
 import { screenBounty } from "./screen";
 
-const noPhoto = { checkPhoto: async () => ({ ok: false as const, error: "n/a", model: "f", promptVersion: "f" }), verifyProof: async () => ({ ok: false as const, error: "n/a", model: "f", promptVersion: "f" }) };
+const noPhoto = { checkPhoto: async () => ({ ok: false as const, error: "n/a", model: "f", promptVersion: "f" }), verifyProof: async () => ({ ok: false as const, error: "n/a", model: "f", promptVersion: "f" }), comparePhotos: async () => ({ ok: false as const, error: "n/a", model: "f", promptVersion: "f" }) };
 const textOf = (c: (typeof CASES)[number]) => [c.title, c.instructions, ...(c.deliverables ?? []).map((d) => d.description), ...(c.checklist ?? [])].join("\n");
 
 describe("screening rules layer", () => {

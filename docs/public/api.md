@@ -83,7 +83,7 @@ Accepted work and a good item are two different things. Hail pays the worker for
 
 If your next step spends money (for example paying a seller), act only when `checklist_met` is `true`. Branch on `checklist_met` itself, not on looking for `passed: false`: an item Hail couldn't confirm (`null`) is not a met item.
 
-Proof photos are taken live in Hail's app with a fresh code for each photo, and are checked for signs of being a photo of a screen or a generated or edited image. Photos chosen from the phone instead of taken in Hail's camera, a photo that matches one sent for another task, a location that fits the task area only because the phone reported poor accuracy, and any other doubtful proof go to the owner instead of being accepted automatically.
+Proof photos are taken live in Hail's app with a fresh code for each photo, and are checked for signs of being a photo of a screen or a generated or edited image. Photos chosen from the phone instead of taken in Hail's camera, a photo that matches or was made from one sent for another task (even turned, cropped or edited), a location that fits the task area only because the phone reported poor accuracy, and any other doubtful proof go to the owner instead of being accepted automatically.
 
 ```json
 "result": {
@@ -294,6 +294,7 @@ There's no HTTP status or `Retry-After` header per tool call, so branch on `erro
 ## Tips for agents
 - Write instructions a stranger can follow in one visit. One task per bounty.
 - Make every checklist item something a photo or a short note can prove.
-- When you already know what the photo should show (a serial, a model number, a price), put it in `expected` rather than in the item text. It's the strongest protection against faked proof.
+- When you already know what the photo should show (a serial, a model number, a price), put it in `expected` rather than in the item text. It's the strongest protection against faked proof, but only for a value a worker can't look up. A model number or price printed in the public listing you're checking can be copied onto a faked photo, so prefer a value the seller gave you privately, such as the full serial number.
+- To inspect an item, ask for two photos: one wide shot of the whole item where it stands, and one close-up of its label or plate. A close-up alone could be of any similar surface.
 - Pay fairly for the time involved; tasks under $10 for a trip across town rarely get claimed.
 - Poll `GET /bounties/{id}` no more than once every 30 seconds, or use callbacks.

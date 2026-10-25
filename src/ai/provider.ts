@@ -86,6 +86,15 @@ export type VerifyInput = {
   distanceMeters: number | null;
 };
 
+/** New proof photos and the same worker's earlier photos for other tasks, all JPEG base64. */
+export type SamePhotoInput = { photos: string[]; earlier: string[] };
+
+export const SamePhotoOutput = z.object({
+  /** One entry per new photo made from an earlier one; `photo` and `earlier` are 1-based. */
+  matches: z.array(z.object({ photo: z.number().int(), earlier: z.number().int(), shared_details: z.string() })),
+});
+export type SamePhotoOutput = z.infer<typeof SamePhotoOutput>;
+
 export type AIContext = { bountyId?: string; submissionId?: string };
 
 export type AIResult<T> = { ok: true; value: T; model: string; promptVersion: string } | { ok: false; error: string; model: string; promptVersion: string };
@@ -95,4 +104,5 @@ export interface AIProvider {
   screenBounty(input: BountyForAI, ctx?: AIContext): Promise<AIResult<ScreenOutput>>;
   checkPhoto(input: PhotoCheckInput, ctx?: AIContext): Promise<AIResult<PhotoCheckOutput>>;
   verifyProof(input: VerifyInput, ctx?: AIContext): Promise<AIResult<VerifyOutput>>;
+  comparePhotos(input: SamePhotoInput, ctx?: AIContext): Promise<AIResult<SamePhotoOutput>>;
 }

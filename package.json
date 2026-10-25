@@ -21,6 +21,7 @@
     "art:export": "tsx scripts/export-art.tsx",
     "eval:screening": "tsx --env-file=.env scripts/eval-screening.ts",
     "eval:proof": "tsx --env-file=.env scripts/eval-proof.ts",
+    "eval:reuse": "tsx --env-file=.env scripts/eval-reuse.ts",
     "mcp:smoke": "tsx scripts/mcp-smoke.ts",
     "payout:check": "tsx --env-file=.env scripts/payout-check.ts",
     "sweep:loop": "node --env-file-if-exists=.env scripts/sweep-loop.mjs"

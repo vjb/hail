@@ -3,9 +3,10 @@ import { zodOutputFormat } from "@anthropic-ai/sdk/helpers/zod";
 import type { z } from "zod";
 import { env } from "@/lib/env";
 import { PHOTO_CHECK_PROMPT_VERSION, PHOTO_CHECK_SYSTEM } from "./prompts/photo-check";
+import { SAME_PHOTO_PROMPT_VERSION, SAME_PHOTO_SYSTEM } from "./prompts/same-photo";
 import { SCREEN_PROMPT_VERSION, SCREEN_SYSTEM } from "./prompts/screening";
 import { VERIFY_PROMPT_VERSION, VERIFY_SYSTEM } from "./prompts/verification";
-import { PhotoCheckOutput, ScreenOutput, VerifyOutput, type AIContext, type AIProvider, type AIResult, type BountyForAI, type PhotoCheckInput, type VerifyInput } from "./provider";
+import { PhotoCheckOutput, SamePhotoOutput, ScreenOutput, VerifyOutput, type AIContext, type AIProvider, type AIResult, type BountyForAI, type PhotoCheckInput, type SamePhotoInput, type VerifyInput } from "./provider";
 import { recordAICall } from "./telemetry";
 
 // Claude implementation of AIProvider. Model IDs come from env; prompts are versioned files.
@@ -14,7 +15,7 @@ let client: Anthropic | undefined;
 const anthropic = () => (client ??= new Anthropic({ apiKey: env().ANTHROPIC_API_KEY || undefined, maxRetries: 2, timeout: 60_000 }));
 
 type Call<T> = {
-  purpose: "screen" | "verify" | "photo_check" | "ops";
+  purpose: "screen" | "verify" | "photo_check" | "reuse" | "ops";
   model: string;
   promptVersion: string;
   system: string;
@@ -146,6 +147,29 @@ Check every acceptance checklist item, in order, then the proof checks for every
       outcome: (v) =>
         v.checklist.map((x) => (x.passed === true ? "P" : x.passed === false ? (x.cause === "item" ? "I" : "F") : "?")).join("") +
         (v.photos ?? []).map((p) => (p.code === "matches" || p.code === "not_requested") && !p.screen && !p.generated_or_edited ? "+" : "!").join(""),
+    });
+  }
+
+  comparePhotos(input: SamePhotoInput, ctx?: AIContext) {
+    const content: Anthropic.ContentBlockParam[] = [];
+    const add = (label: string, base64: string) => {
+      content.push({ type: "text", text: label });
+      content.push({ type: "image", source: { type: "base64", media_type: "image/jpeg", data: base64 } });
+    };
+    input.earlier.forEach((b, i) => add(`EARLIER photo ${i + 1}:`, b));
+    input.photos.forEach((b, i) => add(`NEW photo ${i + 1}:`, b));
+    content.push({ type: "text", text: "Was any NEW photo made from one of the EARLIER photos? List only real matches; an empty list is the usual answer." });
+    return structured({
+      purpose: "reuse",
+      model: env().AI_MODEL_VERIFY,
+      promptVersion: SAME_PHOTO_PROMPT_VERSION,
+      system: SAME_PHOTO_SYSTEM,
+      content,
+      schema: SamePhotoOutput,
+      maxTokens: 3000,
+      effort: "high",
+      ctx,
+      outcome: (v) => (v.matches.length ? `match:${v.matches.length}` : "none"),
     });
   }
 }
