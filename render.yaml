@@ -74,6 +74,14 @@ services:
         sync: false
       - key: DEMO_WORKER2_PAYPAL_EMAIL
         sync: false
+      - key: DEMO_WORKER3_EMAIL
+        sync: false
+      - key: DEMO_WORKER3_PASSWORD
+        sync: false
+      - key: DEMO_WORKER4_EMAIL
+        sync: false
+      - key: DEMO_WORKER4_PASSWORD
+        sync: false
       - key: DEMO_ADMIN_EMAIL
         sync: false
       - key: DEMO_ADMIN_PASSWORD

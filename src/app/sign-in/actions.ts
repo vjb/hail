@@ -34,6 +34,8 @@ const DEMO_ACCOUNTS = {
   owner: ["DEMO_OWNER_EMAIL", "DEMO_OWNER_PASSWORD"],
   worker1: ["DEMO_WORKER1_EMAIL", "DEMO_WORKER1_PASSWORD"],
   worker2: ["DEMO_WORKER2_EMAIL", "DEMO_WORKER2_PASSWORD"],
+  worker3: ["DEMO_WORKER3_EMAIL", "DEMO_WORKER3_PASSWORD"],
+  worker4: ["DEMO_WORKER4_EMAIL", "DEMO_WORKER4_PASSWORD"],
 } as const;
 
 export async function demoSignInAction(form: FormData) {

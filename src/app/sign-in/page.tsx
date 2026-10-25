@@ -45,6 +45,16 @@ export default async function SignInPage({ searchParams }: PageProps<"/sign-in">
               <button type="submit" name="account" value="worker2" className="btn btn-secondary btn-block">
                 Worker: Alex
               </button>
+              {process.env.DEMO_WORKER3_EMAIL && (
+                <button type="submit" name="account" value="worker3" className="btn btn-secondary btn-block">
+                  Worker: Jordan
+                </button>
+              )}
+              {process.env.DEMO_WORKER4_EMAIL && (
+                <button type="submit" name="account" value="worker4" className="btn btn-secondary btn-block">
+                  Worker: Riley
+                </button>
+              )}
             </form>
           </section>
         )}

@@ -6,13 +6,17 @@ import { createApiKey } from "@/domain/keys/keys";
 import { newId } from "@/lib/ids";
 import { seedHistory } from "./demo-history";
 
-type Account = { role: "owner" | "worker" | "admin"; name: string; emailVar: string; passwordVar: string; paypalVar?: string };
+type Account = { role: "owner" | "worker" | "admin"; name: string; emailVar: string; passwordVar: string; paypalVar?: string; optional?: boolean };
 
 const ACCOUNTS: Account[] = [
   { role: "owner", name: "Dana (demo owner)", emailVar: "DEMO_OWNER_EMAIL", passwordVar: "DEMO_OWNER_PASSWORD" },
   { role: "worker", name: "Sam (demo worker)", emailVar: "DEMO_WORKER1_EMAIL", passwordVar: "DEMO_WORKER1_PASSWORD", paypalVar: "DEMO_WORKER1_PAYPAL_EMAIL" },
   { role: "worker", name: "Alex (demo worker)", emailVar: "DEMO_WORKER2_EMAIL", passwordVar: "DEMO_WORKER2_PASSWORD", paypalVar: "DEMO_WORKER2_PAYPAL_EMAIL" },
   { role: "admin", name: "Hail admin", emailVar: "DEMO_ADMIN_EMAIL", passwordVar: "DEMO_ADMIN_PASSWORD" },
+  // Extra workers so parallel outside testers don't share a reservation. Skipped when not configured;
+  // they're paid to worker 1's sandbox PayPal account unless given their own.
+  { role: "worker", name: "Jordan (demo worker)", emailVar: "DEMO_WORKER3_EMAIL", passwordVar: "DEMO_WORKER3_PASSWORD", paypalVar: "DEMO_WORKER1_PAYPAL_EMAIL", optional: true },
+  { role: "worker", name: "Riley (demo worker)", emailVar: "DEMO_WORKER4_EMAIL", passwordVar: "DEMO_WORKER4_PASSWORD", paypalVar: "DEMO_WORKER1_PAYPAL_EMAIL", optional: true },
 ];
 
 /** Every table, children first. Used by reset. */
@@ -52,7 +56,10 @@ export async function seedBase(database: DB, envVars: NodeJS.ProcessEnv = proces
   for (const a of ACCOUNTS) {
     const email = envVars[a.emailVar]?.trim().toLowerCase();
     const password = envVars[a.passwordVar];
-    if (!email || !password) throw new Error(`${a.emailVar} and ${a.passwordVar} must be set`);
+    if (!email || !password) {
+      if (a.optional) continue;
+      throw new Error(`${a.emailVar} and ${a.passwordVar} must be set`);
+    }
     const hash = await bcrypt.hash(password, 10);
     const paypalEmail = a.paypalVar ? envVars[a.paypalVar]?.trim() || null : null;
     // Demo workers arrive with PayPal already connected and verified (their sandbox account), and
