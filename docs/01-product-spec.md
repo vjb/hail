@@ -3,6 +3,8 @@
 ## One line
 **When your agent hits a wall, it hails a human.** Hail lets AI agents post funded, safety-screened bounties for real-world tasks, and pays the humans who complete them through PayPal.
 
+**Positioning:** Hail is how an AI agent safely spends money on the real world: **the pay is guaranteed, the task is screened, and the proof is real.** Others proved agents want to hire humans; Hail makes it safe to say yes.
+
 ## The problem
 AI agents increasingly need things done in the physical world: check that an item for sale exists and works, photograph a storefront, confirm a business is open, make a phone call. Platforms where agents hire humans already exist (RentAHuman.ai launched Feb 2026 and signed up 40,000+ workers in days), but early evidence shows they're unsafe for workers and easy to abuse:
 
@@ -20,6 +22,8 @@ Hail is the trustworthy version, built on PayPal:
 3. **Verified completion.** Workers submit proof (photo, text, location). An AI verifier checks it against the bounty's own acceptance checklist and explains its decision.
 4. **Paid the PayPal way.** Approved work is paid out through PayPal Payouts to the worker's email. Normal people already have that.
 5. **Worker protections.** If the owner ignores a submission past the review window, the worker is paid automatically. Rejections can be appealed.
+6. **Proof you can trust.** No photo is unfakeable, so Hail makes cheating cost more than the task pays and puts a name on it: payouts go only to verified PayPal accounts, proof is captured in the app with a fresh challenge, and anything suspicious goes to the owner instead of being paid automatically.
+7. **Verify, then pay.** An agent buying something in the physical world pays the seller through PayPal only after Hail confirms the item is real and matches.
 
 ## Users
 
@@ -45,10 +49,12 @@ Hail is the trustworthy version, built on PayPal:
 
 ### Worker web app (mobile-first)
 - Sign in (seeded demo workers), set PayPal payout email. **A worker can't claim until a payout email is set.**
+- **Connect PayPal** (Log in with PayPal) to confirm the payout account is a verified PayPal account. One PayPal account per worker. Verified accounts get a badge; see "Proof you can trust" for what unverified accounts can do.
+- **Payout method**: PayPal or Venmo (US). Venmo is added only if a sandbox spike shows it settles.
 - **Open bounties** list: title, reward, location/distance (if any), expiry.
 - **Bounty detail**: instructions, "what to capture" checklist, product context (image/specs) when the bounty references a product, and a visible **"Pay set aside"** badge showing the reward is already funded.
 - **Claim** (a claim reserves the bounty for a limited time with a visible countdown, then it reopens and the worker is told). Other workers no longer see it as available.
-- **Submit proof**: photo upload (camera on mobile), notes, optional location; upload progress and confirmation.
+- **Submit proof**: in-app camera capture with a fresh challenge code (see "Proof you can trust"), notes, optional location; upload progress and confirmation.
 - **Status**: updates live without a manual refresh (polling is fine): verifying → approved → paid, or rejected with the unmet checklist items and reasons plus an appeal button (one appeal).
 - **Earnings**: payouts and their PayPal status, with a correct total.
 
@@ -72,6 +78,18 @@ Hail is the trustworthy version, built on PayPal:
 - **Channel3 enrichment**: if a bounty includes a product reference or product query, Hail attaches normalized product data (image, title, price, specs) so the worker knows exactly what to inspect and the verifier has a reference.
 - **Timers**: claim expiry; bounty expiry (unclaimed → reward released back to owner); owner review window (silence → auto-approve and pay the worker).
 
+### Proof you can trust (added 2026-10-24, D-020)
+Goal: cheating costs more than the task pays, and has a name attached. Never claim proof is unfakeable.
+- **In-app capture with a challenge.** Opening the camera shows a fresh short code to write on paper and include beside the item. The photo must be taken within a short window (about 2 minutes) of the code appearing. Where a bounty asks for it, more than one angle.
+- **Verifier integrity checks.** The verifier also judges: challenge code present and correct, signs of a photographed screen, signs of a generated or edited image, and whether the photos look like the same item and place. Any doubt → `uncertain` → owner review, never auto-pay.
+- **Accountability.** Payouts go only to the worker's own connected PayPal account. A worker whose proof is found fake is suspended. New workers' first payouts may be held for a short review.
+- **Content Credentials as a bonus.** If a photo carries a camera signature (C2PA), show a "camera-verified" badge. Never required.
+- **Proof certificate.** Each paid result has a shareable page: photo fingerprints, time, approximate place, checklist verdicts and the verifier's reasoning.
+- Each of these changes the public contract only where `api.md` says so (e.g. new fields in `result`).
+
+### Verify, then pay (added 2026-10-24, D-020)
+The demo's requester agent (built by the outside developer from public docs) pays the seller through PayPal only after the bounty is `paid` with verification `pass` and the checklist confirms the item. Hail exposes what the agent needs (the verified result and proof certificate); the payment to the seller happens in the agent, with its own sandbox PayPal account.
+
 ## Safety policy
 
 **Always blocked** (the six abuse classes from the study, plus basics):
@@ -91,7 +109,7 @@ Hail is the trustworthy version, built on PayPal:
 **Rate limits**: per API key, max bounties per hour and the per-day spending cap.
 
 ## Non-goals (for the hackathon)
-Real identity verification of workers, real-money payments, worker background checks, taxes/1099s, native mobile apps, multi-currency, worker-to-worker messaging, bidding.
+Our own identity verification of workers (Hail relies on PayPal's account verification instead), real-money payments, worker background checks, taxes/1099s, native mobile apps, multi-currency, worker-to-worker messaging, bidding.
 
 ## What "done" looks like for the demo
-A judge watching the 3-minute video sees: an agent built by a different AI from public docs alone hailing a human; escrow locked before posting; a malicious bounty blocked with a clear reason; a worker on a phone completing the task; an AI verifying the photo; a PayPal payout landing; and a control room answering a plain-English question with a live widget.
+A judge watching the 3-minute video sees: an agent built by a different AI from public docs alone hailing a human; escrow locked before posting; a malicious bounty blocked with a clear reason; a worker on a phone completing the task; an AI verifying the photo, including the proof challenge; a PayPal payout landing; the agent paying the seller through PayPal only after verification; and a control room answering a plain-English question with a live widget.

@@ -125,3 +125,13 @@ Decision:
 - By design, documented in `api.md`: the approval threshold is per bounty, and the daily cap limits the total (RT-020). Wide photos of busy public places stay allowed, like the food-truck queue case (RT-079). Rearranging store merchandise stays at owner approval (RT-080). Blocked attempts count toward bounties per hour, because each one costs a screening call (quota finding).
 Consequences: Some legitimate tasks near these lines will need owner approval. The guard cases watch for over-blocking. The labels are Hail's policy, not the red team's: RT-083's request was a router for sale (approval), not a live office gateway as the summary said.
 
+## D-020 — Positioning and three additions: proof you can trust, verify then pay, Venmo (2026-10-24) [HH: approved by the human]
+Context: "Agents hire humans" isn't new (RentAHuman, Feb 2026). Hail's edge is trust. One gap: our verifier accepted AI-generated sample photos as real, so a worker could fake proof today.
+Decision:
+- Positioning: "the pay is guaranteed, the task is screened, and the proof is real." Address RentAHuman directly in the pitch.
+- Proof you can trust: no photo is unfakeable on the web, so the goal is that cheating costs more than the task pays and has a name attached. In-app capture with a fresh challenge code and time window, verifier integrity checks that send any doubt to owner review, payouts only to a connected, verified PayPal account (Log in with PayPal's account verification status), one PayPal account per worker, suspension and a first-payout hold. Content Credentials only as a bonus badge. A shareable proof certificate.
+- Verify, then pay: the requester agent pays the seller through PayPal only after a verified pass. It lives in the outside developer's agent, keeping Hail's scope small.
+- Venmo payouts, if a sandbox spike shows they settle.
+- Not now: Virtuals ACP on Base (PYUSD isn't confirmed on Base, it needs a testnet and real crypto plumbing, and there's no matching prize). Roadmap slide only.
+Consequences: The spec's non-goal changes from "identity verification" to "our own identity verification": Hail relies on PayPal's. The "Ahead of schedule" section of the build plan holds the work and its gate.
+
