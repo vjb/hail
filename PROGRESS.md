@@ -295,6 +295,6 @@ Gate evidence:
    - Demo story shows real proof photos (`src/db/demo-photos`); live demo reset works (4.4 s).
    - Rate limits (D-018), documented in `api.md`. Live checks: forged webhook → 401, bad key → documented error, sweep without secret → 404.
    - Loading, error and not-found boundaries for owner, worker and admin areas (`LoadingState` core component).
-   - Gemini roles 1 and 2 staged in `../hail-gemini/` (outside the repo): live keys `gemini-outside-dev` and `gemini-red-team` ($100/day caps) in each `HAIL.env`, fresh `api.md`, requester-agent repo cloned into workspace 1. Live owner topped up $200 (sandbox). **Don't run the demo reset while Gemini is testing: it deletes API keys and balances.**
+   - Gemini roles 1 and 2 staged in `../hail-gemini/` (outside the repo): live keys `gemini-outside-dev` and `gemini-red-team` ($100/day caps) in each `HAIL.env`, fresh `api.md`, requester-agent repo cloned into workspace 1. Live owner topped up $200 (sandbox). **Don't run the demo reset while Gemini is testing: it deletes API keys and balances.** The live owner policy is raised to 100 open / 300 per hour for testing (a reset restores 20 / 30); the Day 19 submission checklist covers undoing it.
    Next without the human: refresh the screenshot manifest and take a run; README pass (setup, env, seeded accounts, how judges run it, license); review per-screen empty states.
 4. The local dev server (port 3000) and the ngrok tunnel run in the background. Restart them if the machine rebooted: `npx next dev -p 3000` and `ngrok http 3000`.

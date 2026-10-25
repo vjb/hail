@@ -155,6 +155,10 @@ Everything depends on PayPal sandbox behaving as the architecture assumes. Prove
 - [ ] Sponsor prize selected: Best Use of AG Grid (uses AG Studio + Studio Agent Framework)
 - [ ] Demo stays live and free through Dec 15, 2026 (end of judging)
 - [ ] AG Studio trial still valid through judging (or confirm with AG Grid on Discord)
+- [ ] Undo test-period changes on the live site:
+  - [ ] Admin → **Reset demo data**. This restores the owner policy defaults (20 open tasks, 30 new tasks per key per hour), which were raised to 100 / 300 on Oct 24 for Gemini testing. It also removes the Gemini API keys and test bounties.
+  - [ ] Revoke the `hail-requester-agent` key in the Claude Console (or let it expire Nov 23)
+  - [ ] Render on paid plans before the free database expires (~Nov 23; D-017)
 
 ## Cut list (in order, if behind)
 1. Withdraw (show balance only)
