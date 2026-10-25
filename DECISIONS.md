@@ -178,3 +178,7 @@ Decision:
 - `/proof/{bounty_id}.{signature}`: HMAC-signed link (unguessable), only for accepted work, `noindex`. Shows the checklist results, how each photo was captured, its photo-code result, proof checks, Content Credentials, the verifier and prompt version, and a SHA-256 of each photo exactly as the API serves it. It never shows photos, the worker's identity or the exact place (rounded to ~1 km). The public result gains `certificate_url` (api.md updated).
 - Content Credentials are read from the original upload with `@contentauth/c2pa-node` 0.9.10 (native module, kept out of the bundle via `serverExternalPackages`) before re-encoding strips them. A valid signature shows as a badge; a manifest that declares the image AI-made, or a signature that doesn't check out, is a doubt (owner review). Never required. In-page camera captures carry none; the phone's camera app path can.
 - Verified with the c2pa-rs sample (signed, valid). The Gemini sample photos carry no manifest as downloaded.
+
+## D-027 — One-tap demo sign-in (2026-10-25) [HH: approved by the human]
+Context: Judges, testers and the human kept typing demo passwords; design lab DL-1-09 (#29).
+Decision: "Try the demo" buttons on /sign-in for the owner and both workers. The server action reads the demo credentials from env and signs in, so no password reaches the browser or the repo (e2e checks the page HTML). The admin account has no button because it can reset the demo. Limited per IP; `DEMO_QUICK_SIGNIN=false` hides it.

@@ -3,6 +3,8 @@ import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { HailLogo } from "@/components/HailLogo";
 import { currentUser, homeFor } from "@/lib/auth";
+import { env } from "@/lib/env";
+import { demoSignInAction } from "./actions";
 import { SignInForm } from "./SignInForm";
 
 export const metadata: Metadata = { title: "Sign in" };
@@ -25,9 +27,27 @@ export default async function SignInPage({ searchParams }: PageProps<"/sign-in">
           </div>
           <SignInForm />
         </div>
-        <p className="muted" style={{ fontSize: "var(--text-sm)" }}>
-          Demo accounts for judges are listed in the project README.
-        </p>
+        {env().DEMO_QUICK_SIGNIN && (
+          <section className="card stack-sm" aria-labelledby="demo-heading">
+            <h2 id="demo-heading" style={{ fontSize: "var(--text-lg)", margin: 0 }}>
+              Try the demo
+            </h2>
+            <p className="muted" style={{ margin: 0, fontSize: "var(--text-sm)" }}>
+              One tap signs you in to a demo account. Everything runs in the PayPal sandbox; no real money moves.
+            </p>
+            <form action={demoSignInAction} className="stack-sm">
+              <button type="submit" name="account" value="owner" className="btn btn-secondary btn-block">
+                Agent owner: Dana
+              </button>
+              <button type="submit" name="account" value="worker1" className="btn btn-secondary btn-block">
+                Worker: Sam
+              </button>
+              <button type="submit" name="account" value="worker2" className="btn btn-secondary btn-block">
+                Worker: Alex
+              </button>
+            </form>
+          </section>
+        )}
       </main>
     </div>
   );

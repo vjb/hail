@@ -7,6 +7,8 @@ const schema = z.object({
   SESSION_SECRET: z.string().min(32),
   SWEEP_SECRET: z.string().min(32),
   DEMO_TIME_SCALE: z.coerce.number().positive().default(1),
+  // One-tap demo sign-in buttons (owner and the two workers, never admin). Set to false to hide them.
+  DEMO_QUICK_SIGNIN: z.enum(["true", "false"]).default("true").transform((v) => v === "true"),
   DATABASE_URL: z.string().min(1),
   PAYPAL_ENV: z.literal("sandbox", { error: "PAYPAL_ENV must be 'sandbox'. Hail never talks to PayPal live." }),
   PAYPAL_CLIENT_ID: z.string().min(1),

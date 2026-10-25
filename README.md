@@ -104,7 +104,7 @@ All settings are environment variables; `.env.example` lists every one. The impo
 
 ## Demo accounts
 
-The hosted demo has an owner, two workers and an admin. Their sign-in details will be listed here for judges before submission.
+The hosted demo has an owner (Dana), two workers (Sam and Alex) and an admin. On the sign-in page, **Try the demo** signs you in to the owner or either worker with one tap; the server looks up the credentials, so no password is published. The admin account (it can reset the demo) has no button; its credentials come from `DEMO_ADMIN_*` env vars. Set `DEMO_QUICK_SIGNIN=false` to hide the buttons.
 
 ## Project docs
 

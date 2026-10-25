@@ -66,3 +66,18 @@ test.describe("sign-in per role", () => {
     await expect(page).toHaveURL(/\/sign-in$/);
   });
 });
+
+test("one-tap demo sign-in, without any password in the page", async ({ page }) => {
+  await page.goto("/sign-in");
+  const html = await page.content();
+  for (const v of ["DEMO_OWNER_PASSWORD", "DEMO_WORKER1_PASSWORD", "DEMO_WORKER2_PASSWORD", "DEMO_ADMIN_PASSWORD"]) {
+    expect(html.includes(process.env[v]!), `${v} must not appear in the page`).toBe(false);
+  }
+  await expect(page.getByRole("button", { name: /admin/i })).toHaveCount(0);
+  await page.getByRole("button", { name: "Worker: Sam" }).click();
+  await expect(page).toHaveURL(/\/work$/);
+  await page.goto("/work/settings");
+  await page.getByRole("button", { name: "Sign out" }).click();
+  await page.getByRole("button", { name: "Agent owner: Dana" }).click();
+  await expect(page).toHaveURL(/\/owner$/);
+});
