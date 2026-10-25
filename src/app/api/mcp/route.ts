@@ -5,7 +5,7 @@ import { GET as getBalance } from "@/app/api/v1/balance/route";
 import { POST as cancelBounty } from "@/app/api/v1/bounties/[id]/cancel/route";
 import { GET as getBounty } from "@/app/api/v1/bounties/[id]/route";
 import { GET as listBounties, POST as createBounty } from "@/app/api/v1/bounties/route";
-import { apiError, authenticate } from "@/lib/api";
+import { ApiError, apiError, authenticate } from "@/lib/api";
 
 // MCP server (Streamable HTTP, stateless). Every tool calls the matching REST handler, so validation,
 // idempotency, limits and error messages are identical to /api/v1. Contract: docs/public/api.md.
@@ -117,8 +117,8 @@ async function handle(req: Request) {
   try {
     await authenticate(req);
   } catch (e) {
-    const err = e as { code?: "unauthorized" | "forbidden"; message?: string };
-    return apiError(err.code ?? "unauthorized", err.message ?? "Invalid API key.");
+    if (e instanceof ApiError) return apiError(e.code, e.message, e.retryAfterSec);
+    return apiError("unauthorized", "Invalid API key.");
   }
   const auth = req.headers.get("authorization")!;
   const server = buildServer(auth);

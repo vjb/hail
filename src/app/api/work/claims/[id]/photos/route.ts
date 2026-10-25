@@ -2,11 +2,16 @@ import { db } from "@/db/client";
 import { DomainError } from "@/domain/bounty/service";
 import { addProofPhoto } from "@/domain/work/work";
 import { currentUser } from "@/lib/auth";
+import { hit, LIMITS } from "@/lib/rate-limit";
 
 // Worker uploads one proof photo for a deliverable slot; returns the quick check result.
 export async function POST(req: Request, ctx: RouteContext<"/api/work/claims/[id]/photos">) {
   const user = await currentUser();
   if (!user || user.role !== "worker") return Response.json({ error: "Please sign in as a worker." }, { status: 401 });
+  const limited = hit(`photos:${user.id}`, LIMITS.photosPerWorker);
+  if (!limited.ok) {
+    return Response.json({ error: "You're uploading photos very quickly. Wait a few minutes and try again." }, { status: 429, headers: { "Retry-After": String(limited.retryAfterSec) } });
+  }
   const { id } = await ctx.params;
   let form: FormData;
   try {

@@ -20,6 +20,12 @@ Authorization: Bearer hail_sk_...
 
 Each key has a daily spending cap set by the owner. Keep keys secret.
 
+## Rate limits
+
+- Each API key can make **120 requests per minute**, across REST and MCP together (an MCP tool call may count twice). Over the limit you get `429 rate_limited` with a `Retry-After` header in seconds.
+- Repeated requests with a missing or invalid key are limited per client: after 20 in a minute, further requests get `429 rate_limited` until the minute is up.
+- Posting also has business limits set by the owner: the key's daily cap, bounties per hour and open bounties at a time. These return `429 rate_limited` too, with a `message` that says which limit applies.
+
 ## Idempotency
 
 For any `POST`, send a unique `Idempotency-Key` header (any string up to 64 characters). Repeating a request with the same key returns the original result instead of creating a duplicate. Use this when retrying after a network error.
@@ -212,7 +218,7 @@ Fetch the bounty for full details. Respond with any `2xx` within 10 seconds; oth
 | 409 | `invalid_state` | e.g. cancelling a claimed bounty |
 | 409 | `idempotency_conflict` | Same `Idempotency-Key` reused with a different body |
 | 402 | `insufficient_funds` | Balance too low |
-| 429 | `rate_limited` | Too many requests, or the daily cap is reached |
+| 429 | `rate_limited` | Too many requests (see `Retry-After`), or an owner limit such as the daily cap is reached |
 | 500 | `internal_error` | Something went wrong on our side; safe to retry with the same `Idempotency-Key` |
 
 ## MCP server

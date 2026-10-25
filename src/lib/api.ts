@@ -6,6 +6,7 @@ import { env } from "@/lib/env";
 import { desc } from "drizzle-orm";
 import { DomainError, finalScreening } from "@/domain/bounty/service";
 import { findActiveKey, type ApiKeyRecord } from "@/domain/keys/keys";
+import { clientIp, hit, isBlocked, LIMITS } from "@/lib/rate-limit";
 
 // Public API plumbing: documented error format (docs/public/api.md), bearer-key auth,
 // and Idempotency-Key handling. Public errors never include internals.
@@ -35,8 +36,9 @@ const STATUS: Record<ErrorCode, number> = {
 
 const HEADERS = { "Content-Type": "application/json; charset=utf-8", "Cache-Control": "no-store" };
 
-export function apiError(code: ErrorCode, message: string) {
-  return new Response(JSON.stringify({ error: { code, message } }), { status: STATUS[code], headers: HEADERS });
+export function apiError(code: ErrorCode, message: string, retryAfterSec?: number) {
+  const headers = retryAfterSec ? { ...HEADERS, "Retry-After": String(retryAfterSec) } : HEADERS;
+  return new Response(JSON.stringify({ error: { code, message } }), { status: STATUS[code], headers });
 }
 
 export function apiJson(body: unknown, status = 200) {
@@ -47,6 +49,7 @@ export class ApiError extends Error {
   constructor(
     readonly code: ErrorCode,
     message: string,
+    readonly retryAfterSec?: number,
   ) {
     super(message);
   }
@@ -58,7 +61,7 @@ export function handler<A extends unknown[]>(fn: (...args: A) => Promise<Respons
     try {
       return await fn(...args);
     } catch (e) {
-      if (e instanceof ApiError) return apiError(e.code, e.message);
+      if (e instanceof ApiError) return apiError(e.code, e.message, e.retryAfterSec);
       if (e instanceof DomainError) return apiError(e.code, e.message);
       console.error("[api] unhandled", e instanceof Error ? e.stack : e);
       return apiError("internal_error", "Something went wrong on our side. It's safe to retry with the same Idempotency-Key.");
@@ -67,12 +70,21 @@ export function handler<A extends unknown[]>(fn: (...args: A) => Promise<Respons
 }
 
 export async function authenticate(req: Request): Promise<ApiKeyRecord> {
+  const ipKey = `badkey:${clientIp(req.headers)}`;
+  const blocked = isBlocked(ipKey, LIMITS.badKeyPerIp);
+  if (blocked.blocked) throw new ApiError("rate_limited", `Too many requests with a missing or invalid API key. Try again in ${blocked.retryAfterSec} seconds.`, blocked.retryAfterSec);
+  const fail = (code: ErrorCode, message: string) => {
+    hit(ipKey, LIMITS.badKeyPerIp);
+    return new ApiError(code, message);
+  };
   const header = req.headers.get("authorization") ?? "";
   const m = /^Bearer\s+(\S+)$/i.exec(header);
-  if (!m) throw new ApiError("unauthorized", "Missing API key. Send Authorization: Bearer hail_sk_...");
+  if (!m) throw fail("unauthorized", "Missing API key. Send Authorization: Bearer hail_sk_...");
   const { key, revoked } = await findActiveKey(db(), m[1]);
-  if (revoked) throw new ApiError("forbidden", "This API key has been revoked.");
-  if (!key) throw new ApiError("unauthorized", "Invalid API key.");
+  if (revoked) throw fail("forbidden", "This API key has been revoked.");
+  if (!key) throw fail("unauthorized", "Invalid API key.");
+  const r = hit(`api:${key.id}`, LIMITS.apiPerKey);
+  if (!r.ok) throw new ApiError("rate_limited", `Too many requests. Each API key can make ${LIMITS.apiPerKey.limit} requests a minute. Try again in ${r.retryAfterSec} seconds.`, r.retryAfterSec);
   void db().update(apiKeys).set({ lastUsedAt: new Date() }).where(eq(apiKeys.id, key.id)).catch(() => {});
   return key;
 }

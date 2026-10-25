@@ -111,3 +111,8 @@ Context: Render requires a payment method for paid instances, and the human want
 Decision: `render.yaml` uses free plans for the web service and Postgres. Free plans have no pre-deploy command, so migrations and the idempotent seed run in `startCommand`. They have no cron jobs, so a GitHub Actions schedule (`.github/workflows/sweep.yml`, every 5 minutes) calls `/api/internal/sweep` with the sweep secret, which also keeps the web service awake.
 Consequences: Timers fire up to ~5 minutes late (GitHub schedules can lag further). A cold start takes about a minute. **The free database expires 30 days after creation (~Nov 23)**, so before judging (through Dec 15) the human adds a card and we switch back to paid plans, `preDeployCommand` and the Render cron, as the comment in `render.yaml` describes.
 
+## D-018 — Request rate limits in process memory (2026-10-24)
+Context: Day 13–14 hardening. Only business limits existed (daily cap, bounties per hour, open bounties). Sign-in, bad API keys and AI-backed photo checks had no throttle, and `api.md` already promised 429 for "too many requests".
+Decision: A fixed-window limiter in process memory (`src/lib/rate-limit.ts`). 120 requests/min per API key (REST and MCP), 20 bad-key requests/min per IP, 10 failed sign-ins per email and 50 per IP per 15 min (a success clears the email's count), 40 photo uploads per worker per 15 min. 429s carry `Retry-After`. Documented in `api.md`.
+Consequences: Hail runs a single web instance, so memory is enough. A restart forgets the counts, which only loosens limits briefly. IP comes from the first `X-Forwarded-For` entry, which is best effort; the per-email and per-key limits don't depend on it. If we ever run several instances, move the windows to Postgres.
+
