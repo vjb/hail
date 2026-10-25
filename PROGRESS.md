@@ -287,26 +287,20 @@ Gate evidence:
 - **Opaque-to-outsiders check (Day 13–14):** production build has no `X-Powered-By`, no source maps (`.map` 404, no comments), clean titles, no console calls in client code.
 - `npm test` **140/140** at the last commit.
 
-## Resume here (next session)
-1. Day 8 gate recorded (passed). **Live at https://hail-g9h8.onrender.com** on Render free plans (D-017): health OK, webhook `0UX03626T43587307` registered and set, GitHub sweep workflow ran successfully. Sample photos (HH-010) are in `C:\Users\vjbel\Downloads\hail-photos` and checked against the real verifier (good x3 pass, bad x3 fail); next, copy them into the repo, wire them into e2e (un-skip the happy path) and seed.
-2. Waiting on the human: HH-009 (phone test at the Render URL), a card on Render before ~Nov 20 so it can go paid (free DB expires ~Nov 23), the Discord join, and AG Studio activation on Nov 1 (Day 9 control room).
-3. Done since the deploy (2026-10-24 evening):
-   - Real sample photos in e2e (`e2e/photos`): happy path un-skipped and passing, appeal gets a real rejection. **17/17 e2e pass locally and against Render** (top-ups run first as a `funding` project).
-   - Demo story shows real proof photos (`src/db/demo-photos`); live demo reset works (4.4 s).
-   - Rate limits (D-018), documented in `api.md`. Live checks: forged webhook → 401, bad key → documented error, sweep without secret → 404.
-   - Loading, error and not-found boundaries for owner, worker and admin areas (`LoadingState` core component).
-   - Gemini roles 1 and 2 staged in `../hail-gemini/` (outside the repo): live keys `gemini-outside-dev` and `gemini-red-team` ($100/day caps) in each `HAIL.env`, fresh `api.md`, requester-agent repo cloned into workspace 1. Live owner topped up $200 (sandbox). **Don't run the demo reset while Gemini is testing: it deletes API keys and balances.** The live owner policy is raised to 100 open / 300 per hour for testing (a reset restores 20 / 30); the Day 19 submission checklist covers undoing it.
-   - Outside-developer round 1 (Gemini role 1): 7 findings, all fixed (issues #1–#7 closed, commit 2af8574). MCP schemas publish real limits; api.md clarified. Reports in `qa/processed/`. Workspace 1 has the new api.md. **Release notes wait for red-team round 1** so both testers get one `qa/release-notes/round-1.md`.
-   - Red team round 1 (Gemini role 2): 88 attempts, 18 flagged. Fixed: daily-cap race (critical), idempotency retry, screen-v3 (eval 84.4% → 100%, 67/67, zero false allows); 4 by design (D-019). Issues #8–#20 closed. All 15 bypass requests replayed on live and behave as intended. `qa/release-notes/round-1.md` and the new api.md are in workspaces 1 and 2 for round 2.
-   - Gemini briefs 3 (UAT) and 5 (design lab) updated for a shared live site: no resets, no admin login, real-length timers marked Blocked, control room Blocked until it exists, design lab gives tasks back instead of submitting. Persona "Sam" renamed "Kai" (the app already shows worker 1 as Sam). Role 6 master synced from the ws6 workspace.
-   - HH-009: the human first tested on the local dev server over the LAN (http://192.168…), where JS buttons don't work; redirected to the live URL.
-   - **Approved (D-020):** positioning "pay guaranteed, task screened, proof real"; proof you can trust; verify, then pay; Venmo. Spec and build plan updated: work runs Oct 25–31 (build plan "Ahead of schedule"), control room still from Nov 1.
-   - **Venmo spike (Oct 24):** PayPal sandbox rejects `recipient_wallet: Venmo` ("not supported in sandbox"). Venmo is cut (D-021). Next on the D-020 plan: in-app camera capture with a challenge code and a ~2-min window.
-   - **Camera capture done (D-023):** fresh code per photo (2 min, single use), in-page camera with the phone camera as fallback, quick check asks for a retake when the code isn't in the shot (verified with real Claude on the sample photos). 159 unit tests, 17/17 e2e. Verify-then-pay proven in sandbox (D-022): authorize → capture or void. Pitch rewritten around verify-then-pay. Round 3 brief drafted in workspace 1 (`BRIEF_ROUND3.md`, outside the repo).
-   - **verify-v2 done (D-024):** pays for the truth (item vs proof failures), per-photo proof checks shown to the owner, any doubt → owner review, photos without a code never auto-paid. Public result: `checklist_met`, per-item `reason`. `npm run eval:proof`: 6/6, zero auto-paid fakes; R1–R6 wait for real photos. 164 unit, 17/17 e2e.
-   - **Connect PayPal built (D-025),** off until the human enables Log in with PayPal on the sandbox app: one account per worker, unverified → owner review, owner "Report as not genuine" pauses the worker, admin can lift. 170 unit, 17/17 e2e.
-   - **Proof certificate + Content Credentials done (D-026):** `result.certificate_url`, fingerprints match the served bytes (e2e checks it), C2PA read before re-encoding. 174 unit, 17/17 e2e, production build OK.
-   - **Oct 25 PayPal setup (done by the agent):** Log in with PayPal on, `PAYPAL_LOGIN_ENABLED=true` live, Connect PayPal verified live with Sam. Seller (`sb-is02s53470435`) and agent business (`sb-t4ap453470450`) sandbox accounts + `hail-requester-agent` app created; escrow pattern proven (hold in own account → capture → payout to seller; or void). Workspace 1 `HAIL.env` + `BRIEF_ROUND3.md` updated; round 3 ready to run.
-   - **Oct 25:** demo workers Jordan/Riley; on-site location block (D-028); Nano Banana fakes added to the proof eval; file-picked photos now need owner review unless camera-signed (D-030). Proof eval 9/9, zero auto-paid fakes. 179 unit, 23 e2e.
-   Next without the human: refresh the screenshot manifest and take a run; README pass (setup, env, seeded accounts, how judges run it, license); review per-screen empty states.
-4. The local dev server (port 3000) and the ngrok tunnel run in the background. Restart them if the machine rebooted: `npx next dev -p 3000` and `ngrok http 3000`.
+## Resume here (next session) — updated 2026-10-25 midday
+**State:** Days 1–8 done plus the whole D-020 week built early (D-021 … D-030; see DECISIONS.md). Live at https://hail-g9h8.onrender.com (Render free; card needed before ~Nov 20). 179 unit, 23 e2e, proof eval 9/9 with zero auto-paid fakes (R1–R6 wait for real photos). Open issue: #24 (control room, Nov 1).
+
+**Gemini roles (workspaces in `../hail-gemini/`, outside the repo):**
+- **Finished, to triage next:** role 1 outside developer round 3 (`1-outside-developer/SUMMARY_ROUND3.md`, new `FRICTION_LOG.md` entries) and role 2 red team round 2 (`2-red-team/ROUND2.md`, `attempts.jsonl` now 152 lines). Pipeline: copy to `qa/inbox/` → GitHub issues (labels source:*, severity:*) → fix → `qa/processed/` → release notes → workspaces. Redact any passwords before copying into the repo.
+- **Still running:** 3 blind UAT round 1 (Sam/Alex), 5 design lab short round 2 (Jordan), 7 proof-fraud red team round 1 (Riley, new). **Hold deploys until they finish** (deploys restart the site and pollute results); batch fixes.
+- Later: 4 mock judge and 6 first impressions after the video (~Nov 9–10); full design-lab matrix once more ~Nov 6.
+
+**Demo plan (D-029):** NYC. Hero = used purchase with verify-then-pay (agent holds money in its own PayPal account → Hail bounty → capture + payout to seller, or void; D-022 amended), then a ~20 s Times Square scout. Shoot ~Nov 7–9 after the control room; item and camera person TBD. Gemini-built requester agent on screen.
+
+**Sandbox accounts:** Hail app (business sb-m2qad…), buyer sb-b63ke… (also the demo workers' PayPal; Sam connected it via Connect PayPal), seller sb-is02s53470435, requester-agent business sb-t4ap453470450 + app `hail-requester-agent` (keys only in workspace 1 HAIL.env). Log in with PayPal enabled; `PAYPAL_LOGIN_ENABLED=true` on Render. Demo workers: Sam, Alex, Jordan, Riley (one-tap sign-in; passwords only in env).
+
+**Waiting on the human:** real appliance photos for R1–R6, demo item + camera person, completing outside-developer bounties when asked, HH-009 phone test, AG Studio license Nov 1, Render card before ~Nov 20.
+
+**Next without the human:** triage roles 1 and 2 now; then 3/5/7 as they land; Day 9 control room from Nov 1. Before judging, undo test-period changes (build plan "Undo test-period changes").
+
+**Local:** dev server `npx next dev -p 3000` (restart after schema or native-module changes; never `next build` while it runs). Automation Chrome: port 9333, profile `C:/Users/vjbel/AppData/Local/hail-setup-chrome` (PayPal, Render, Gemini signed in).
