@@ -1,3 +1,5 @@
+import { readFile } from "node:fs/promises";
+import path from "node:path";
 import { eq, sql } from "drizzle-orm";
 import sharp from "sharp";
 import type { DB, Tx } from "@/db/client";
@@ -31,9 +33,11 @@ type Spec = {
   hoursAgo: number;
 };
 
-async function proofPhoto(label: string, color: string) {
-  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="960" height="720"><rect width="960" height="720" fill="${color}"/><text x="48" y="660" font-size="40" font-family="Arial" fill="#ffffff" opacity="0.85">${label}</text></svg>`;
-  return sharp(Buffer.from(svg)).jpeg({ quality: 70 }).toBuffer();
+// Sample proof photos for the demo story (src/db/demo-photos), one per photo deliverable.
+async function proofPhoto(name: string) {
+  const bytes = await readFile(path.join(process.cwd(), "src/db/demo-photos", `${name}.jpg`));
+  const { width = 0, height = 0 } = await sharp(bytes).metadata();
+  return { bytes, width, height };
 }
 
 async function backdate(tx: Tx, bountyId: string, hoursAgo: number) {
@@ -82,7 +86,7 @@ export async function seedHistory(database: DB, ids: { ownerId: string; worker1I
     return id;
   }
 
-  async function work(bountyId: string, workerId: string, results: ChecklistResult[], outcome: "pass" | "uncertain", colors: string[]) {
+  async function work(bountyId: string, workerId: string, results: ChecklistResult[], outcome: "pass" | "uncertain", photoFiles: string[]) {
     const [b] = await database.select().from(bounties).where(eq(bounties.id, bountyId));
     await database.transaction(async (tx) => {
       const claimId = newId("clm");
@@ -92,7 +96,8 @@ export async function seedHistory(database: DB, ids: { ownerId: string; worker1I
       for (const [i, d] of b.deliverables.entries()) {
         if (d.type !== "photo") continue;
         const pid = newId("ph");
-        await tx.insert(photos).values({ id: pid, ownerUserId: workerId, claimId, slot: i, mime: "image/jpeg", width: 960, height: 720, bytes: await proofPhoto(d.description, colors[i % colors.length]), check: { usable: true, problems: [], retakeHint: "" } });
+        const p = await proofPhoto(photoFiles[i % photoFiles.length]);
+        await tx.insert(photos).values({ id: pid, ownerUserId: workerId, claimId, slot: i, mime: "image/jpeg", width: p.width, height: p.height, bytes: p.bytes, check: { usable: true, problems: [], retakeHint: "" } });
         photoIds.push(pid);
       }
       const subId = newId("sub");
@@ -121,16 +126,16 @@ export async function seedHistory(database: DB, ids: { ownerId: string; worker1I
 
   // Paid, verified automatically.
   const bakery = await post({ title: "Confirm a bakery's opening hours", instructions: "Walk past Sunrise Bakery on 5th Street and photograph the opening hours posted on the door.", deliverables: [photo("Opening hours sign")], checklist: ["Opening hours are readable"], rewardCents: 800, category: "business_check", screen: { decision: "allow", rationale: "Photographing posted opening hours from the street is a safe public task." }, address: "5th Street, Springfield", hoursAgo: 52 });
-  await work(bakery, ids.worker1Id, [ok("Opening hours are readable", "The door sign reads Mon–Fri 7am–6pm.")], "pass", ["#7a5230"]);
+  await work(bakery, ids.worker1Id, [ok("Opening hours are readable", "The door sign reads Mon–Fri 7am–6pm.")], "pass", ["bakery-hours"]);
   await pay(bakery, ids.worker1Id);
 
   const oat = await post({ title: "Check the shelf price of oat milk", instructions: "In the dairy aisle of the Main St grocery store, photograph the shelf price tag for Oatly Barista 1L.", deliverables: [photo("Shelf price tag")], checklist: ["Price is legible", "Product name visible"], rewardCents: 600, category: "stock_or_price_check", screen: { decision: "allow", rationale: "Checking a shelf price in a public store is allowed." }, address: "Main St Grocery", hoursAgo: 30 });
-  await work(oat, ids.worker2Id, [ok("Price is legible", "Tag shows $4.99."), ok("Product name visible", "Oatly Barista 1L is on the tag.")], "pass", ["#3b6e8f"]);
+  await work(oat, ids.worker2Id, [ok("Price is legible", "Tag shows $4.99."), ok("Product name visible", "Oatly Barista 1L is on the tag.")], "pass", ["oat-price"]);
   await pay(oat, ids.worker2Id);
 
   // Paid after the owner reviewed unclear proof.
   const parking = await post({ title: "Photograph the parking signs on Oak Ave", instructions: "Photograph the street parking signs on both sides of the 300 block of Oak Ave.", deliverables: [photo("North side sign"), photo("South side sign")], checklist: ["North sign readable", "South sign readable"], rewardCents: 900, category: "place_photo", screen: { decision: "allow", rationale: "Photographing public street signs is allowed." }, address: "300 block of Oak Ave", hoursAgo: 20 });
-  await work(parking, ids.worker1Id, [ok("North sign readable", "Reads 2-hour parking 8am–6pm."), { item: "South sign readable", passed: null, reason: "Glare covers the bottom line.", confidence: 0.55 }], "uncertain", ["#4d6b3c", "#6b4d3c"]);
+  await work(parking, ids.worker1Id, [ok("North sign readable", "Reads 2-hour parking 8am–6pm."), { item: "South sign readable", passed: null, reason: "Glare covers the bottom line.", confidence: 0.55 }], "uncertain", ["parking-north", "parking-south"]);
   await pay(parking, ids.worker1Id, true);
 
   // Blocked by the safety screen; nothing was held.
@@ -139,7 +144,7 @@ export async function seedHistory(database: DB, ids: { ownerId: string; worker1I
   // Waiting on the owner: approval, and unclear proof.
   await post({ title: "Inspect a used piano", instructions: "At the music store showroom, photograph the piano's serial number and its keys.", deliverables: [photo("Serial number"), photo("Keys")], checklist: ["Serial number is legible"], rewardCents: 7500, category: "item_inspection", screen: { decision: "needs_owner_approval", rationale: "Needs your approval: the reward is at or above your $50.00 approval threshold." }, address: "Harmony Music, 88 Elm Rd", hoursAgo: 3 });
   const bike = await post({ title: "Check a bike's condition", instructions: "At the bike shop's sidewalk sale, photograph the frame and both tires of the blue Trek road bike tagged #14.", deliverables: [photo("Frame"), photo("Tires")], checklist: ["Frame visible", "Both tires visible"], rewardCents: 1500, category: "item_inspection", screen: { decision: "allow", rationale: "Inspecting an item for sale on a public sidewalk is allowed." }, address: "Spokes Bike Shop, 12 Pine St", hoursAgo: 2 });
-  await work(bike, ids.worker2Id, [ok("Frame visible", "Whole frame in view, no cracks visible."), { item: "Both tires visible", passed: null, reason: "Only the front tire is clearly in frame.", confidence: 0.5 }], "uncertain", ["#2e4a7a", "#555c66"]);
+  await work(bike, ids.worker2Id, [ok("Frame visible", "Whole frame in view, no cracks visible."), { item: "Both tires visible", passed: null, reason: "Only the front tire is clearly in frame.", confidence: 0.5 }], "uncertain", ["bike-frame", "bike-tires"]);
 
   // Open for workers: the demo's espresso machine, plus a quick one.
   await post({ title: "Inspect a used espresso machine", instructions: "Visit the seller at the listed address in their driveway. Photograph the serial number plate and the front panel while the machine is powered on.", deliverables: [photo("Serial number plate, readable"), photo("Front panel with power light on")], checklist: ["Serial number is legible", "Machine is visibly powered on", "Model matches the listing"], rewardCents: 2500, category: "item_inspection", screen: { decision: "allow", rationale: "Inspecting an item listed for sale, with the seller present, is an allowed task." }, address: "123 Main St, Springfield", product: ESPRESSO, hoursAgo: 0.2 });

@@ -18,7 +18,9 @@ export default defineConfig({
     screenshot: "only-on-failure",
     trace: "retain-on-failure",
   },
+  // Top-ups run first so tests that post tasks or withdraw have money on a freshly seeded database.
   projects: [
-    { name: "desktop", use: { ...devices["Desktop Chrome"], channel: process.env.PW_CHANNEL ?? "chrome", viewport: { width: 1440, height: 900 } } },
+    { name: "funding", testMatch: /topup\.spec\.ts/, use: { ...devices["Desktop Chrome"], channel: process.env.PW_CHANNEL ?? "chrome", viewport: { width: 1440, height: 900 } } },
+    { name: "desktop", testIgnore: /topup\.spec\.ts/, dependencies: ["funding"], use: { ...devices["Desktop Chrome"], channel: process.env.PW_CHANNEL ?? "chrome", viewport: { width: 1440, height: 900 } } },
   ],
 });
