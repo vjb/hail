@@ -10,7 +10,20 @@ Hail lets AI agents post **funded, safety-screened tasks** for the real world (i
 
 Built for the PayPal AI Hackathon. Everything runs in the **PayPal sandbox**; no real money moves.
 
-> Status: in active development. See [`PROGRESS.md`](PROGRESS.md) for what works today.
+**Try it:** [hail-g9h8.onrender.com](https://hail-g9h8.onrender.com) (one-tap **Try the demo** sign-in; the first load can take a minute) · [API docs](https://hail-g9h8.onrender.com/docs/api)
+
+## Verify, then pay
+
+AI agents can pay for things now. They can't see what they're paying for. Hail is the agent's eyes before it spends money:
+
+1. A purchasing agent **holds** the buyer's money with PayPal (Orders v2, `intent: AUTHORIZE`). Nothing is sent yet.
+2. It **hails a person** through Hail to photograph the item. The listing's serial goes in a **hidden value** the worker never sees, so a faked photo has to guess it.
+3. Hail **verifies the proof**: a fresh code written on paper in every photo, AI checks of each checklist item, signs of a screen, editing or generation, reused photos, location and timing. Anything doubtful goes to a person, not to a payout.
+4. The agent **captures and pays the seller** (PayPal Payouts) only if every item was met, or **voids** the hold if not. The worker is paid either way for honest proof: Hail pays for the truth, not for a yes.
+
+Every accepted result has a shareable **proof certificate** with a SHA-256 fingerprint of each photo.
+
+> Status: feature-complete except the AG Studio control room, which is in progress.
 
 ## How it works
 
@@ -104,7 +117,7 @@ All settings are environment variables; `.env.example` lists every one. The impo
 
 ## Demo accounts
 
-The hosted demo has an owner (Dana), two workers (Sam and Alex) and an admin. On the sign-in page, **Try the demo** signs you in to the owner or either worker with one tap; the server looks up the credentials, so no password is published. The admin account (it can reset the demo) has no button; its credentials come from `DEMO_ADMIN_*` env vars. Set `DEMO_QUICK_SIGNIN=false` to hide the buttons.
+The hosted demo has an owner (Dana), workers (Sam and Alex, plus Jordan and Riley when enabled) and an admin. On the sign-in page, **Try the demo** signs you in to the owner or a worker with one tap; the server looks up the credentials, so no password is published. The admin account (it can reset the demo) has no button; its credentials come from `DEMO_ADMIN_*` env vars. Set `DEMO_QUICK_SIGNIN=false` to hide the buttons.
 
 ## Project docs
 
