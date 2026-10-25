@@ -66,7 +66,9 @@ describe("bounty limits match validation", () => {
 describe("hidden values (D-034)", () => {
   it("checklist items can carry an expected value, mixed with plain strings", () => {
     expect(ok({ acceptance_checklist: ["Machine powers on", { item: "Serial matches the listing", expected: "X1-009871" }] })).toBe(true);
-    expect(ok({ acceptance_checklist: [{ item: "Serial matches the listing" }] })).toBe(true);
+    // FL-13: an object without `expected` is refused, not silently treated as a plain item.
+    expect(ok({ acceptance_checklist: [{ item: "Serial matches the listing" }] })).toBe(false);
+    expect(ok({ acceptance_checklist: [{ item: "Serial matches the listing", value: "X1" }] })).toBe(false);
     expect(ok({ acceptance_checklist: [{ item: "Serial", expected: "x".repeat(LIMITS.expected + 1) }] })).toBe(false);
     expect(ok({ acceptance_checklist: [{ item: "", expected: "X1" }] })).toBe(false);
     expect(ok({ acceptance_checklist: [{ expected: "X1" }] })).toBe(false);

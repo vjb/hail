@@ -53,7 +53,7 @@ export const createBountySchema = z.object({
   instructions: z.string({ error: "instructions is required" }).trim().min(1, "instructions is required").max(LIMITS.instructions, "instructions must be 2,000 characters or fewer"),
   deliverables: z.array(deliverable, { error: "deliverables must be an array" }).min(LIMITS.deliverables.min, "deliverables needs 1 to 5 items").max(LIMITS.deliverables.max, "deliverables needs 1 to 5 items"),
   acceptance_checklist: z
-    .array(z.union([checklistText, z.object({ item: checklistText, expected: expectedValue.optional() }, { error: "acceptance_checklist items must be strings or { item, expected } objects" })], { error: "acceptance_checklist items must be strings or { item, expected } objects" }), {
+    .array(z.union([checklistText, z.object({ item: checklistText, expected: expectedValue }, { error: "acceptance_checklist items must be strings or { item, expected } objects with both fields" })], { error: "acceptance_checklist items must be strings or { item, expected } objects" }), {
       error: "acceptance_checklist must be an array",
     })
     .min(LIMITS.checklist.min, "acceptance_checklist needs 1 to 8 items")

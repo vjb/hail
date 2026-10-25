@@ -60,19 +60,19 @@ export function ReviewButtons({ bountyId, title }: { bountyId: string; title: st
         <input id={`note-${bountyId}`} name="note" maxLength={500} placeholder="e.g. The serial plate is cut off" />
       </div>
       <Notice state={state} />
-      <div className="row">
-        <button type="submit" name="decision" value="approve" className="btn btn-primary" disabled={pending} aria-label={`Accept proof and pay: ${title}`}>
-          Accept and pay
-        </button>
-        <button type="submit" name="decision" value="reject" className="btn btn-danger" disabled={pending} aria-label={`Reject proof: ${title}`}>
-          Reject proof
-        </button>
-        {!confirmFake && (
+      {!confirmFake && (
+        <div className="row">
+          <button type="submit" name="decision" value="approve" className="btn btn-primary" disabled={pending} aria-label={`Accept proof and pay: ${title}`}>
+            Accept and pay
+          </button>
+          <button type="submit" name="decision" value="reject" className="btn btn-danger" disabled={pending} aria-label={`Reject proof: ${title}`}>
+            Reject proof
+          </button>
           <button type="button" className="btn btn-secondary" disabled={pending} aria-label={`Report proof as not genuine: ${title}`} onClick={() => setConfirmFake(true)}>
             Report as not genuine…
           </button>
-        )}
-      </div>
+        </div>
+      )}
       {confirmFake && (
         // A report pauses the worker's account, so it takes a second, explained step (DL-2-04).
         <div className="card card-tight stack-sm" role="group" aria-labelledby={`fake-${bountyId}`} style={{ borderColor: "var(--blocked)" }}>

@@ -52,7 +52,9 @@ export default async function TaskDetail({ params }: PageProps<"/owner/tasks/[id
   const final = [...screens].reverse().find((s) => s.layer === "final");
   const timeline: TimelineItem[] = events.map((e) => {
     const detail = e.detail as { event?: string; rationale?: string; note?: string };
-    return { at: e.createdAt, title: EVENT_TITLE[detail.event ?? ""] ?? e.toStatus, status: e.toStatus, why: detail.rationale ?? detail.note };
+    // A worker giving a task back uses the same transition as a lapsed reservation; say which (UAT-2-01).
+    const title = detail.event === "claim_expire" && e.actor.startsWith("worker:") ? "Given back by the worker; reopened" : (EVENT_TITLE[detail.event ?? ""] ?? e.toStatus);
+    return { at: e.createdAt, title, status: e.toStatus, why: detail.rationale ?? detail.note };
   });
 
   return (

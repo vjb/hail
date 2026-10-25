@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { BadgeCheck, LogOut } from "lucide-react";
-import { FormError } from "@/components/ui";
+import { Email, FormError } from "@/components/ui";
 import { requireRole } from "@/lib/auth";
 import { env } from "@/lib/env";
 import { db } from "@/db/client";
@@ -48,7 +48,7 @@ export default async function WorkerSettings({ searchParams }: { searchParams: P
             {w.paypalConnectedAt ? (
               <div className="stack-sm">
                 <p style={{ margin: 0 }}>
-                  Connected: <strong className="wrap-anywhere">{w.paypalEmail}</strong>
+                  Connected: <strong className="wrap-anywhere">{w.paypalEmail && <Email value={w.paypalEmail} />}</strong>
                 </p>
                 {w.paypalVerified ? (
                   <span className="pill pill-paid">

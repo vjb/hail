@@ -15,6 +15,7 @@ import {
   ShieldCheck,
   XCircle,
   type LucideIcon,
+  EyeOff,
 } from "lucide-react";
 import type { ChecklistResult } from "@/db/schema";
 
@@ -200,8 +201,8 @@ export function Checklist({ items, results, expected }: { items: string[]; resul
             <span>
               {item} <span className="visually-hidden">— {word}</span>
               {expected?.[i] && (
-                <span className="check-reason">
-                  Expected, hidden from the worker: <span className="mono">{expected[i]}</span>
+                <span className="check-reason row" style={{ gap: 4 }}>
+                  <EyeOff aria-hidden="true" style={{ width: 14, height: 14, marginTop: 0 }} /> Expected, hidden from the worker: <span className="mono">{expected[i]}</span>
                 </span>
               )}
               {r && (
@@ -279,5 +280,17 @@ export function FormError({ children }: { children: ReactNode }) {
       <AlertTriangle aria-hidden="true" width={18} height={18} />
       <span>{children}</span>
     </p>
+  );
+}
+
+/** An email that wraps at the @ on narrow screens instead of mid-domain (DL-3-03). */
+export function Email({ value }: { value: string }) {
+  const at = value.indexOf("@");
+  if (at < 0) return <>{value}</>;
+  return (
+    <>
+      {value.slice(0, at)}
+      <wbr />@{value.slice(at + 1)}
+    </>
   );
 }

@@ -241,3 +241,6 @@ Goal: tester results that can be cited to judges as independent evidence, not ju
 - Briefs describe goals and success criteria, never internals; each go.md gets a leak check before a round.
 - Known bias to remember: Claude writes the briefs and triages, and the repo is public, so "blind" means "told not to look".
 - agy (Antigravity CLI headless runs): later, after the control room; it saves the human's relay, not independence.
+
+## D-036 — A photo faster than a person can take it is a doubt (2026-10-25)
+From the mock judge's pre-review: a proof certificate showed a photo "2 s after its photo code appeared", which no person can do (write the code on paper, frame the shot, upload). A photo that arrives less than 8 s after its code was issued is now a doubt (owner review), never a block. Also: checklist objects must carry `expected` (FL-13), and `result.deliverables` documents the `location` entry (FL-14).

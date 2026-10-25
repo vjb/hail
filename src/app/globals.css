@@ -567,6 +567,8 @@ img {
     linear-gradient(to left, var(--surface) 30%, transparent) right / 32px 100% no-repeat local,
     linear-gradient(to right, var(--line), transparent) left / 12px 100% no-repeat scroll,
     linear-gradient(to left, var(--line), transparent) right / 12px 100% no-repeat scroll;
+  /* The shorthand resets the color; keep the card's own surface so the middle matches the edges (DL-3-01). */
+  background-color: var(--surface);
 }
 table.data {
   width: 100%;

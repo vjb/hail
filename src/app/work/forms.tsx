@@ -2,7 +2,7 @@
 
 import { useActionState, useEffect, useRef, useState } from "react";
 import { AlertTriangle, Camera, CheckCircle2, LoaderCircle, MapPin, RotateCcw } from "lucide-react";
-import { FormError, formatMoney } from "@/components/ui";
+import { Email, FormError, formatMoney } from "@/components/ui";
 import { checkLocation } from "@/lib/geo";
 import { appealAction, claimAction, paypalEmailAction, releaseAction, submitAction, type WorkState } from "./actions";
 
@@ -37,7 +37,7 @@ export function PayPalEmailForm({ current }: { current: string }) {
       {current && (
         // The full address, so a long one is never cut off at the input's edge (DL-1-07).
         <p style={{ margin: 0, overflowWrap: "anywhere" }}>
-          Paying to: <strong className="wrap-anywhere">{current}</strong>
+          Paying to: <strong className="wrap-anywhere"><Email value={current} /></strong>
         </p>
       )}
       <div className="field">

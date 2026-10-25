@@ -117,7 +117,13 @@ type PhotoRow = typeof photos.$inferSelect;
  */
 export async function submissionDoubts(database: DB, s: SubmissionRow, b: BountyRow, ordered: PhotoRow[]) {
   const doubts: string[] = [];
+  const chIds = ordered.map((p) => p.challengeId).filter((x): x is string => !!x);
+  const issued = chIds.length ? await database.select({ id: proofChallenges.id, issuedAt: proofChallenges.issuedAt }).from(proofChallenges).where(inArray(proofChallenges.id, chIds)) : [];
   for (const [i, p] of ordered.entries()) {
+    // Writing a code on paper and taking the photo takes a person longer than this; a script doesn't.
+    const ch = issued.find((c) => c.id === p.challengeId);
+    if (ch && p.createdAt.getTime() - ch.issuedAt.getTime() < MIN_HUMAN_CAPTURE_MS)
+      doubts.push(`Photo ${i + 1} arrived ${Math.max(0, Math.round((p.createdAt.getTime() - ch.issuedAt.getTime()) / 1000))} s after its code appeared, faster than a person can write the code and take the photo.`);
     if (p.check && p.check.usable === false) doubts.push(`Photo ${i + 1} was flagged when it was taken${p.check.problems.length ? `: ${p.check.problems.join(" ")}` : "."}`);
     if (p.dhash === null || p.dhash === undefined) continue;
     const same = await database
@@ -139,6 +145,9 @@ export async function submissionDoubts(database: DB, s: SubmissionRow, b: Bounty
     doubts.push(`The phone placed the worker ${loc.distanceM} m away, inside the ${loc.radiusM} m area only after allowing for poor location accuracy.`);
   return doubts;
 }
+
+/** Less time than this between a photo code appearing and the photo arriving is a doubt (judge pre-review). */
+export const MIN_HUMAN_CAPTURE_MS = 8_000;
 
 /** Verifies a submission whose bounty is `verifying`. Idempotent: does nothing if already decided. */
 export async function verifySubmission(database: DB, submissionId: string) {

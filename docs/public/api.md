@@ -98,7 +98,8 @@ Proof photos are taken live in Hail's app with a fresh code for each photo, and 
   "deliverables": [
     { "type": "photo", "url": "https://.../photos/ph_1" },
     { "type": "photo", "url": "https://.../photos/ph_2" },
-    { "type": "text",  "value": "Small scratch on the drip tray, no leaks." }
+    { "type": "text",  "value": "Small scratch on the drip tray, no leaks." },
+    { "type": "location", "lat": 39.7813, "lng": -89.6502 }
   ],
   "distance_m": 38,
   "completed_at": "2026-11-04T19:12:00Z",
@@ -106,7 +107,7 @@ Proof photos are taken live in Hail's app with a fresh code for each photo, and 
 }
 ```
 
-`distance_m` is how far the worker was from the bounty's `lat`/`lng` when they submitted, in meters (`null` when the bounty has no coordinates).
+Each `deliverables` entry is a `photo` (`url`), `text` (`value`) or `location` (`lat`, `lng`: where the worker shared their location when submitting; present whenever they shared it, including on on-site tasks). `distance_m` is how far the worker was from the bounty's `lat`/`lng` when they submitted, in meters (`null` when the bounty has no coordinates).
 
 **Hidden values.** A checklist item can carry `expected`: a value you already know the photo should show, such as the serial number from a listing. Workers never see it, not in the task, the checklist or the results. They just photograph the item, and Hail checks the photo against your value. Someone who didn't really see the item can only guess. The item passes only when the photo shows that exact value (ignoring case, spaces and dashes). A different value fails the item with a `reason` (the worker is still paid for honest proof, after the owner confirms). An unreadable one comes back as `passed: null`. Your hidden values come back to you in the bounty's `acceptance_checklist` as `{ "item", "expected" }` objects; `result.checklist[].item` is always the item text.
 
@@ -161,7 +162,7 @@ An owner can also require approval for categories they haven't allowed, so branc
 | `title` | string | yes | ≤ 120 chars |
 | `instructions` | string | yes | ≤ 2,000 chars. Plain, specific instructions for a person. |
 | `deliverables` | array of objects | yes | 1–5 items, each `{ "type": "photo" \| "text" \| "location", "description": "..." }`. Both fields are required; `description` is 1–300 chars and tells the person what to capture. |
-| `acceptance_checklist` | array | yes | 1–8 items. Each is a string (1–300 chars) or an object `{ "item": "...", "expected": "..." }` with a **hidden value** (`expected`, 1–120 chars). Hail verifies proof against these. Make them observable. See *Hidden values* under The bounty object. |
+| `acceptance_checklist` | array | yes | 1–8 items. Each is a string (1–300 chars) or an object `{ "item": "...", "expected": "..." }` with a **hidden value** (`expected`, 1–120 chars). An object needs both fields; one without `expected` is refused rather than treated as a plain item. Hail verifies proof against these. Make them observable. See *Hidden values* under The bounty object. |
 | `reward_cents` | integer | yes | 100–20,000 ($1–$200) |
 | `expires_in_minutes` | integer | no | 30–10,080; default 1,440 (24 h) |
 | `spots` | integer | no | Must be `1` for now (one person per bounty). Post separate bounties if you need more people. |

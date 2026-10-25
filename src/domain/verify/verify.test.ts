@@ -343,3 +343,28 @@ describe("hidden values (D-034)", () => {
     expect(row.checklistExpected).toEqual([null, "X1-009871"]);
   });
 });
+
+describe("photos too fast for a person (D-036)", () => {
+  it("a photo arriving 2 s after its code goes to the owner", async () => {
+    const ownerId = await makeUser("owner");
+    await db().transaction((t) => creditTopup(t, ownerId, 10000, "CAP-" + ownerId));
+    const key = await createApiKey(db(), { ownerId, name: "t", dailyCapCents: 100000 });
+    const b = await createBounty(db(), { ownerId, apiKeyId: key.id, dailyCapCents: 100000, actor: "agent:t" }, {
+      title: "Photograph a sign",
+      instructions: "Photograph the sign.",
+      deliverables: [{ type: "photo", description: "Sign" }],
+      acceptanceChecklist: ["Sign readable", "Store name visible"],
+      rewardCents: 500,
+      expiresInMinutes: 120,
+      spots: 1,
+    });
+    const worker = await makeUser("worker", { paypalEmail: "w@example.com" });
+    const { claimId } = await claimBounty(db(), worker, b.id);
+    await snapProof(db(), worker, claimId, 0, await uniquePhoto(), { secondsAfterCode: 2 });
+    const { submissionId } = await submitProof(db(), worker, claimId, {});
+    setAIProvider(fakeVerifier([true, true]));
+    const r = await verifySubmission(db(), submissionId);
+    expect(r?.result).toBe("uncertain");
+    expect(r?.rationale).toMatch(/faster than a person can write the code/);
+  });
+});
