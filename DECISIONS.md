@@ -182,3 +182,9 @@ Decision:
 ## D-027 — One-tap demo sign-in (2026-10-25) [HH: approved by the human]
 Context: Judges, testers and the human kept typing demo passwords; design lab DL-1-09 (#29).
 Decision: "Try the demo" buttons on /sign-in for the owner and both workers. The server action reads the demo credentials from env and signs in, so no password reaches the browser or the repo (e2e checks the page HTML). The admin account has no button because it can reset the demo. Limited per IP; `DEMO_QUICK_SIGNIN=false` hides it.
+
+## D-022 amended — Hold in the agent's own account, then pay the seller (2026-10-25)
+Finding: with a real sandbox seller (`payee` = a separate business account), capture works but **void is refused** (403 `NOT_AUTHORIZED` / `PERMISSION_DENIED`): only the payee can void a hold in its name without partner permissions.
+Decision: the requester agent authorizes to its **own** business account, then on a verified match captures and pays the seller with Payouts; otherwise it voids. Verified end to end in sandbox with the agent's own app (`hail-requester-agent`, business `sb-t4ap453470450`): $300 hold → capture `COMPLETED` → payout to the seller (`sb-is02s53470435`) `SUCCESS`; second hold → `VOIDED`.
+Also done 2026-10-25 (H1, by the agent with the human's go-ahead): Log in with PayPal enabled on the Hail sandbox app (email, verification status, payer ID; return URL `/work/paypal/callback`); `PAYPAL_LOGIN_ENABLED=true` on Render.
+Connect PayPal verified live 2026-10-25: demo worker Sam connected the sandbox buyer account → "PayPal connected", verified badge. PayPal's userinfo sent `user_id, sub, payer_id, verified_account, emails`, matching the parser (D-025's "unverified" note is resolved).
